@@ -82,7 +82,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-const PORT = process.env.PORT || 9640;
+const PORT = process.env.PORT || 9590;
 httpServer.listen(PORT, () => {
   console.log(`🚀 Chat server running on port ${PORT}`);
 });

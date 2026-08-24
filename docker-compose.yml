@@ -31,12 +31,12 @@ services:
       context: ./server
       dockerfile: Dockerfile
     ports:
-      - "9640:9640"
+      - "9590:9590"
     restart: unless-stopped
     env_file:
       - .env
     environment:
       - NODE_ENV=production
-      - PORT=9640
+      - PORT=9590
       - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
       - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
