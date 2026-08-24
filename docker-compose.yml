@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # Frontend Service (PWA + React 19 + Nginx)
+  # ==========================================
+  frontend:
+    container_name: medcytech-hrms-frontend
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+    ports:
+      - "9580:80"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - backend
+
+  # ==========================================
+  # Backend Service (Real-time Socket.IO Server)
+  # ==========================================
+  backend:
+    container_name: medcytech-hrms-backend
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "9640:9640"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=9640
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
