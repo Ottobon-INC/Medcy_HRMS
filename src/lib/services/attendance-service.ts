@@ -254,3 +254,63 @@ export async function updateAttendanceRecord(
     if (error) throw error;
   }
 }
+
+export interface EmployeeCheckInLocation {
+  id: string;
+  employeeId: string;
+  latitude: number;
+  longitude: number;
+  checkInTime: string;
+  checkOutTime: string | null;
+  locationName?: string;
+  photoUrl?: string;
+  punchType?: PunchType;
+  punchNote?: string;
+  status: string;
+}
+
+export async function getTodayCheckInLocations(dateStr?: string): Promise<EmployeeCheckInLocation[]> {
+  const targetDate = dateStr || new Date().toISOString().split('T')[0];
+  try {
+    const { data, error } = await supabase
+      .from('HRMS_attendance')
+      .select('id, employee_id, check_in_lat_lng, check_in_time, check_out_time, check_in_location, check_in_photo_url, punch_type, punch_note, status')
+      .eq('date', targetDate)
+      .not('check_in_lat_lng', 'is', null);
+
+    if (error) {
+      console.error('Error fetching check-in locations:', error);
+      return [];
+    }
+
+    const locations: EmployeeCheckInLocation[] = [];
+    for (const row of data || []) {
+      if (!row.check_in_lat_lng) continue;
+      const parts = row.check_in_lat_lng.split(',');
+      if (parts.length === 2) {
+        const lat = parseFloat(parts[0].trim());
+        const lng = parseFloat(parts[1].trim());
+        if (!isNaN(lat) && !isNaN(lng) && (lat !== 0 || lng !== 0)) {
+          locations.push({
+            id: row.id,
+            employeeId: row.employee_id,
+            latitude: lat,
+            longitude: lng,
+            checkInTime: row.check_in_time,
+            checkOutTime: row.check_out_time,
+            locationName: row.check_in_location,
+            photoUrl: row.check_in_photo_url,
+            punchType: row.punch_type,
+            punchNote: row.punch_note,
+            status: row.status
+          });
+        }
+      }
+    }
+    return locations;
+  } catch (err) {
+    console.error('Unexpected error in getTodayCheckInLocations:', err);
+    return [];
+  }
+}
+

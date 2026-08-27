@@ -79,3 +79,38 @@ export interface FieldVisitEvent {
   metadata?: Record<string, any>;
   synced: boolean;
 }
+
+export type PinCategory =
+  | 'Patient Home'
+  | 'Clinic Entrance'
+  | 'Sample Collected'
+  | 'Lab Drop-off'
+  | 'Delivery Point'
+  | 'Exception Site'
+  | 'Other';
+
+export interface FieldVisitPin {
+  id: string;
+  visitId: string;
+  employeeId: string;
+  latitude: number;
+  longitude: number;
+  category: PinCategory | string;
+  label?: string;
+  note?: string;
+  photoUrl?: string;
+  pinnedAt: string;
+}
+
+export interface FieldVisitPosition {
+  id: string;
+  visitId: string;
+  employeeId: string;
+  latitude: number;
+  longitude: number;
+  heading?: number;
+  speedKmh?: number;
+  accuracyM?: number;
+  recordedAt: string;
+}
+

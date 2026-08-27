@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Edit3, Trash2, ArrowLeft, Calendar, Moon, Landmark, User, Mail, IndianRupee, CalendarDays, Eye, EyeOff, Power, FileText, Printer } from 'lucide-react';
+import { Plus, Edit3, Trash2, ArrowLeft, Calendar, Moon, Landmark, User, Mail, IndianRupee, CalendarDays, Eye, EyeOff, Power, FileText, Printer, X } from 'lucide-react';
 import { Language, Employee, LeaveType } from '../types';
 import { translations } from '../translations';
 import AttendanceModule from './AttendanceModule';
@@ -612,11 +612,22 @@ export default function EmployeeDirectory({
 
       {/* --- ADD EMPLOYEE DIALOG MODAL --- */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-[32px] w-full max-w-lg p-6 sm:p-8 shadow-xl animate-scaleUp">
-            <h3 className="text-lg font-bold text-slate-800 mb-6">{dirText.addTitle}</h3>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-[28px] sm:rounded-[32px] w-full max-w-lg shadow-2xl animate-scaleUp flex flex-col max-h-[90vh] my-auto overflow-hidden border border-slate-100">
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 pb-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="text-lg font-bold text-slate-800">{dirText.addTitle}</h3>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             
-            <form onSubmit={handleAddSubmit} className="space-y-4">
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleAddSubmit} className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{dirText.labelName}</label>
                 <div className="relative">
@@ -743,9 +754,10 @@ export default function EmployeeDirectory({
                   className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/10 text-slate-700"
                 />
               </div>
+
               <div className="pt-2 pb-2 mt-4 border-t border-slate-100">
                 <h4 className="text-xs font-bold text-slate-800 mb-3">{t.bankDetails || 'Bank Details'}</h4>
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-2 gap-4 mb-2">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t.bankName || 'Bank Name'}</label>
                     <input type="text" value={formBankName} onChange={e => setFormBankName(e.target.value)} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/10 text-slate-700" />
@@ -794,17 +806,18 @@ export default function EmployeeDirectory({
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4">
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer"
                 >
                   {t.cancel}
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer"
+                  className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer shadow-md shadow-teal-600/20"
                 >
                   {dirText.btnSave}
                 </button>
@@ -816,11 +829,22 @@ export default function EmployeeDirectory({
 
       {/* --- EDIT EMPLOYEE DIALOG MODAL --- */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-[32px] w-full max-w-lg p-6 sm:p-8 shadow-xl animate-scaleUp">
-            <h3 className="text-lg font-bold text-slate-800 mb-6">{dirText.editTitle}</h3>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto">
+          <div className="bg-white rounded-[28px] sm:rounded-[32px] w-full max-w-lg shadow-2xl animate-scaleUp flex flex-col max-h-[90vh] my-auto overflow-hidden border border-slate-100">
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 pb-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="text-lg font-bold text-slate-800">{dirText.editTitle}</h3>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             
-            <form onSubmit={handleEditSubmit} className="space-y-4">
+            {/* Scrollable Form Body */}
+            <form onSubmit={handleEditSubmit} className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{dirText.labelName}</label>
                 <div className="relative">
@@ -950,7 +974,7 @@ export default function EmployeeDirectory({
 
               <div className="pt-2 pb-2 mt-4 border-t border-slate-100">
                 <h4 className="text-xs font-bold text-slate-800 mb-3">{t.bankDetails || 'Bank Details'}</h4>
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="grid grid-cols-2 gap-4 mb-2">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t.bankName || 'Bank Name'}</label>
                     <input type="text" value={formBankName} onChange={e => setFormBankName(e.target.value)} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/10 text-slate-700" />
@@ -999,11 +1023,12 @@ export default function EmployeeDirectory({
                 </div>
               </div>
 
+              {/* Action Buttons */}
               <div className="flex justify-between items-center gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={handlePermanentDelete}
-                  className="px-4 py-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="px-4 py-2.5 text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   <Trash2 className="w-4 h-4" />
                   {language === 'te' ? 'శాశ్వతంగా తొలగించండి' : 'Permanent Delete'}
@@ -1012,13 +1037,13 @@ export default function EmployeeDirectory({
                   <button
                     type="button"
                     onClick={() => setShowEditModal(false)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer"
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer"
                   >
                     {t.cancel}
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer"
+                    className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold uppercase transition-colors cursor-pointer shadow-md shadow-teal-600/20"
                   >
                     {dirText.btnSave}
                   </button>

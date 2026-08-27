@@ -23,6 +23,7 @@ import { AppMobileNav } from './components/layout/AppMobileNav';
 import { AppRouter } from './components/layout/AppRouter';
 import { PwaInstallPrompt } from './components/shared/PwaInstallPrompt';
 import { OfflineIndicator } from './components/shared/OfflineIndicator';
+import { LiveTrackingProvider } from './contexts/LiveTrackingContext';
 
 export default function App() {
   // Pure English for Medcytech HRMS
@@ -241,96 +242,98 @@ export default function App() {
   }
 
   return (
-    <div id="app-root-shell" className="min-h-screen bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900 pb-16 lg:pb-0">
-      <OfflineIndicator />
-      <PwaInstallPrompt />
-      
-      {/* 1. Header Navigation Bar */}
-      <AppHeader
-        currentUser={currentUser}
-        onOpenProfile={() => setShowProfileModal(true)}
-        onLogout={handleLogout}
-        onLogoClick={() => setActiveTab(currentUser.role === 'admin' ? 'adminDashboard' : 'dashboard')}
-      />
-
-      {/* User Profile View / Edit Modal */}
-      {showProfileModal && (
-        <UserProfileModal
-          language={language}
-          currentUser={currentUser}
-          onClose={() => setShowProfileModal(false)}
-          onUpdatePassword={async (newPassword) => {
-            await updateEmployee(currentUser.id, { password: newPassword });
-          }}
-        />
-      )}
-
-      {/* 2. Body Grid / Sidebar Layout */}
-      <div id="portal-body-wrapper" className="flex-1 w-full mx-auto px-4 sm:px-6 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 print:p-0 print:m-0">
+    <LiveTrackingProvider currentUser={currentUser}>
+      <div id="app-root-shell" className="min-h-screen bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900 pb-16 lg:pb-0">
+        <OfflineIndicator />
+        <PwaInstallPrompt />
         
-        {/* Desktop Sidebar Navigation */}
-        <AppSidebar
+        {/* 1. Header Navigation Bar */}
+        <AppHeader
+          currentUser={currentUser}
+          onOpenProfile={() => setShowProfileModal(true)}
+          onLogout={handleLogout}
+          onLogoClick={() => setActiveTab(currentUser.role === 'admin' ? 'adminDashboard' : 'dashboard')}
+        />
+
+        {/* User Profile View / Edit Modal */}
+        {showProfileModal && (
+          <UserProfileModal
+            language={language}
+            currentUser={currentUser}
+            onClose={() => setShowProfileModal(false)}
+            onUpdatePassword={async (newPassword) => {
+              await updateEmployee(currentUser.id, { password: newPassword });
+            }}
+          />
+        )}
+
+        {/* 2. Body Grid / Sidebar Layout */}
+        <div id="portal-body-wrapper" className="flex-1 w-full mx-auto px-4 sm:px-6 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 print:p-0 print:m-0">
+          
+          {/* Desktop Sidebar Navigation */}
+          <AppSidebar
+            currentUser={currentUser}
+            activeTab={activeTab}
+            onSelectTab={setActiveTab}
+          />
+
+          {/* Primary Content Router */}
+          <main id="portal-primary-content" className="lg:col-span-9 print:col-span-12">
+            <React.Suspense fallback={
+              <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
+                <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">Loading Module...</p>
+              </div>
+            }>
+              <AppRouter
+                activeTab={activeTab}
+                language={language}
+                currentUser={currentUser}
+                employees={employees}
+                isLocalMode={isLocalMode}
+                tasks={tasks}
+                noDataText={t.noData}
+                setActiveTab={setActiveTab}
+                onToggleCheckIn={(userId, isCheckedIn, photoData, punchType, punchNote) =>
+                  toggleCheckIn(userId, isCheckedIn, photoData, punchType, punchNote)
+                }
+                onAddPin={addPin}
+                onApplyLeave={applyLeave}
+                onApproveLeave={approveLeave}
+                onRejectLeave={rejectLeave}
+                onSubmitAdvance={submitAdvance}
+                onApproveAdvance={approveAdvance}
+                onRejectAdvance={rejectAdvance}
+                onAddEmployee={addEmployee}
+                onUpdateEmployee={updateEmployee}
+                onDeleteEmployee={deleteEmployee}
+                onUpdateBalances={updateBalances}
+                onUpdateAttendance={updateAttendance}
+                onForceCloseSession={forceCloseSession}
+                onRunBulkPayroll={(month) => runBulkPayroll(employees, month)}
+                onGenerateSinglePayslip={generateSinglePayslip}
+                onUpdatePayslip={updatePayslip}
+                onCreateTask={createTask}
+                onUpdateTask={updateTask}
+                onDeleteTask={deleteTask}
+                onUpdateTaskStatus={updateTaskStatus}
+              />
+            </React.Suspense>
+          </main>
+
+        </div>
+
+        {/* 3. Mobile Bottom Navigation Panel */}
+        <AppMobileNav
           currentUser={currentUser}
           activeTab={activeTab}
           onSelectTab={setActiveTab}
         />
 
-        {/* Primary Content Router */}
-        <main id="portal-primary-content" className="lg:col-span-9 print:col-span-12">
-          <React.Suspense fallback={
-            <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
-              <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">Loading Module...</p>
-            </div>
-          }>
-            <AppRouter
-              activeTab={activeTab}
-              language={language}
-              currentUser={currentUser}
-              employees={employees}
-              isLocalMode={isLocalMode}
-              tasks={tasks}
-              noDataText={t.noData}
-              setActiveTab={setActiveTab}
-              onToggleCheckIn={(userId, isCheckedIn, photoData, punchType, punchNote) =>
-                toggleCheckIn(userId, isCheckedIn, photoData, punchType, punchNote)
-              }
-              onAddPin={addPin}
-              onApplyLeave={applyLeave}
-              onApproveLeave={approveLeave}
-              onRejectLeave={rejectLeave}
-              onSubmitAdvance={submitAdvance}
-              onApproveAdvance={approveAdvance}
-              onRejectAdvance={rejectAdvance}
-              onAddEmployee={addEmployee}
-              onUpdateEmployee={updateEmployee}
-              onDeleteEmployee={deleteEmployee}
-              onUpdateBalances={updateBalances}
-              onUpdateAttendance={updateAttendance}
-              onForceCloseSession={forceCloseSession}
-              onRunBulkPayroll={(month) => runBulkPayroll(employees, month)}
-              onGenerateSinglePayslip={generateSinglePayslip}
-              onUpdatePayslip={updatePayslip}
-              onCreateTask={createTask}
-              onUpdateTask={updateTask}
-              onDeleteTask={deleteTask}
-              onUpdateTaskStatus={updateTaskStatus}
-            />
-          </React.Suspense>
-        </main>
+        {/* Spacing compensation on mobile */}
+        <div className="h-16 lg:hidden no-print" />
 
       </div>
-
-      {/* 3. Mobile Bottom Navigation Panel */}
-      <AppMobileNav
-        currentUser={currentUser}
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-      />
-
-      {/* Spacing compensation on mobile */}
-      <div className="h-16 lg:hidden no-print" />
-
-    </div>
+    </LiveTrackingProvider>
   );
 }
