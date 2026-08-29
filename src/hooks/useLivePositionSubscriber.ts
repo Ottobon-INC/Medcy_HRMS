@@ -7,9 +7,9 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 
 /**
  * Admin-side hook to subscribe to Supabase Realtime broadcast channels
- * for all actively EN_ROUTE visits, maintaining a live registry of agent positions.
+ * for actively tracked employees, maintaining a live registry of agent positions.
  */
-export function useLivePositionSubscriber(visits: FieldVisit[]) {
+export function useLivePositionSubscriber(employeeIdsToTrack: string[]) {
   const [livePositions, setLivePositions] = useState<Record<string, LivePositionPayload>>({});
   const activeChannelsRef = useRef<Map<string, RealtimeChannel>>(new Map());
 
@@ -18,50 +18,44 @@ export function useLivePositionSubscriber(visits: FieldVisit[]) {
       return;
     }
 
-    // Find all visits that are currently EN_ROUTE (or active in transit)
-    const enRouteVisitIds = new Set(
-      visits
-        .filter(v => v.status === 'EN_ROUTE')
-        .map(v => v.id)
-    );
-
+    const trackSet = new Set(employeeIdsToTrack);
     const currentChannels = activeChannelsRef.current;
 
-    // 1. Remove subscriptions for visits no longer EN_ROUTE
-    for (const [visitId, channel] of currentChannels.entries()) {
-      if (!enRouteVisitIds.has(visitId)) {
+    // 1. Remove subscriptions for employees no longer tracked
+    for (const [empId, channel] of currentChannels.entries()) {
+      if (!trackSet.has(empId)) {
         supabase.removeChannel(channel);
-        currentChannels.delete(visitId);
+        currentChannels.delete(empId);
         setLivePositions(prev => {
           const updated = { ...prev };
-          delete updated[visitId];
+          delete updated[empId];
           return updated;
         });
       }
     }
 
-    // 2. Add subscriptions for newly EN_ROUTE visits
-    for (const visitId of enRouteVisitIds) {
-      if (!currentChannels.has(visitId)) {
-        const channel = supabase.channel(`field-live:${visitId}`, {
+    // 2. Add subscriptions for newly tracked employees
+    for (const empId of trackSet) {
+      if (!currentChannels.has(empId)) {
+        const channel = supabase.channel(`field-live:emp:${empId}`, {
           config: { broadcast: { self: false } }
         });
 
         channel
           .on('broadcast', { event: 'position' }, ({ payload }: { payload: LivePositionPayload }) => {
-            if (payload && payload.visitId === visitId) {
+            if (payload && payload.employeeId === empId) {
               setLivePositions(prev => ({
                 ...prev,
-                [visitId]: payload
+                [empId]: payload
               }));
             }
           })
           .subscribe();
 
-        currentChannels.set(visitId, channel);
+        currentChannels.set(empId, channel);
       }
     }
-  }, [visits]);
+  }, [employeeIdsToTrack]);
 
   // Cleanup on unmount
   useEffect(() => {

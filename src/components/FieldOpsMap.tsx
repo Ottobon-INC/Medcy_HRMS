@@ -1,5 +1,5 @@
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import React, { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { FieldVisit, Employee, FieldVisitPin } from '../types';
@@ -30,6 +30,26 @@ let DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
+// Subcomponent to handle smooth animated flyTo whenever focused location changes
+function MapFlyToController({
+  target
+}: {
+  target?: { lat: number; lng: number; zoom?: number; id?: string } | null;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (target && target.lat && target.lng) {
+      map.flyTo([target.lat, target.lng], target.zoom || 16, {
+        duration: 1.4,
+        easeLinearity: 0.25
+      });
+    }
+  }, [target, map]);
+
+  return null;
+}
+
 // Legacy colored icons for non-live mode or static pins
 const createLegacyIcon = (color: string) => {
   return L.divIcon({
@@ -53,6 +73,7 @@ interface VisitMarkerProps {
   employeeName: string;
   isLiveTrackingEnabled: boolean;
   intervalMs: number;
+  isFocused?: boolean;
 }
 
 const VisitMarker: React.FC<VisitMarkerProps> = ({
@@ -60,8 +81,11 @@ const VisitMarker: React.FC<VisitMarkerProps> = ({
   livePosition,
   employeeName,
   isLiveTrackingEnabled,
-  intervalMs
+  intervalMs,
+  isFocused
 }) => {
+  const markerRef = useRef<L.Marker | null>(null);
+
   const targetPos = (isLiveTrackingEnabled && livePosition)
     ? { lat: livePosition.lat, lng: livePosition.lng }
     : null;
@@ -72,6 +96,12 @@ const VisitMarker: React.FC<VisitMarkerProps> = ({
   const lng = interpolatedPos?.lng ?? livePosition?.lng ?? visit.actualLongitude ?? visit.assignedLongitude;
   const heading = livePosition?.heading ?? 0;
 
+  useEffect(() => {
+    if (isFocused && markerRef.current) {
+      markerRef.current.openPopup();
+    }
+  }, [isFocused]);
+
   if (!lat || !lng) return null;
 
   const markerIcon = isLiveTrackingEnabled
@@ -79,7 +109,7 @@ const VisitMarker: React.FC<VisitMarkerProps> = ({
     : createLegacyIcon(getStatusColor(visit.status, visit.locationException));
 
   return (
-    <Marker position={[lat, lng]} icon={markerIcon}>
+    <Marker ref={markerRef} position={[lat, lng]} icon={markerIcon}>
       <Popup>
         <div className="text-xs p-1 min-w-[170px]">
           <strong className="block text-sm text-slate-800 mb-1">{employeeName}</strong>
@@ -121,6 +151,92 @@ const VisitMarker: React.FC<VisitMarkerProps> = ({
   );
 };
 
+interface CheckInMarkerProps {
+  checkIn: EmployeeCheckInLocation;
+  employee?: Employee;
+  isFocused?: boolean;
+}
+
+const CheckInMarker: React.FC<CheckInMarkerProps> = ({ checkIn, employee, isFocused }) => {
+  const markerRef = useRef<L.Marker | null>(null);
+  const isCurrentlyActive = checkIn.checkOutTime === null;
+
+  useEffect(() => {
+    if (isFocused && markerRef.current) {
+      markerRef.current.openPopup();
+    }
+  }, [isFocused]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[checkIn.latitude, checkIn.longitude]}
+      icon={createCheckInMarkerIcon(isCurrentlyActive, employee?.name)}
+    >
+      <Popup>
+        <div className="text-xs p-1 min-w-[190px]">
+          <div className="flex items-center justify-between gap-2 mb-1.5">
+            <strong className="text-sm text-slate-800">{employee?.name || checkIn.employeeId}</strong>
+            <span
+              className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md ${
+                isCurrentlyActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              {isCurrentlyActive ? 'On Shift' : 'Clocked Out'}
+            </span>
+          </div>
+
+          {employee?.designation && (
+            <span className="block text-[10px] text-slate-500 font-medium mb-2">
+              {employee.designation}
+            </span>
+          )}
+
+          <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 space-y-1 mb-2">
+            <div className="flex justify-between text-[10px]">
+              <span className="text-slate-400 font-bold uppercase">Punch In</span>
+              <span className="font-bold text-slate-700">{checkIn.checkInTime}</span>
+            </div>
+            {checkIn.checkOutTime && (
+              <div className="flex justify-between text-[10px]">
+                <span className="text-slate-400 font-bold uppercase">Punch Out</span>
+                <span className="font-bold text-slate-700">{checkIn.checkOutTime}</span>
+              </div>
+            )}
+            {checkIn.punchType && (
+              <div className="flex justify-between text-[10px]">
+                <span className="text-slate-400 font-bold uppercase">Type</span>
+                <span className="font-bold text-slate-600 capitalize">
+                  {checkIn.punchType.replace(/_/g, ' ')}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {checkIn.locationName && (
+            <p className="text-[10px] text-slate-500 mb-1 line-clamp-2">
+              📍 {checkIn.locationName}
+            </p>
+          )}
+
+          {checkIn.photoUrl && (
+            <div className="mt-2 pt-1 border-t border-slate-100">
+              <span className="block text-[9px] font-bold text-slate-400 uppercase mb-1">
+                Check-in Photo
+              </span>
+              <img
+                src={checkIn.photoUrl}
+                alt="Check-in proof"
+                className="w-full h-20 object-cover rounded-lg border border-slate-200 shadow-sm"
+              />
+            </div>
+          )}
+        </div>
+      </Popup>
+    </Marker>
+  );
+};
+
 interface FieldOpsMapProps {
   visits: FieldVisit[];
   employees: Employee[];
@@ -129,6 +245,7 @@ interface FieldOpsMapProps {
   trails?: Record<string, [number, number][]>;
   pins?: FieldVisitPin[];
   checkIns?: EmployeeCheckInLocation[];
+  focusedLocation?: { lat: number; lng: number; zoom?: number; id?: string } | null;
 }
 
 export default function FieldOpsMap({
@@ -138,7 +255,8 @@ export default function FieldOpsMap({
   routes = {},
   trails = {},
   pins = [],
-  checkIns = []
+  checkIns = [],
+  focusedLocation = null
 }: FieldOpsMapProps) {
   const isLiveEnabled = fieldOpsConfig.liveTrackingEnabled;
 
@@ -147,17 +265,26 @@ export default function FieldOpsMap({
 
   // Find a valid center for the map based on visits, check-ins, or fallback to config defaultCenter
   const visitWithCoords = visits.find(
-    v => (livePositions[v.id]?.lat && livePositions[v.id]?.lng) ||
-         (v.actualLatitude && v.actualLongitude) ||
-         (v.assignedLatitude && v.assignedLongitude)
+    v =>
+      (livePositions[v.employeeId]?.lat && livePositions[v.employeeId]?.lng) ||
+      (v.actualLatitude && v.actualLongitude) ||
+      (v.assignedLatitude && v.assignedLongitude)
   );
 
   const firstCheckIn = checkIns.find(c => c.latitude && c.longitude);
+  
+  const firstLivePos = Object.values(livePositions).find(pos => pos.lat && pos.lng);
 
-  const mapCenter: [number, number] = visitWithCoords
+  const mapCenter: [number, number] = firstLivePos
+    ? [firstLivePos.lat, firstLivePos.lng]
+    : visitWithCoords
     ? [
-        (livePositions[visitWithCoords.id]?.lat || visitWithCoords.actualLatitude || visitWithCoords.assignedLatitude)!,
-        (livePositions[visitWithCoords.id]?.lng || visitWithCoords.actualLongitude || visitWithCoords.assignedLongitude)!
+        (livePositions[visitWithCoords.employeeId]?.lat ||
+          visitWithCoords.actualLatitude ||
+          visitWithCoords.assignedLatitude)!,
+        (livePositions[visitWithCoords.employeeId]?.lng ||
+          visitWithCoords.actualLongitude ||
+          visitWithCoords.assignedLongitude)!
       ]
     : firstCheckIn
     ? [firstCheckIn.latitude, firstCheckIn.longitude]
@@ -177,13 +304,16 @@ export default function FieldOpsMap({
           subdomains={fieldOpsConfig.tileSubdomains}
         />
 
+        {/* Dynamic Fly-To Controller */}
+        <MapFlyToController target={focusedLocation} />
+
         {/* 1. Render Traveled Breadcrumb Trails (Teal Dashed Polyline) */}
         {isLiveEnabled &&
-          Object.entries(trails).map(([visitId, trailCoords]) => {
+          Object.entries(trails).map(([empId, trailCoords]) => {
             if (!trailCoords || trailCoords.length < 2) return null;
             return (
               <Polyline
-                key={`trail-${visitId}`}
+                key={`trail-${empId}`}
                 positions={trailCoords}
                 pathOptions={{
                   color: '#14b8a6', // Teal trail line
@@ -197,13 +327,21 @@ export default function FieldOpsMap({
             );
           })}
 
-        {/* 2. Render OSRM Planned Route Polylines for En-Route visits */}
+        {/* 2. Render OSRM Planned Route Polylines for Active / Assigned visits */}
         {isLiveEnabled &&
           visits.map(visit => {
             const route = routes[visit.id];
-            if (visit.status !== 'EN_ROUTE' || !route || !route.polylineCoords || route.polylineCoords.length === 0) {
+            // Render route for any active/assigned visit that hasn't completed/failed yet
+            if (
+              (visit.status === 'COMPLETED' || visit.status === 'CANCELLED') ||
+              !route ||
+              !route.polylineCoords ||
+              route.polylineCoords.length === 0
+            ) {
               return null;
             }
+
+            const isEnRoute = visit.status === 'EN_ROUTE';
 
             return (
               <React.Fragment key={`route-${visit.id}`}>
@@ -222,10 +360,10 @@ export default function FieldOpsMap({
                 <Polyline
                   positions={route.polylineCoords}
                   pathOptions={{
-                    color: '#0284c7', // Sky-600 / Bright route blue
+                    color: isEnRoute ? '#0284c7' : '#0ea5e9', // Sky blue
                     weight: 4,
                     opacity: 0.9,
-                    dashArray: undefined,
+                    dashArray: isEnRoute ? undefined : '5 5', // Dashed for assigned, solid for active driving
                     lineCap: 'round',
                     lineJoin: 'round'
                   }}
@@ -238,8 +376,21 @@ export default function FieldOpsMap({
                   >
                     <Popup>
                       <div className="text-xs p-1">
-                        <strong className="block text-slate-800">Destination</strong>
-                        <span className="text-[10px] text-slate-500">{visit.assignedAddress || visit.title}</span>
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <strong className="block text-slate-800">Target Destination</strong>
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-sky-100 text-sky-700">
+                            {visit.status}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-500 block mb-1.5">
+                          {visit.assignedAddress || visit.title}
+                        </span>
+                        {route && (
+                          <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-[9px] font-bold text-slate-600">
+                            <span>🚗 {(route.distanceMeters / 1000).toFixed(1)} km</span>
+                            <span>⏱ ~{Math.ceil(route.durationSeconds / 60)} mins</span>
+                          </div>
+                        )}
                       </div>
                     </Popup>
                   </Marker>
@@ -265,7 +416,12 @@ export default function FieldOpsMap({
                   {pin.note && <p className="text-[10px] text-slate-600 mt-1 italic">"{pin.note}"</p>}
                   <div className="mt-2 pt-1 border-t border-slate-100 flex justify-between text-[9px] text-slate-400">
                     <span>By: {getEmployeeName(pin.employeeId)}</span>
-                    <span>{new Date(pin.pinnedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span>
+                      {new Date(pin.pinnedAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
                   </div>
                 </div>
               </Popup>
@@ -273,87 +429,54 @@ export default function FieldOpsMap({
           ))}
 
         {/* 4. Render Staff Attendance Check-In Locations */}
-        {checkIns.map(checkIn => {
-          const emp = getEmployee(checkIn.employeeId);
-          const isCurrentlyActive = checkIn.checkOutTime === null;
-
-          return (
-            <Marker
-              key={`checkin-${checkIn.id}`}
-              position={[checkIn.latitude, checkIn.longitude]}
-              icon={createCheckInMarkerIcon(isCurrentlyActive, emp?.name)}
-            >
-              <Popup>
-                <div className="text-xs p-1 min-w-[180px]">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <strong className="text-sm text-slate-800">{emp?.name || checkIn.employeeId}</strong>
-                    <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md ${
-                      isCurrentlyActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {isCurrentlyActive ? 'On Shift' : 'Clocked Out'}
-                    </span>
-                  </div>
-
-                  {emp?.designation && (
-                    <span className="block text-[10px] text-slate-500 font-medium mb-2">
-                      {emp.designation}
-                    </span>
-                  )}
-
-                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 space-y-1 mb-2">
-                    <div className="flex justify-between text-[10px]">
-                      <span className="text-slate-400 font-bold uppercase">Punch In</span>
-                      <span className="font-bold text-slate-700">{checkIn.checkInTime}</span>
-                    </div>
-                    {checkIn.checkOutTime && (
-                      <div className="flex justify-between text-[10px]">
-                        <span className="text-slate-400 font-bold uppercase">Punch Out</span>
-                        <span className="font-bold text-slate-700">{checkIn.checkOutTime}</span>
-                      </div>
-                    )}
-                    {checkIn.punchType && (
-                      <div className="flex justify-between text-[10px]">
-                        <span className="text-slate-400 font-bold uppercase">Type</span>
-                        <span className="font-bold text-slate-600 capitalize">
-                          {checkIn.punchType.replace(/_/g, ' ')}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {checkIn.locationName && (
-                    <p className="text-[10px] text-slate-500 mb-1 line-clamp-2">
-                      📍 {checkIn.locationName}
-                    </p>
-                  )}
-
-                  {checkIn.photoUrl && (
-                    <div className="mt-2 pt-1 border-t border-slate-100">
-                      <span className="block text-[9px] font-bold text-slate-400 uppercase mb-1">Check-in Photo</span>
-                      <img
-                        src={checkIn.photoUrl}
-                        alt="Check-in proof"
-                        className="w-full h-20 object-cover rounded-lg border border-slate-200 shadow-sm"
-                      />
-                    </div>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
+        {checkIns.map(checkIn => (
+          <CheckInMarker
+            key={`checkin-${checkIn.id}`}
+            checkIn={checkIn}
+            employee={getEmployee(checkIn.employeeId)}
+            isFocused={focusedLocation?.id === checkIn.id}
+          />
+        ))}
 
         {/* 5. Render Agent Visit Markers */}
         {visits.map(visit => (
           <VisitMarker
             key={visit.id}
             visit={visit}
-            livePosition={livePositions[visit.id]}
+            livePosition={livePositions[visit.employeeId]}
             employeeName={getEmployeeName(visit.employeeId)}
             isLiveTrackingEnabled={isLiveEnabled}
             intervalMs={fieldOpsConfig.broadcastIntervalMs}
+            isFocused={focusedLocation?.id === visit.id}
           />
         ))}
+
+        {/* 6. Render Floating Live Agents (Agents on duty without visits) */}
+        {isLiveEnabled && Object.entries(livePositions).map(([empId, livePos]) => {
+           // Skip if this employee is already rendering a VisitMarker because they have a visit
+           const hasVisit = visits.some(v => v.employeeId === empId);
+           if (hasVisit || !livePos.lat || !livePos.lng) return null;
+
+           const employeeName = getEmployeeName(empId);
+           const markerIcon = createLegacyIcon('#3b82f6'); // A blue icon for standalone employee
+
+           return (
+             <Marker key={`live-${empId}`} position={[livePos.lat, livePos.lng]} icon={markerIcon}>
+               <Popup>
+                 <div className="text-xs p-1 min-w-[150px]">
+                   <strong className="block text-sm text-slate-800 mb-1">{employeeName}</strong>
+                   <span className="block text-slate-600 mb-2 font-medium">On Duty</span>
+                   <div className="text-[10px] text-slate-500 mb-1 font-mono">
+                     Live: {livePos.lat.toFixed(5)}, {livePos.lng.toFixed(5)}
+                     {livePos.speedKmh !== undefined && (
+                       <span className="block text-slate-700 font-bold mt-0.5">Speed: {livePos.speedKmh} km/h</span>
+                     )}
+                   </div>
+                 </div>
+               </Popup>
+             </Marker>
+           );
+        })}
       </MapContainer>
 
       {/* Legend */}

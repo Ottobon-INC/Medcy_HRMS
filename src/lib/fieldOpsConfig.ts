@@ -10,6 +10,8 @@ export interface FieldOpsConfig {
   defaultZoom: number;
   osrmEndpoint: string;
   broadcastIntervalMs: number;
+  nominatimEndpoint: string;
+  nominatimCountryCodes: string;
 }
 
 export const fieldOpsConfig: FieldOpsConfig = {
@@ -39,4 +41,12 @@ export const fieldOpsConfig: FieldOpsConfig = {
 
   // Broadcast interval in milliseconds (default: 10 seconds)
   broadcastIntervalMs: parseInt((import.meta as any).env.VITE_LIVE_BROADCAST_INTERVAL_MS || '10000', 10),
+
+  // Nominatim Address Search / Forward Geocoding Endpoint
+  nominatimEndpoint: (import.meta as any).env.VITE_NOMINATIM_ENDPOINT ||
+    'https://nominatim.openstreetmap.org',
+
+  // Country code filter for address search (comma separated ISO 3166-1 alpha-2, e.g. 'in')
+  nominatimCountryCodes: (import.meta as any).env.VITE_NOMINATIM_COUNTRY_CODES || 'in',
 };
+

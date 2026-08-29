@@ -15,6 +15,6 @@ This folder contains all the relational schemas and SQL migrations for the Medcy
 
 ## How to Execute in Supabase
 
-1. Open your **Supabase Dashboard** -> Select your Medcytech project -> Go to the **SQL Editor**.
+1. Open your **Supabase Dashboard** -> Select your VizagIVF project -> Go to the **SQL Editor**.
 2. To set up the whole system fresh: Copy the contents of `06_all_tables_complete.sql` and click **Run**.
 3. To update individual modules, execute the corresponding numbered `.sql` file.

@@ -38,17 +38,15 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
   const isActive = session?.status === 'active';
   const isLiveEnabled = fieldOpsConfig.liveTrackingEnabled;
 
-  // Auto-sync live publisher on mount if an EN_ROUTE visit is already active
+  // Auto-start live publisher when on duty
   useEffect(() => {
     if (isLiveEnabled && isActive && !isPublishing) {
       const activeEnRouteVisit = visits.find(v => v.status === 'EN_ROUTE');
-      if (activeEnRouteVisit) {
-        startTracking(activeEnRouteVisit.id);
-      }
+      startTracking(activeEnRouteVisit?.id || null);
     }
   }, [isLiveEnabled, isActive, visits, isPublishing, startTracking]);
 
-  // Wrapper around updateStatus to manage live tracking state
+  // Wrapper around updateStatus to manage live tracking state (re-associate with visit if needed)
   const handleUpdateStatus = async (
     visitId: string,
     status: FieldVisitStatus,
@@ -59,10 +57,12 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
 
     if (result.success && isLiveEnabled) {
       if (status === 'EN_ROUTE') {
+        // Re-start tracking with the new visit ID so breadcrumbs link to it
         startTracking(visitId);
       } else if (['ARRIVED', 'COMPLETED', 'CANCELLED', 'MISSED'].includes(status)) {
+        // Just clear the visit ID from tracking, but keep tracking on duty
         if (activeVisitId === visitId) {
-          stopTracking();
+          startTracking(null);
         }
       }
     }

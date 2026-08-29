@@ -3,7 +3,7 @@ services:
   # Frontend Service (PWA + React 19 + Nginx)
   # ==========================================
   frontend:
-    container_name: medcytech-hrms-frontend
+    container_name: vizagivf-hrms-frontend
     build:
       context: .
       dockerfile: Dockerfile

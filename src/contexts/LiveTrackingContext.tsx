@@ -12,7 +12,7 @@ interface LiveTrackingContextType {
   accuracyM?: number;
   currentTrail: [number, number][];
   error: string | null;
-  startTracking: (visitId: string) => void;
+  startTracking: (visitId?: string | null) => void;
   stopTracking: () => void;
 }
 

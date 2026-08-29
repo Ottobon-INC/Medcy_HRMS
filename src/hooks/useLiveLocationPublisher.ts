@@ -4,8 +4,8 @@ import { fieldOpsConfig } from '../lib/fieldOpsConfig';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 export interface LivePositionPayload {
-  visitId: string;
-  employeeId?: string;
+  employeeId: string;
+  visitId?: string | null;
   lat: number;
   lng: number;
   heading: number;
@@ -98,12 +98,12 @@ export function useLiveLocationPublisher(employeeId?: string) {
     prevCoordsRef.current = null;
   }, []);
 
-  const broadcastCurrentLocation = useCallback((visitId: string) => {
-    if (!latestCoordsRef.current || !channelRef.current) return;
+  const broadcastCurrentLocation = useCallback((visitId?: string | null) => {
+    if (!latestCoordsRef.current || !channelRef.current || !employeeId) return;
 
     const payload: LivePositionPayload = {
-      visitId,
       employeeId,
+      visitId,
       lat: latestCoordsRef.current.lat,
       lng: latestCoordsRef.current.lng,
       heading: latestCoordsRef.current.heading,
@@ -127,7 +127,7 @@ export function useLiveLocationPublisher(employeeId?: string) {
         .from('HRMS_field_visit_positions')
         .insert([
           {
-            visit_id: visitId,
+            visit_id: visitId || null,
             employee_id: employeeId,
             latitude: latestCoordsRef.current.lat,
             longitude: latestCoordsRef.current.lng,
@@ -145,9 +145,14 @@ export function useLiveLocationPublisher(employeeId?: string) {
     }
   }, [employeeId]);
 
-  const startPublishing = useCallback(async (visitId: string) => {
+  const startPublishing = useCallback(async (visitId?: string | null) => {
     if (!fieldOpsConfig.liveTrackingEnabled) {
       console.log('Live tracking feature flag is OFF. Skipping publisher.');
+      return;
+    }
+
+    if (!employeeId) {
+      setError('Cannot start tracking: No employee ID provided.');
       return;
     }
 
@@ -158,14 +163,14 @@ export function useLiveLocationPublisher(employeeId?: string) {
 
     stopPublishing();
     setError(null);
-    setActiveVisitId(visitId);
+    setActiveVisitId(visitId || null);
     setIsPublishing(true);
     setCurrentTrail([]);
 
     await requestWakeLock();
 
     // Create and subscribe to Supabase Realtime broadcast channel
-    const channel = supabase.channel(`field-live:${visitId}`, {
+    const channel = supabase.channel(`field-live:emp:${employeeId}`, {
       config: { broadcast: { self: false } }
     });
 
@@ -252,10 +257,13 @@ export function useLiveLocationPublisher(employeeId?: string) {
 
     // Broadcast position and record breadcrumb at regular interval
     intervalTimerRef.current = setInterval(() => {
+      // Use the latest activeVisitId state here? No, startPublishing captures it in closure.
+      // But we can just use the parameter passed initially. 
+      // If visitId changes, they call startPublishing again anyway.
       broadcastCurrentLocation(visitId);
     }, fieldOpsConfig.broadcastIntervalMs);
 
-  }, [stopPublishing, broadcastCurrentLocation]);
+  }, [stopPublishing, broadcastCurrentLocation, employeeId]);
 
   // Clean up on unmount
   useEffect(() => {

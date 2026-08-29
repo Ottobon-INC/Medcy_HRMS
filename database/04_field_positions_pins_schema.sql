@@ -24,7 +24,7 @@ CREATE INDEX IF NOT EXISTS idx_visit_pins_emp ON "HRMS_field_visit_pins"("employ
 -- 2. Field Visit Positions (Continuous GPS telemetry breadcrumb trail)
 CREATE TABLE IF NOT EXISTS "HRMS_field_visit_positions" (
   "id"          UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  "visit_id"    UUID NOT NULL REFERENCES "HRMS_field_visits"("id") ON DELETE CASCADE,
+  "visit_id"    UUID REFERENCES "HRMS_field_visits"("id") ON DELETE CASCADE,
   "employee_id" VARCHAR(255) NOT NULL REFERENCES "HRMS_employees"("id") ON DELETE CASCADE,
   "latitude"    NUMERIC(10, 7) NOT NULL,
   "longitude"   NUMERIC(10, 7) NOT NULL,

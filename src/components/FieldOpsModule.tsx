@@ -3,7 +3,7 @@ import { Language, Employee, FieldVisit } from '../types';
 import AssignVisitModal from './AssignVisitModal';
 import * as fieldVisitService from '../lib/services/field-visit-service';
 import { getTodayCheckInLocations, EmployeeCheckInLocation } from '../lib/services/attendance-service';
-import { Navigation2, UserCheck, Calendar } from 'lucide-react';
+import { Navigation2, UserCheck, Calendar, MapPin, LocateFixed } from 'lucide-react';
 import FieldOpsMap from './FieldOpsMap';
 import { fieldOpsConfig } from '../lib/fieldOpsConfig';
 import { useLivePositionSubscriber } from '../hooks/useLivePositionSubscriber';
@@ -26,17 +26,25 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
   const [loading, setLoading] = useState(true);
   const [routes, setRoutes] = useState<Record<string, OsrmRoute>>({});
   const [activeListTab, setActiveListTab] = useState<'visits' | 'checkIns'>('visits');
+  const [focusedLocation, setFocusedLocation] = useState<{
+    lat: number;
+    lng: number;
+    zoom?: number;
+    id?: string;
+  } | null>(null);
 
   const isLiveEnabled = fieldOpsConfig.liveTrackingEnabled;
 
-  // 1. Subscribe to live broadcast channels for EN_ROUTE visits
-  const { livePositions } = useLivePositionSubscriber(visits);
+  const trackedEmployeeIds = employees.map(e => e.id);
+
+  // 1. Subscribe to live broadcast channels for all employees
+  const { livePositions } = useLivePositionSubscriber(trackedEmployeeIds);
 
   // 2. Fetch all custom dropped location pins for today's visits
   const { pins } = useVisitPins(visits);
 
   // 3. Fetch historical breadcrumb trails and merge with live incoming coordinates
-  const { trails } = useVisitTrail(visits, livePositions);
+  const { trails } = useVisitTrail(trackedEmployeeIds, livePositions);
 
   const loadData = async () => {
     if (isLocalMode) {
@@ -62,34 +70,58 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
     loadData();
   }, [isLocalMode]);
 
-  // Fetch or update OSRM road routes when live positions or visits change
-  const lastFetchedCoordsRef = useRef<Record<string, { fromLat: number; fromLng: number }>>({});
+  // Fetch or update OSRM road routes when visits, check-ins, or live positions change
+  const lastFetchedCoordsRef = useRef<Record<string, { fromLat: number; fromLng: number; toLat: number; toLng: number }>>({});
 
   useEffect(() => {
     if (!isLiveEnabled) return;
 
     const updateRoutes = async () => {
-      const enRouteVisits = visits.filter(v => v.status === 'EN_ROUTE');
+      // Calculate routes for all active/assigned/en-route visits
+      const activeVisits = visits.filter(
+        v => v.status === 'ASSIGNED' || v.status === 'EN_ROUTE' || v.status === 'IN_PROGRESS'
+      );
 
-      for (const visit of enRouteVisits) {
-        const livePos = livePositions[visit.id];
-        const fromLat = livePos?.lat ?? visit.actualLatitude;
-        const fromLng = livePos?.lng ?? visit.actualLongitude;
+      for (const visit of activeVisits) {
+        const livePos = livePositions[visit.employeeId];
+        const empCheckIn = checkIns.find(
+          c => c.employeeId === visit.employeeId && c.latitude && c.longitude
+        );
+
+        // Origin Point Priority:
+        // 1. Live broadcast coordinate (if en-route)
+        // 2. Agent's today check-in GPS coordinate
+        // 3. Visit actual recorded coordinate
+        // 4. Default Office / HQ center
+        const fromLat =
+          livePos?.lat ??
+          empCheckIn?.latitude ??
+          visit.actualLatitude ??
+          fieldOpsConfig.defaultCenter[0];
+
+        const fromLng =
+          livePos?.lng ??
+          empCheckIn?.longitude ??
+          visit.actualLongitude ??
+          fieldOpsConfig.defaultCenter[1];
+
         const toLat = visit.assignedLatitude;
         const toLng = visit.assignedLongitude;
 
         if (fromLat && fromLng && toLat && toLng) {
           const last = lastFetchedCoordsRef.current[visit.id];
-          // Skip if coords haven't shifted by more than ~15 meters to prevent excessive OSRM hits
+          // Skip if coords haven't shifted significantly
           if (
             last &&
             Math.abs(last.fromLat - fromLat) < 0.00015 &&
-            Math.abs(last.fromLng - fromLng) < 0.00015
+            Math.abs(last.fromLng - fromLng) < 0.00015 &&
+            Math.abs(last.toLat - toLat) < 0.00015 &&
+            Math.abs(last.toLng - toLng) < 0.00015
           ) {
             continue;
           }
 
-          lastFetchedCoordsRef.current[visit.id] = { fromLat, fromLng };
+          lastFetchedCoordsRef.current[visit.id] = { fromLat, fromLng, toLat, toLng };
           const route = await fetchRoute(fromLat, fromLng, toLat, toLng);
           if (route) {
             setRoutes(prev => ({
@@ -102,7 +134,7 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
     };
 
     updateRoutes();
-  }, [isLiveEnabled, visits, livePositions]);
+  }, [isLiveEnabled, visits, checkIns, livePositions]);
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, string> = {
@@ -188,23 +220,48 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
               visits.length === 0 ? (
                 <p className="text-slate-500 text-sm">No visits assigned today.</p>
               ) : (
-                <div className="space-y-4">
-                  {visits.map(visit => (
-                    <div key={visit.id} className="border-l-4 border-teal-500 pl-3 py-1">
-                      <p className="text-xs font-bold text-slate-800">{getEmployeeName(visit.employeeId)}</p>
-                      <p className="text-[10px] text-slate-500 font-medium">{visit.title}</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded ${getStatusBadge(visit.status)}`}>
-                          {visit.status}
-                        </span>
-                        {isLiveEnabled && visit.status === 'EN_ROUTE' && livePositions[visit.id] && (
-                          <span className="inline-flex items-center text-[8px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-                            ● Broadcast active
+                <div className="space-y-3">
+                  {visits.map(visit => {
+                    const lat = livePositions[visit.employeeId]?.lat || visit.actualLatitude || visit.assignedLatitude;
+                    const lng = livePositions[visit.employeeId]?.lng || visit.actualLongitude || visit.assignedLongitude;
+                    const isSelected = focusedLocation?.id === visit.id;
+
+                    return (
+                      <div
+                        key={visit.id}
+                        onClick={() => {
+                          if (lat && lng) {
+                            setFocusedLocation({ lat, lng, zoom: 16, id: visit.id });
+                          }
+                        }}
+                        className={`border-l-4 p-3 rounded-r-xl border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-teal-500 bg-teal-50/50 shadow-sm ring-1 ring-teal-500/30'
+                            : 'border-slate-200 hover:border-teal-400 bg-white hover:bg-slate-50/70'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <p className="text-xs font-bold text-slate-800">{getEmployeeName(visit.employeeId)}</p>
+                          {isSelected && (
+                            <span className="inline-flex items-center gap-1 text-[8px] font-bold text-teal-700 bg-teal-100 px-1.5 py-0.5 rounded">
+                              <LocateFixed className="w-2.5 h-2.5" /> Viewing
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-500 font-medium mt-0.5">{visit.title}</p>
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded ${getStatusBadge(visit.status)}`}>
+                            {visit.status}
                           </span>
-                        )}
+                          {isLiveEnabled && visit.status === 'EN_ROUTE' && livePositions[visit.employeeId] && (
+                            <span className="inline-flex items-center text-[8px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                              ● Broadcast active
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )
             ) : (
@@ -212,28 +269,59 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
               checkIns.length === 0 ? (
                 <p className="text-slate-500 text-sm">No staff check-in locations recorded today.</p>
               ) : (
-                <div className="space-y-3.5">
+                <div className="space-y-3">
                   {checkIns.map(checkIn => {
                     const emp = getEmployee(checkIn.employeeId);
                     const isActive = checkIn.checkOutTime === null;
+                    const isSelected = focusedLocation?.id === checkIn.id;
 
                     return (
-                      <div key={checkIn.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 space-y-1.5">
+                      <div
+                        key={checkIn.id}
+                        onClick={() => {
+                          setFocusedLocation({
+                            lat: checkIn.latitude,
+                            lng: checkIn.longitude,
+                            zoom: 16,
+                            id: checkIn.id
+                          });
+                        }}
+                        className={`p-3 rounded-xl border transition-all cursor-pointer space-y-1.5 ${
+                          isSelected
+                            ? 'border-emerald-500 bg-emerald-50/50 shadow-sm ring-1 ring-emerald-500/30'
+                            : 'border-slate-200/80 hover:border-emerald-300 bg-white hover:bg-slate-50/70'
+                        }`}
+                      >
                         <div className="flex justify-between items-start">
-                          <p className="text-xs font-bold text-slate-800">{emp?.name || checkIn.employeeId}</p>
-                          <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded ${
-                            isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
-                          }`}>
-                            {isActive ? 'On Shift' : 'Clocked Out'}
-                          </span>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800">{emp?.name || checkIn.employeeId}</p>
+                            {emp?.designation && (
+                              <p className="text-[9px] text-slate-400 font-medium">{emp.designation}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {isSelected && (
+                              <span className="inline-flex items-center gap-1 text-[8px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                                <LocateFixed className="w-2.5 h-2.5" /> Viewing
+                              </span>
+                            )}
+                            <span className={`px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded ${
+                              isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                            }`}>
+                              {isActive ? 'On Shift' : 'Clocked Out'}
+                            </span>
+                          </div>
                         </div>
+
                         <div className="text-[10px] text-slate-500 flex justify-between font-mono">
                           <span>In: {checkIn.checkInTime}</span>
                           {checkIn.checkOutTime && <span>Out: {checkIn.checkOutTime}</span>}
                         </div>
+
                         {checkIn.locationName && (
-                          <p className="text-[10px] text-slate-600 truncate">
-                            📍 {checkIn.locationName}
+                          <p className="text-[10px] text-slate-600 truncate flex items-center gap-1">
+                            <MapPin className="w-2.5 h-2.5 shrink-0 text-emerald-600" />
+                            {checkIn.locationName}
                           </p>
                         )}
                       </div>
@@ -256,6 +344,7 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
               trails={trails}
               pins={pins}
               checkIns={checkIns}
+              focusedLocation={focusedLocation}
             />
           </div>
         </div>
@@ -270,6 +359,7 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
           }}
           employees={employees}
           adminId={adminId}
+          checkIns={checkIns}
         />
       )}
     </div>

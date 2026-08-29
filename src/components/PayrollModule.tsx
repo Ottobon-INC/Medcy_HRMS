@@ -304,7 +304,7 @@ export default function PayrollModule({
                 <div className="flex-1 text-right">
                   <h1 className="text-2xl font-bold uppercase tracking-wider mb-1 text-teal-800">MEDCY HEALTH TECH</h1>
                   <p className="text-xs mb-1 text-slate-800 font-medium">Medcy Health Tech Clinic, Health Services Division</p>
-                  <p className="text-xs text-slate-800 font-medium">contact@medcytech.com &nbsp;&nbsp;|&nbsp;&nbsp; www.medcytech.com</p>
+                  <p className="text-xs text-slate-800 font-medium">contact@vizagivf.com &nbsp;&nbsp;|&nbsp;&nbsp; www.vizagivf.com</p>
                 </div>
               </div>
             </div>

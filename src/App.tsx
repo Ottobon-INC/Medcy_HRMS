@@ -26,7 +26,7 @@ import { OfflineIndicator } from './components/shared/OfflineIndicator';
 import { LiveTrackingProvider } from './contexts/LiveTrackingContext';
 
 export default function App() {
-  // Pure English for Medcytech HRMS
+  // Pure English for VizagIVF HRMS
   const language: Language = 'en';
   const t = translations[language];
 
