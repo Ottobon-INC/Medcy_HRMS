@@ -15,8 +15,8 @@ export interface FieldOpsConfig {
 }
 
 export const fieldOpsConfig: FieldOpsConfig = {
-  // Feature flag gate - defaults to false (OFF) for production safety
-  liveTrackingEnabled: (import.meta as any).env.VITE_FEATURE_LIVE_TRACKING === 'true',
+  // Feature flag gate - defaults to true (enabled)
+  liveTrackingEnabled: (import.meta as any).env.VITE_FEATURE_LIVE_TRACKING !== 'false',
 
   // OpenStreetMap standard clean tiles (No watermark, No API key required)
   tileUrl: (import.meta as any).env.VITE_MAP_TILE_URL ||

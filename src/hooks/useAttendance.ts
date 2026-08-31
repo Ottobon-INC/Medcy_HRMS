@@ -1,7 +1,6 @@
 import { AttendanceStatus, PunchType } from '../types';
 import * as attendanceService from '../lib/services/attendance-service';
 import * as leaveService from '../lib/services/leave-service';
-import { checkGeofence, resolveAllowedLocations } from '../lib/geofence';
 import { supabase } from '../lib/supabase-client';
 
 /** Helper: get GPS position with a configurable timeout and accuracy mode */
@@ -59,38 +58,12 @@ export function useAttendance(isLocalMode: boolean, loadData: () => Promise<void
         } catch {
           locationStr = "Location details unavailable";
         }
-
-        // Geofence check: ONLY run on punch-IN and only for in_office type.
-        // Punch-OUT should never be blocked by geofence — employee may have left the premises.
-        if (!isCurrentlyCheckedIn && punchType !== 'out_of_office') {
-          const today = new Date().toISOString().split('T')[0];
-          const allowedLocations = await resolveAllowedLocations(empId, today);
-          const geoCheck = checkGeofence(latitude, longitude, allowedLocations);
-          if (!geoCheck.allowed) {
-            return { success: false, geoError: geoCheck };
-          }
-          locationStr = geoCheck.matchedLocation || locationStr;
-        } else if (punchType === 'out_of_office') {
-          locationStr = `Out of Office - ${locationStr || 'Location Unknown'}`;
-        }
-
       } catch (err: any) {
         console.warn("Could not get location:", err);
-
-        if (punchType === 'out_of_office' || isCurrentlyCheckedIn) {
-          // For punch-out or out-of-office, allow attendance without GPS
-          locationStr = isCurrentlyCheckedIn
-            ? "Punch-out - Location Unknown (GPS Failed)"
-            : "Out of Office - Location Unknown (GPS Failed)";
-          latLngStr = "0,0";
-        } else {
-          // For in-office punch-in, GPS is required for geofencing
-          let errMsg = "Could not get your GPS location. Please enable location services and try again.";
-          if (err?.code === 1) errMsg = "Location access denied.\n\nPlease tap the lock icon 🔒 next to the URL in your browser and set Location to 'Allow', then reload the page.";
-          if (err?.code === 2) errMsg = "Your GPS/Location is turned off. Please enable it in your phone settings and try again.";
-          if (err?.code === 3) errMsg = "Location request timed out. Please move to an open area and try again.";
-          return { success: false, error: errMsg };
-        }
+        locationStr = isCurrentlyCheckedIn
+          ? "Punch-out - Location Unavailable (GPS Failed)"
+          : "Location Unavailable (GPS Failed)";
+        latLngStr = "0,0";
       }
 
       if (isCurrentlyCheckedIn) {

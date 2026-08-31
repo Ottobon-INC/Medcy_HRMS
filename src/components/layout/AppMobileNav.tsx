@@ -11,7 +11,8 @@ import {
   MapPin,
   MessageSquare,
   CheckSquare,
-  Settings
+  Settings,
+  Radio
 } from 'lucide-react';
 import { Employee } from '../../types';
 
@@ -204,6 +205,16 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = ({
           >
             <MapPin className="w-5 h-5" />
             <span className="text-[8px] font-bold uppercase mt-1 leading-none">Duty</span>
+          </button>
+
+          <button
+            onClick={() => onSelectTab('liveMap')}
+            className={`shrink-0 flex flex-col items-center justify-center min-w-[3.5rem] h-12 rounded-xl transition-all cursor-pointer ${
+              activeTab === 'liveMap' ? 'text-teal-600 scale-105' : 'text-slate-400 hover:text-slate-600'
+            }`}
+          >
+            <Radio className="w-5 h-5" />
+            <span className="text-[8px] font-bold uppercase mt-1 leading-none">Live Map</span>
           </button>
 
           <button

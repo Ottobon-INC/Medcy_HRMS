@@ -12,7 +12,8 @@ import {
   MessageSquare,
   CheckSquare,
   Settings,
-  HeartHandshake
+  HeartHandshake,
+  Radio
 } from 'lucide-react';
 import { Employee } from '../../types';
 
@@ -327,6 +328,23 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   <MapPin className="w-4 h-4 shrink-0" />
                 )}
                 <span>Field Duty</span>
+              </button>
+
+              <button
+                id="nav-tab-live-map"
+                onClick={() => onSelectTab('liveMap')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
+                  activeTab === 'liveMap'
+                    ? 'bg-teal-50 text-teal-700 font-bold'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                }`}
+              >
+                {activeTab === 'liveMap' ? (
+                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
+                ) : (
+                  <Radio className="w-4 h-4 shrink-0" />
+                )}
+                <span>Live Map</span>
               </button>
 
               <button

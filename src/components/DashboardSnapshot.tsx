@@ -29,7 +29,6 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const [geoError, setGeoError] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [punchType, setPunchType] = useState<import("../types").PunchType>("in_office");
   const [punchNote, setPunchNote] = useState("");
@@ -107,8 +106,7 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
     const result = await onToggleCheckIn(photoData, punchType, punchNote);
     setIsProcessing(false);
     if (result && !result.success) {
-      if (result.geoError) setGeoError(result.geoError);
-      else if (result.error) {
+      if (result.error) {
         if (result.error.startsWith("missed_punchout:")) setMissedPunchDate(result.error.split(":")[1]);
         else alert(result.error);
       }
@@ -307,18 +305,6 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
               <p className="text-sm text-slate-500">{language==="te"?"మీ అభ్యర్థన అడ్మిన్‌కు పంపబడింది.":"Your request has been sent to Admin. Once approved, you can punch in normally."}</p>
               <button onClick={()=>{setMissedPunchDate(null);setMissedPunchReason("");setRequestSubmitted(false);}} className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-colors text-xs uppercase tracking-wider shadow-md">{language==="te"?"సరే":"Got It"}</button>
             </>)}
-          </div>
-        </div>
-      )}
-
-      {/* Geo-fence Error Modal */}
-      {geoError&&(
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fadeIn">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center space-y-4">
-            <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto"><MapPin className="w-8 h-8"/></div>
-            <h3 className="text-xl font-bold text-slate-800">Outside Allowed Area</h3>
-            <p className="text-sm text-slate-500">{geoError.nearestOfficeName==="No configured locations"?"No Office Locations configured. Ask Admin to add one.":`You are ${geoError.distance}m away from ${geoError.nearestOfficeName}. Must be within the allowed radius.`}</p>
-            <button onClick={()=>setGeoError(null)} className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-colors uppercase tracking-wider text-xs">Okay</button>
           </div>
         </div>
       )}

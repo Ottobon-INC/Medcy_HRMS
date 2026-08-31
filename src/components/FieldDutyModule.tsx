@@ -12,6 +12,7 @@ import { AgentNavigationView } from './fieldops/AgentNavigationView';
 import { DropPinModal } from './fieldops/DropPinModal';
 import { useFieldPins } from '../hooks/useFieldPins';
 import * as fieldPinService from '../lib/services/field-pin-service';
+import { fetchRoute, OsrmRoute } from '../lib/osrm';
 
 interface FieldDutyModuleProps {
   language: Language;
@@ -22,10 +23,11 @@ interface FieldDutyModuleProps {
 export default function FieldDutyModule({ language, employeeId, isLocalMode }: FieldDutyModuleProps) {
   const { session, loading: sessionLoading, startDuty, endDuty } = useFieldDuty(employeeId, isLocalMode);
   const { visits, loading: visitsLoading, updateStatus: baseUpdateStatus, createVisitRequest } = useFieldVisits(employeeId, session?.id, isLocalMode);
-  const { isPublishing, activeVisitId, lastPosition, startTracking, stopTracking } = useLiveTracking();
+  const { isPublishing, activeVisitId, lastPosition, heading, speedKmh, accuracyM, startTracking, stopTracking } = useLiveTracking();
 
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
+  const [routes, setRoutes] = useState<Record<string, OsrmRoute>>({});
 
   // Phase 2 Navigation & Pin Dropping state
   const [navVisit, setNavVisit] = useState<FieldVisit | null>(null);
@@ -46,6 +48,29 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
     }
   }, [isLiveEnabled, isActive, visits, isPublishing, startTracking]);
 
+  // Fetch OSRM driving routes from current position to destination for all visits
+  useEffect(() => {
+    const fetchAllRoutes = async () => {
+      const newRoutes: Record<string, OsrmRoute> = {};
+      for (const visit of visits) {
+        if (!visit.assignedLatitude || !visit.assignedLongitude) continue;
+
+        const startLat = lastPosition?.lat ?? visit.actualLatitude ?? fieldOpsConfig.defaultCenter[0];
+        const startLng = lastPosition?.lng ?? visit.actualLongitude ?? fieldOpsConfig.defaultCenter[1];
+
+        const r = await fetchRoute(startLat, startLng, visit.assignedLatitude, visit.assignedLongitude);
+        if (r) {
+          newRoutes[visit.id] = r;
+        }
+      }
+      setRoutes(newRoutes);
+    };
+
+    if (visits.length > 0) {
+      fetchAllRoutes();
+    }
+  }, [visits, lastPosition?.lat, lastPosition?.lng]);
+
   // Wrapper around updateStatus to manage live tracking state (re-associate with visit if needed)
   const handleUpdateStatus = async (
     visitId: string,
@@ -55,10 +80,14 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
   ) => {
     const result = await baseUpdateStatus(visitId, status, photoData, notes);
 
-    if (result.success && isLiveEnabled) {
+    if (result.success) {
       if (status === 'EN_ROUTE') {
-        // Re-start tracking with the new visit ID so breadcrumbs link to it
+        // Start tracking with the new visit ID and open navigation
         startTracking(visitId);
+        const targetVisit = visits.find(v => v.id === visitId);
+        if (targetVisit) {
+          setNavVisit({ ...targetVisit, status: 'EN_ROUTE' });
+        }
       } else if (['ARRIVED', 'COMPLETED', 'CANCELLED', 'MISSED'].includes(status)) {
         // Just clear the visit ID from tracking, but keep tracking on duty
         if (activeVisitId === visitId) {
@@ -193,13 +222,34 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
           </div>
         ) : (
           <>
-            <div className="h-64 mb-6 rounded-2xl overflow-hidden border border-slate-200">
-              <FieldOpsMap visits={visits} employees={[]} pins={currentVisitPins} />
+            <div className="h-72 mb-6 rounded-2xl overflow-hidden border border-slate-200">
+              <FieldOpsMap
+                visits={visits}
+                employees={[]}
+                livePositions={
+                  lastPosition
+                    ? {
+                        [employeeId]: {
+                          employeeId,
+                          lat: lastPosition.lat,
+                          lng: lastPosition.lng,
+                          heading: heading || 0,
+                          speedKmh: speedKmh || 0,
+                          accuracyM,
+                          timestamp: new Date().toISOString()
+                        }
+                      }
+                    : {}
+                }
+                routes={routes}
+                pins={currentVisitPins}
+              />
             </div>
             <div className="grid gap-4">
               {visits.map(visit => {
                 const isCurrentEnRoute = visit.status === 'EN_ROUTE';
-                const canDropPin = isLiveEnabled && ['EN_ROUTE', 'ARRIVED', 'IN_PROGRESS'].includes(visit.status);
+                const canDropPin = ['EN_ROUTE', 'ARRIVED', 'IN_PROGRESS'].includes(visit.status);
+                const visitRoute = routes[visit.id];
 
                 return (
                   <div
@@ -219,9 +269,19 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
                             <MapPin className="w-3 h-3 text-slate-400" /> {visit.assignedAddress}
                           </p>
                         )}
+                        {visitRoute && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
+                              🚗 {(visitRoute.distanceMeters / 1000).toFixed(1)} km
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                              ⏱ ~{Math.ceil(visitRoute.durationSeconds / 60)} mins
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
-                        {isLiveEnabled && isCurrentEnRoute && activeVisitId === visit.id && (
+                        {isCurrentEnRoute && (
                           <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
                             <Radio className="w-2.5 h-2.5 animate-pulse" /> Live
                           </span>
@@ -232,46 +292,49 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
                       </div>
                     </div>
 
-                    {/* Phase 2: Action Buttons (Navigate / Drop Pin / Details) */}
-                    {isLiveEnabled && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                        {/* Live Navigation HUD Button (Uber/Rapido style) */}
-                        {isCurrentEnRoute && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setNavVisit(visit);
-                            }}
-                            className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-blue-600/20 cursor-pointer"
-                          >
-                            <Compass className="w-3.5 h-3.5" /> Navigate
-                          </button>
-                        )}
-
-                        {/* Drop Location Pin Button */}
-                        {canDropPin && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDropPinVisit(visit);
-                            }}
-                            className="py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-purple-200 cursor-pointer"
-                          >
-                            <MapPin className="w-3.5 h-3.5 text-purple-600" /> Drop Pin
-                          </button>
-                        )}
-
+                    {/* Action Buttons (Navigate / Drop Pin / Details) */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                      {/* Live Navigation HUD Button (Uber/Rapido style) */}
+                      {(isCurrentEnRoute || visit.status === 'ASSIGNED') && (
                         <button
                           type="button"
-                          onClick={() => setSelectedVisitId(visit.id)}
-                          className="py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors border border-slate-200 cursor-pointer ml-auto"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setNavVisit(visit);
+                          }}
+                          className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer ${
+                            isCurrentEnRoute
+                              ? 'bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white shadow-blue-600/20'
+                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
+                          }`}
                         >
-                          Details
+                          <Compass className="w-3.5 h-3.5" />
+                          <span>{isCurrentEnRoute ? 'Live Directions & Route' : 'Preview Route'}</span>
                         </button>
-                      </div>
-                    )}
+                      )}
+
+                      {/* Drop Location Pin Button */}
+                      {canDropPin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDropPinVisit(visit);
+                          }}
+                          className="py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors border border-purple-200 cursor-pointer"
+                        >
+                          <MapPin className="w-3.5 h-3.5 text-purple-600" /> Drop Pin
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedVisitId(visit.id)}
+                        className="py-2 px-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs transition-colors border border-slate-200 cursor-pointer ml-auto"
+                      >
+                        Details
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -294,6 +357,7 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
           visit={visits.find(v => v.id === selectedVisitId)!}
           onClose={() => setSelectedVisitId(null)}
           onUpdateStatus={handleUpdateStatus}
+          onStartNavigation={(v) => setNavVisit(v)}
         />
       )}
 

@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   Compass,
   Radio,
-  Milestone
+  Milestone,
+  ExternalLink
 } from 'lucide-react';
 
 const destinationIcon = L.divIcon({
@@ -75,9 +76,20 @@ export const AgentNavigationView: React.FC<AgentNavigationViewProps> = ({
   const [autoFollow, setAutoFollow] = useState(true);
   const [showDropPinModal, setShowDropPinModal] = useState(false);
   const [arriving, setArriving] = useState(false);
+  const [localPos, setLocalPos] = useState<{ lat: number; lng: number } | null>(null);
 
-  const agentLat = lastPosition?.lat ?? visit.actualLatitude ?? visit.assignedLatitude ?? fieldOpsConfig.defaultCenter[0];
-  const agentLng = lastPosition?.lng ?? visit.actualLongitude ?? visit.assignedLongitude ?? fieldOpsConfig.defaultCenter[1];
+  useEffect(() => {
+    if (!lastPosition && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setLocalPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => console.warn('Navigation view immediate fix error:', err),
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 30000 }
+      );
+    }
+  }, [lastPosition]);
+
+  const agentLat = lastPosition?.lat ?? localPos?.lat ?? visit.actualLatitude ?? fieldOpsConfig.defaultCenter[0];
+  const agentLng = lastPosition?.lng ?? localPos?.lng ?? visit.actualLongitude ?? fieldOpsConfig.defaultCenter[1];
 
   const destLat = visit.assignedLatitude;
   const destLng = visit.assignedLongitude;
@@ -173,18 +185,33 @@ export const AgentNavigationView: React.FC<AgentNavigationViewProps> = ({
           </div>
         </div>
 
-        {/* Re-center / Auto Follow Toggle */}
-        <button
-          onClick={() => setAutoFollow(prev => !prev)}
-          className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-            autoFollow
-              ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
-              : 'bg-slate-800 border-slate-700 text-slate-400'
-          }`}
-        >
-          <Compass className={`w-3.5 h-3.5 ${autoFollow ? 'animate-spin' : ''}`} />
-          <span>{autoFollow ? 'Auto-Following' : 'Re-center'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {/* External Google Maps App Link for Voice Navigation */}
+          {destLat && destLng && (
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&origin=${agentLat},${agentLng}&destination=${destLat},${destLng}&travelmode=driving`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/50 text-blue-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Google Maps</span>
+            </a>
+          )}
+
+          {/* Re-center / Auto Follow Toggle */}
+          <button
+            onClick={() => setAutoFollow(prev => !prev)}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              autoFollow
+                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                : 'bg-slate-800 border-slate-700 text-slate-400'
+            }`}
+          >
+            <Compass className={`w-3.5 h-3.5 ${autoFollow ? 'animate-spin' : ''}`} />
+            <span>{autoFollow ? 'Auto-Following' : 'Re-center'}</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Main Full-Screen Map */}

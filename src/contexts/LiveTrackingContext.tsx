@@ -32,10 +32,26 @@ const LiveTrackingContext = createContext<LiveTrackingContextType>({
 interface LiveTrackingProviderProps {
   children: React.ReactNode;
   currentUser: Employee | null;
+  isClockedIn?: boolean;
 }
 
-export const LiveTrackingProvider: React.FC<LiveTrackingProviderProps> = ({ children, currentUser }) => {
+export const LiveTrackingProvider: React.FC<LiveTrackingProviderProps> = ({ 
+  children, 
+  currentUser,
+  isClockedIn = false
+}) => {
   const publisher = useLiveLocationPublisher(currentUser?.id);
+
+  // Handle automatic tracking based on isClockedIn status
+  useEffect(() => {
+    if (currentUser?.role === 'employee' && fieldOpsConfig.liveTrackingEnabled) {
+      if (isClockedIn && !publisher.isPublishing) {
+        publisher.startPublishing(null);
+      } else if (!isClockedIn && publisher.isPublishing) {
+        publisher.stopPublishing();
+      }
+    }
+  }, [isClockedIn, publisher.isPublishing, currentUser?.role, publisher.startPublishing, publisher.stopPublishing]);
 
   // If user logs out or switches, stop tracking
   useEffect(() => {

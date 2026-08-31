@@ -53,6 +53,7 @@ export default function App() {
       'missed-punches': 'employeeMissedPunches',
       'field-duty': 'fieldDuty',
       'field-ops': 'fieldOps',
+      'live-map': 'liveMap',
       'tasks': 'tasks',
       'admin-tasks': 'adminTasks'
     };
@@ -87,6 +88,7 @@ export default function App() {
       'employeeMissedPunches': 'missed-punches',
       'fieldDuty': 'field-duty',
       'fieldOps': 'field-ops',
+      'liveMap': 'live-map',
       'tasks': 'tasks',
       'adminTasks': 'admin-tasks'
     };
@@ -119,6 +121,7 @@ export default function App() {
         'missed-punches': 'employeeMissedPunches',
         'field-duty': 'fieldDuty',
         'field-ops': 'fieldOps',
+        'live-map': 'liveMap',
         'tasks': 'tasks',
         'admin-tasks': 'adminTasks'
       };
@@ -158,7 +161,7 @@ export default function App() {
     ];
     const employeeTabs = [
       'dashboard', 'attendance', 'leave', 'advance', 'payroll',
-      'events', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'tasks'
+      'events', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'tasks', 'liveMap'
     ];
 
     if (currentUser.role === 'admin' && !adminTabs.includes(activeTab)) {
@@ -242,7 +245,7 @@ export default function App() {
   }
 
   return (
-    <LiveTrackingProvider currentUser={currentUser}>
+    <LiveTrackingProvider currentUser={currentUser} isClockedIn={currentUser.isCheckedIn}>
       <div id="app-root-shell" className="min-h-screen bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900 pb-16 lg:pb-0">
         <OfflineIndicator />
         <PwaInstallPrompt />

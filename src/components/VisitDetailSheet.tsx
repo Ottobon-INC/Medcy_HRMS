@@ -8,9 +8,10 @@ interface VisitDetailSheetProps {
   visit: FieldVisit;
   onClose: () => void;
   onUpdateStatus: (visitId: string, status: FieldVisitStatus, photoData?: string, notes?: string) => Promise<{ success: boolean; error?: string }>;
+  onStartNavigation?: (visit: FieldVisit) => void;
 }
 
-export default function VisitDetailSheet({ language, visit, onClose, onUpdateStatus }: VisitDetailSheetProps) {
+export default function VisitDetailSheet({ language, visit, onClose, onUpdateStatus, onStartNavigation }: VisitDetailSheetProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -70,6 +71,14 @@ export default function VisitDetailSheet({ language, visit, onClose, onUpdateSta
     setLoading(false);
     if (!result.success) {
       setError(result.error || 'Failed to update status');
+    } else {
+      if (newStatus === 'EN_ROUTE') {
+        stopCamera();
+        onClose();
+        if (onStartNavigation) {
+          onStartNavigation({ ...visit, status: 'EN_ROUTE' });
+        }
+      }
     }
   };
 

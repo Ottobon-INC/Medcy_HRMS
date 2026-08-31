@@ -6,6 +6,7 @@ const DashboardSnapshot = React.lazy(() => import('../DashboardSnapshot'));
 const AttendanceModule = React.lazy(() => import('../AttendanceModule'));
 const EmployeeMissedPunches = React.lazy(() => import('../EmployeeMissedPunches'));
 const FieldDutyModule = React.lazy(() => import('../FieldDutyModule'));
+const EmployeeMapDashboard = React.lazy(() => import('../EmployeeMapDashboard'));
 const EmployeeSpecialEvents = React.lazy(() => import('../EmployeeSpecialEvents'));
 const EmployeeRoster = React.lazy(() => import('../EmployeeRoster'));
 const LeaveModule = React.lazy(() => import('../LeaveModule'));
@@ -130,6 +131,14 @@ export const AppRouter: React.FC<AppRouterProps> = ({
         <FieldDutyModule
           language={language}
           employeeId={currentUser.id}
+          isLocalMode={isLocalMode}
+        />
+      );
+    case 'liveMap':
+      return (
+        <EmployeeMapDashboard
+          currentUser={currentUser}
+          employees={employees}
           isLocalMode={isLocalMode}
         />
       );

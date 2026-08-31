@@ -182,6 +182,25 @@ export function useLiveLocationPublisher(employeeId?: string) {
 
     channelRef.current = channel;
 
+    // Immediate first fix
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setLastPosition({ lat, lng });
+        latestCoordsRef.current = {
+          lat,
+          lng,
+          heading: pos.coords.heading || 0,
+          speedKmh: 0,
+          accuracyM: pos.coords.accuracy
+        };
+        prevCoordsRef.current = { lat, lng, time: Date.now() };
+      },
+      (err) => console.warn('Initial location fix error:', err),
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 30000 }
+    );
+
     // Start geolocation watcher
     try {
       watchIdRef.current = navigator.geolocation.watchPosition(

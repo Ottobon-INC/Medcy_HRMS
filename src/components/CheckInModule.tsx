@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, ListCollapse, LogIn, LogOut, Camera, X, MapPin, Building2, Stethoscope, Plus, AlertCircle } from 'lucide-react';
+import { Clock, ListCollapse, LogIn, LogOut, Camera, X, MapPin, Plus, AlertCircle, Building2, Stethoscope } from 'lucide-react';
 import { Language, CheckInLog, PunchType, LocationPin, PinType } from '../types';
 import { translations } from '../translations';
 import LocationPinTimeline from './LocationPinTimeline';
@@ -29,11 +29,6 @@ export default function CheckInModule({
   const t = translations[language];
   const [runningSeconds, setRunningSeconds] = useState(0);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-  const [selectedPunchType, setSelectedPunchType] = useState<PunchType>('in_office');
-  const [punchNote, setPunchNote] = useState('');
-  const [showNoteInput, setShowNoteInput] = useState(false);
-  const [geoError, setGeoError] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEndShiftConfirm, setShowEndShiftConfirm] = useState(false);
   const [missedPunchDate, setMissedPunchDate] = useState<string | null>(null);
@@ -112,11 +107,9 @@ export default function CheckInModule({
       if (isForPin) {
         handlePinSubmit(undefined);
       } else {
-        const result = await onToggleCheckIn(undefined, selectedPunchType, punchNote);
+        const result = await onToggleCheckIn(undefined);
         if (result && !result.success) {
-          if (result.geoError) {
-            setGeoError(result.geoError);
-          } else if (result.error) {
+          if (result.error) {
             if (result.error.startsWith('missed_punchout:')) {
               setMissedPunchDate(result.error.split(':')[1]);
             } else {
@@ -150,13 +143,11 @@ export default function CheckInModule({
         stopCamera();
 
         setIsProcessing(true);
-        const result = await onToggleCheckIn(photoData, selectedPunchType, punchNote);
+        const result = await onToggleCheckIn(photoData);
         setIsProcessing(false);
 
         if (result && !result.success) {
-          if (result.geoError) {
-            setGeoError(result.geoError);
-          } else if (result.error) {
+          if (result.error) {
             if (result.error.startsWith('missed_punchout:')) {
               setMissedPunchDate(result.error.split(':')[1]);
             } else {
@@ -197,36 +188,15 @@ export default function CheckInModule({
     }
   };
 
-  // Main button click — for punch-in show category selector; for punch-out go directly to camera
+  // Main button click — direct camera punch-in or confirmation punch-out
   const handleMainButtonClick = () => {
     if (isCheckedIn) {
       // Punch-out: show confirmation prompt first
       setShowEndShiftConfirm(true);
     } else {
-      // Punch-in: show category selector first
-      setIsCategoryOpen(true);
-    }
-  };
-
-  const handleCategorySelect = (type: PunchType) => {
-    setSelectedPunchType(type);
-    if (type === 'out_of_office') {
-      setShowNoteInput(true);
-    } else {
-      setPunchNote('');
-      setIsCategoryOpen(false);
+      // Punch-in: open camera directly to capture selfie + location
       startCamera();
     }
-  };
-
-  const handleNoteSubmit = () => {
-    if (!punchNote.trim()) {
-      alert(language === 'te' ? 'దయచేసి ఒక నోట్ రాయండి.' : 'Please enter a note.');
-      return;
-    }
-    setShowNoteInput(false);
-    setIsCategoryOpen(false);
-    startCamera();
   };
 
   // Live timer
@@ -500,96 +470,6 @@ export default function CheckInModule({
       {/* Location Pin Timeline */}
       <LocationPinTimeline language={language} pins={pins} />
 
-      {/* === Punch Type Category Selector Modal === */}
-      {isCategoryOpen && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl overflow-hidden max-w-sm w-full shadow-2xl">
-            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="font-bold text-slate-800 text-sm">
-                {t.selectPunchType}
-              </h3>
-              <button onClick={() => setIsCategoryOpen(false)} className="p-1 hover:bg-slate-200 rounded-full transition-colors">
-                <X className="w-5 h-5 text-slate-500" />
-              </button>
-            </div>
-            <div className="p-6 space-y-3">
-              <p className="text-xs text-slate-400 text-center mb-4">
-                {language === 'te' ? 'మీరు ఎక్కడ నుండి పంచ్ ఇన్ చేస్తున్నారు?' : 'Where are you punching in from?'}
-              </p>
-              {/* In Office */}
-              <button
-                id="punch-type-in-office"
-                onClick={() => handleCategorySelect('in_office')}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-teal-100 bg-teal-50/50 hover:bg-teal-50 hover:border-teal-400 transition-all group cursor-pointer active:scale-95"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center shrink-0 group-hover:bg-teal-200 transition-colors">
-                  <Building2 className="w-6 h-6" />
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-slate-800 text-sm">{t.punchTypeInOffice}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    {language === 'te' ? 'ఆఫీసు నుండి పంచ్ ఇన్ చేయండి' : 'Punching in from your office location'}
-                  </p>
-                </div>
-              </button>
-
-              {/* Out of Office — Medical Camp */}
-              <button
-                id="punch-type-out-of-office"
-                onClick={() => handleCategorySelect('out_of_office')}
-                className="w-full flex items-center gap-4 p-4 rounded-2xl border-2 border-orange-100 bg-orange-50/50 hover:bg-orange-50 hover:border-orange-400 transition-all group cursor-pointer active:scale-95"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 group-hover:bg-orange-200 transition-colors">
-                  <Stethoscope className="w-6 h-6" />
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-slate-800 text-sm">{t.punchTypeOutOfOffice}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    {language === 'te' ? 'మెడికల్ క్యాంప్ లేదా ఇతర బాహ్య స్థలం నుండి' : 'At a medical camp or external field location'}
-                  </p>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Note Input Modal for Out of Office */}
-      {showNoteInput && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl overflow-hidden max-w-sm w-full shadow-2xl p-6">
-            <h3 className="font-bold text-slate-800 text-sm mb-4">
-              {language === 'te' ? 'లొకేషన్ నోట్ (తప్పనిసరి)' : 'Location Note (Required)'}
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              {language === 'te' ? 'మీరు ఎక్కడ ఉన్నారో రాయండి (ఉదా: మెడికల్ క్యాంప్, ఫీల్డ్ విజిట్).' : 'Please enter where you are punching in from.'}
-            </p>
-            <input
-              type="text"
-              value={punchNote}
-              onChange={(e) => setPunchNote(e.target.value)}
-              placeholder={language === 'te' ? 'ఇక్కడ రాయండి...' : 'Enter location note...'}
-              className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-600/20 mb-4"
-              autoFocus
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => { setShowNoteInput(false); setIsCategoryOpen(false); }}
-                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-colors uppercase tracking-wider text-xs"
-              >
-                {language === 'te' ? 'రద్దు' : 'Cancel'}
-              </button>
-              <button
-                onClick={handleNoteSubmit}
-                className="flex-1 py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-colors uppercase tracking-wider text-xs"
-              >
-                {language === 'te' ? 'కొనసాగించు' : 'Proceed'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Camera Modal */}
       {isCameraOpen && (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -598,11 +478,6 @@ export default function CheckInModule({
               <h3 className="font-bold text-slate-800 flex items-center gap-2">
                 <Camera className="w-5 h-5 text-teal-600" />
                 {language === 'te' ? "ఫోటో తీయండి" : `Photo ${isCheckedIn ? "Punch-Out" : "Punch-In"}`}
-                {!isCheckedIn && (
-                  <span className={`ml-1 text-[10px] px-2 py-0.5 rounded-full font-bold ${selectedPunchType === 'in_office' ? 'bg-teal-100 text-teal-700' : 'bg-orange-100 text-orange-700'}`}>
-                    {selectedPunchType === 'in_office' ? t.punchTypeInOffice : t.punchTypeOutOfOffice}
-                  </span>
-                )}
               </h3>
               <button onClick={stopCamera} className="p-1 hover:bg-slate-200 rounded-full transition-colors">
                 <X className="w-5 h-5 text-slate-500" />
@@ -777,32 +652,6 @@ export default function CheckInModule({
                 {language === 'te' ? "ఫోటో తీయండి" : "Capture & Pin"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Geo-fence Error Modal */}
-      {geoError && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center space-y-4 animate-scaleUp">
-            <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto">
-              <MapPin className="w-8 h-8" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Outside Allowed Area</h3>
-              <p className="text-sm text-slate-500">
-                {geoError.nearestOfficeName === "No configured locations"
-                  ? "Punch-in failed because no Office Locations have been configured in the system yet. Please configure an Office Location first."
-                  : `You are currently ${geoError.distance} meters away from ${geoError.nearestOfficeName}. You must be within the allowed radius to punch in.`
-                }
-              </p>
-            </div>
-            <button
-              onClick={() => setGeoError(null)}
-              className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl transition-colors uppercase tracking-wider text-xs"
-            >
-              Okay
-            </button>
           </div>
         </div>
       )}
