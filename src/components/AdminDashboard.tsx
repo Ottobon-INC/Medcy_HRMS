@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Users, CheckCircle, Clock, Landmark, AlertCircle, MapPin, ChevronRight, IndianRupee } from 'lucide-react';
+import { ArrowRight, Users, CheckCircle, Clock, AlertCircle, MapPin, ChevronRight } from 'lucide-react';
 import { Language, Employee, LeaveRequest } from '../types';
 import { translations } from '../translations';
 import TickerAlert from './TickerAlert';
-import { defaultPayrollConfig } from '../lib/services/payroll-config-service';
-import { getTieredAllowances } from '../lib/services/payroll-service';
 import { countPendingMissedPunches } from '../lib/services/missed-punch-service';
 
 interface AdminDashboardProps {
@@ -53,21 +51,6 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
   });
   const pendingCount = pendingRequests.length;
 
-  // Calculate payroll total (based on basic salary + tiered allowances)
-  const totalPayroll = employees.reduce((sum, emp) => {
-    if (emp.role === 'admin' || emp.status === 'inactive') return sum; 
-    const tier = getTieredAllowances(emp.basicSalary, defaultPayrollConfig);
-    const gross = emp.basicSalary + tier.hra + tier.ma + tier.ca;
-    const deductions = (emp.basicSalary * (defaultPayrollConfig.pf_percent / 100)) + defaultPayrollConfig.professional_tax; 
-    return sum + (gross - deductions);
-  }, 0);
-
-  const formattedPayroll = new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0
-  }).format(totalPayroll);
-
   const localizedText = {
     en: {
       title: "Admin Management Dashboard",
@@ -79,7 +62,7 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
       actionApprove: "Go to Leave Approvals",
       actionDirectory: "View Directory",
       actionAttendance: "View Company Attendance",
-      actionPayroll: "Generate Salaries",
+      actionFieldOps: "View Field Operations",
       activeLabel: "Checked In",
       onLeaveLabel: "On Leave",
       absentLabel: "Absent",
@@ -94,7 +77,7 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
       actionApprove: "Go to Leave Approvals",
       actionDirectory: "View Directory",
       actionAttendance: "View Company Attendance",
-      actionPayroll: "Generate Salaries",
+      actionFieldOps: "View Field Operations",
       activeLabel: "Checked In",
       onLeaveLabel: "On Leave",
       absentLabel: "Absent",
@@ -153,7 +136,7 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
       </div>
 
       {/* 2. Numeric Snapshot Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         
         {/* Card 1: Total Employees */}
         <div 
@@ -222,7 +205,7 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
           </p>
         </div>
 
-        {/* Card 3.5: Pending Missed Punches */}
+        {/* Card 4: Pending Missed Punches */}
         <div 
           onClick={() => setActiveTab('adminMissedPunches')}
           className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 cursor-pointer hover:-translate-y-1"
@@ -243,49 +226,6 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
           </div>
           <p className="text-[10px] text-slate-400 mt-4 border-t border-slate-50 pt-3 text-rose-500 font-medium">
             {language === 'te' ? 'పెండింగ్ అప్రూవల్స్' : 'Action required in Attendance'}
-          </p>
-        </div>
-
-        {/* Card 4: This Month's Payroll Total */}
-        <div 
-          onClick={() => setActiveTab('adminPayroll')}
-          className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 cursor-pointer hover:-translate-y-1"
-        >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t.monthlyPayrollTotal}</span>
-              <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                <Landmark className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-2xl sm:text-2xl font-black font-sans text-slate-800">{formattedPayroll}</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-4 border-t border-slate-50 pt-3">
-            {language === 'te' ? 'అంచనా వేయబడిన నికర వ్యయం' : 'Estimated net disbursement'}
-          </p>
-        </div>
-
-        {/* Card 5: Inactive Employees */}
-        <div 
-          onClick={() => setActiveTab('directory')}
-          className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 cursor-pointer hover:-translate-y-1"
-        >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{localizedText.inactiveEmployees || 'Inactive'}</span>
-              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
-                <Users className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-3xl sm:text-4xl font-black font-mono text-slate-800">{inactiveEmployees.toString().padStart(2, '0')}</span>
-              <span className="text-xs text-slate-400 font-medium">{language === 'te' ? 'మంది' : 'inactive'}</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-4 border-t border-slate-50 pt-3">
-            {language === 'te' ? 'పనిలో లేని ఉద్యోగులు' : 'Currently inactive staff'}
           </p>
         </div>
 
@@ -329,12 +269,12 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
                 <ArrowRight className="w-4 h-4 text-slate-400" />
               </button>
 
-              {/* Payroll */}
+              {/* Field Operations */}
               <button 
-                onClick={() => setActiveTab('adminPayroll')}
+                onClick={() => setActiveTab('fieldOps')}
                 className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-teal-50 hover:text-teal-700 transition-colors text-left border border-slate-100 cursor-pointer text-xs font-bold text-slate-700"
               >
-                <span>{localizedText.actionPayroll}</span>
+                <span>{localizedText.actionFieldOps}</span>
                 <ArrowRight className="w-4 h-4 text-slate-400" />
               </button>
             </div>

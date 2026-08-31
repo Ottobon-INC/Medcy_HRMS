@@ -1,5 +1,5 @@
 import React from 'react';
-import { Employee, Language, Task, PunchType, LeaveBalance, Payslip, PinType, RepaymentTimeline, AdvanceType } from '../../types';
+import { Employee, Language, Task, PunchType, LeaveBalance, PinType } from '../../types';
 
 // Lazy Loaded Modules
 const DashboardSnapshot = React.lazy(() => import('../DashboardSnapshot'));
@@ -7,21 +7,15 @@ const AttendanceModule = React.lazy(() => import('../AttendanceModule'));
 const EmployeeMissedPunches = React.lazy(() => import('../EmployeeMissedPunches'));
 const FieldDutyModule = React.lazy(() => import('../FieldDutyModule'));
 const EmployeeMapDashboard = React.lazy(() => import('../EmployeeMapDashboard'));
-const EmployeeSpecialEvents = React.lazy(() => import('../EmployeeSpecialEvents'));
 const EmployeeRoster = React.lazy(() => import('../EmployeeRoster'));
 const LeaveModule = React.lazy(() => import('../LeaveModule'));
-const AdvanceRequestModule = React.lazy(() => import('../AdvanceRequestModule'));
-const PayrollModule = React.lazy(() => import('../PayrollModule'));
 const AdminDashboard = React.lazy(() => import('../AdminDashboard'));
 const EmployeeDirectory = React.lazy(() => import('../EmployeeDirectory'));
 const AdminAttendance = React.lazy(() => import('../AdminAttendance'));
 const AdminMissedPunches = React.lazy(() => import('../AdminMissedPunches'));
 const FieldOpsModule = React.lazy(() => import('../FieldOpsModule'));
 const AdminLeaveApprovals = React.lazy(() => import('../AdminLeaveApprovals'));
-const AdminAdvanceApprovals = React.lazy(() => import('../AdminAdvanceApprovals'));
-const AdminPayroll = React.lazy(() => import('../AdminPayroll'));
 const AdminOfficeLocations = React.lazy(() => import('../AdminOfficeLocations'));
-const AdminSpecialEvents = React.lazy(() => import('../AdminSpecialEvents'));
 const MessagingModule = React.lazy(() => import('../MessagingModule').then(m => ({ default: m.MessagingModule })));
 const AdminSettings = React.lazy(() => import('../AdminSettings'));
 const DutyRosterModule = React.lazy(() => import('../DutyRosterModule'));
@@ -43,18 +37,12 @@ interface AppRouterProps {
   onApplyLeave: (empId: string, req: any) => Promise<void>;
   onApproveLeave: (reqId: string, note?: string) => Promise<void>;
   onRejectLeave: (reqId: string, note?: string) => Promise<void>;
-  onSubmitAdvance: (empId: string, amount: number, reason: string, repaymentMonths?: RepaymentTimeline, type?: AdvanceType) => Promise<void>;
-  onApproveAdvance: (advId: string) => Promise<void>;
-  onRejectAdvance: (advId: string) => Promise<void>;
   onAddEmployee: (emp: any) => Promise<void>;
   onUpdateEmployee: (id: string, fields: Partial<Employee>) => Promise<void>;
   onDeleteEmployee: (id: string) => Promise<void>;
   onUpdateBalances: (empId: string, balances: LeaveBalance) => Promise<void>;
   onUpdateAttendance: (employeeId: string, date: string, status: any, checkInTime?: string, checkOutTime?: string, sessionNumber?: number) => Promise<void>;
   onForceCloseSession: (employeeId: string, date: string, sessionNumber?: number) => Promise<void>;
-  onRunBulkPayroll: (month: string) => Promise<void>;
-  onGenerateSinglePayslip: (empId: string, month: string) => Promise<void>;
-  onUpdatePayslip: (empId: string, payslip: Payslip) => Promise<void>;
   onCreateTask: (task: any) => Promise<void>;
   onUpdateTask: (id: string, updates: any) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
@@ -75,18 +63,12 @@ export const AppRouter: React.FC<AppRouterProps> = ({
   onApplyLeave,
   onApproveLeave,
   onRejectLeave,
-  onSubmitAdvance,
-  onApproveAdvance,
-  onRejectAdvance,
   onAddEmployee,
   onUpdateEmployee,
   onDeleteEmployee,
   onUpdateBalances,
   onUpdateAttendance,
   onForceCloseSession,
-  onRunBulkPayroll,
-  onGenerateSinglePayslip,
-  onUpdatePayslip,
   onCreateTask,
   onUpdateTask,
   onDeleteTask,
@@ -103,7 +85,6 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           logs={currentUser.checkInLogs}
           attendanceRecords={currentUser.attendanceRecords}
           leaveBalance={currentUser.leaveBalance}
-          payslips={currentUser.payslips}
           setActiveTab={setActiveTab}
           onToggleCheckIn={(photoData?: string, punchType?: PunchType, punchNote?: string) =>
             onToggleCheckIn(currentUser.id, currentUser.isCheckedIn, photoData, punchType, punchNote)
@@ -142,13 +123,6 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           isLocalMode={isLocalMode}
         />
       );
-    case 'events':
-      return (
-        <EmployeeSpecialEvents
-          language={language}
-          employeeId={currentUser.id}
-        />
-      );
     case 'myRoster':
       return (
         <EmployeeRoster 
@@ -171,35 +145,6 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           onRejectLeave={onRejectLeave}
         />
       );
-    case 'advance':
-      return (
-        <AdvanceRequestModule
-          language={language}
-          advanceRequests={currentUser.advanceRequests || []}
-          onSubmitAdvance={(amount, reason, repaymentMonths, type) =>
-            onSubmitAdvance(currentUser.id, amount, reason, repaymentMonths, type)
-          }
-          isEligible={
-            (currentUser.experience || 0) >= 1 ||
-            new Date(currentUser.joiningDate) <= new Date(new Date().setFullYear(new Date().getFullYear() - 1))
-          }
-          employeeSalary={currentUser.basicSalary}
-        />
-      );
-    case 'payroll':
-      return (
-        <PayrollModule
-          language={language}
-          payslips={currentUser.payslips}
-          employeeName={currentUser.name}
-          employeeId={currentUser.id}
-          employeeEmail={currentUser.email}
-          employeeDesignation={currentUser.designation}
-          employeeJoiningDate={currentUser.joiningDate}
-          employeeExperience={currentUser.experience}
-          employeeBankDetails={currentUser.bankDetails}
-        />
-      );
 
     // --- ADMIN MODULES ---
     case 'adminDashboard':
@@ -218,7 +163,6 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           onAddEmployee={onAddEmployee}
           onUpdateEmployee={onUpdateEmployee}
           onDeleteEmployee={onDeleteEmployee}
-          onUpdatePayslip={onUpdatePayslip}
           onApproveEmployeeLeave={(_empId, reqId) => onApproveLeave(reqId)}
           onRejectEmployeeLeave={(_empId, reqId) => onRejectLeave(reqId)}
           onApplyEmployeeLeave={(empId, type, fromDate, toDate, reason) =>
@@ -262,33 +206,9 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           onRejectLeave={(_empId, reqId, note) => onRejectLeave(reqId, note)}
         />
       );
-    case 'advanceApprovals':
-      return (
-        <AdminAdvanceApprovals
-          language={language}
-          employees={employees}
-          onApprove={onApproveAdvance}
-          onReject={onRejectAdvance}
-        />
-      );
-    case 'adminPayroll':
-      return (
-        <AdminPayroll
-          language={language}
-          employees={employees}
-          onRunBulkPayroll={onRunBulkPayroll}
-          onGenerateSinglePayslip={onGenerateSinglePayslip}
-          onUpdatePayslip={onUpdatePayslip}
-          onUpdateEmployee={onUpdateEmployee}
-        />
-      );
     case 'officeLocations':
       return (
         <AdminOfficeLocations language={language} />
-      );
-    case 'specialEvents':
-      return (
-        <AdminSpecialEvents language={language} employees={employees} />
       );
     case 'messages':
       return (

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Sparkles, Camera, X, MapPin, AlertCircle } from "lucide-react";
-import { Language, CheckInLog, AttendanceRecord, LeaveBalance, Payslip, Employee } from "../types";
+import { Camera, X, MapPin, AlertCircle } from "lucide-react";
+import { Language, CheckInLog, AttendanceRecord, LeaveBalance, Employee } from "../types";
 import { translations } from "../translations";
 import LocationPinTimeline from "./LocationPinTimeline";
 import TickerAlert from "./TickerAlert";
@@ -14,14 +14,13 @@ interface DashboardSnapshotProps {
   logs: CheckInLog[];
   attendanceRecords: AttendanceRecord[];
   leaveBalance: LeaveBalance;
-  payslips: Payslip[];
   setActiveTab: (tab: string) => void;
   onToggleCheckIn: (photoData?: string, punchType?: import("../types").PunchType, punchNote?: string) => Promise<{success: boolean, geoError?: any, error?: string} | void>;
   pins: import("../types").LocationPin[];
   onAddPin: (pinType: import("../types").PinType, label?: string, photoData?: string) => Promise<{ success: boolean; error?: string }>;
 }
 
-export default function DashboardSnapshot({ language, currentUser, isCheckedIn, logs, attendanceRecords, leaveBalance, payslips, setActiveTab, onToggleCheckIn, pins, onAddPin }: DashboardSnapshotProps) {
+export default function DashboardSnapshot({ language, currentUser, isCheckedIn, logs, attendanceRecords, leaveBalance, setActiveTab, onToggleCheckIn, pins, onAddPin }: DashboardSnapshotProps) {
   const t = translations[language];
 
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -180,11 +179,6 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
     } return acc;
   }, 0);
   const todayWorkedHrs = (todayWorkedSecs / 3600).toFixed(2);
-  const latestPayslip = payslips[0];
-  const formattedSalary = latestPayslip
-    ? new Intl.NumberFormat("en-IN",{style:"currency",currency:"INR",maximumFractionDigits:0}).format(latestPayslip.basicPay+latestPayslip.allowances.reduce((a,x)=>a+x.amount,0)-latestPayslip.deductions.reduce((a,x)=>a+x.amount,0))
-    : "₹28,450";
-  const salaryMonth = latestPayslip ? (language==="te"?"నికర జీతం":`Net Salary`) : "Net Salary";
 
   return (
     <div id="dashboard-snapshot-container" className="space-y-6 sm:space-y-8 animate-fadeIn">
@@ -228,7 +222,7 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-100 flex flex-col justify-between min-h-[320px]">
+        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-100 flex flex-col justify-between min-h-[280px]">
           <div>
             <div className="flex justify-between items-center mb-6">
               <h4 className="font-black text-slate-800 uppercase tracking-wider text-xs">{t.attendance}</h4>
@@ -244,14 +238,23 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
             <button onClick={()=>setActiveTab("attendance")} className="mt-4 text-xs font-bold text-teal-600 hover:text-teal-700 underline cursor-pointer">{language==="te"?"హాజరు షీట్ చూడండి":"View Full Sheet"}</button>
           </div>
         </div>
-        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-100 flex flex-col justify-between min-h-[320px]">
+        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-100 flex flex-col justify-between min-h-[280px]">
           <div>
-            <div className="flex justify-between items-center mb-6"><h4 className="font-black text-slate-800 uppercase tracking-wider text-xs">{t.payroll}</h4><button onClick={()=>setActiveTab("payroll")} className="text-teal-600 font-bold text-xs underline cursor-pointer hover:text-teal-700">View PDF</button></div>
-            <div className="py-2"><p className="text-xs text-slate-400 mb-1">{salaryMonth}</p><p className="text-3xl font-black text-slate-800 tracking-tighter">{formattedSalary}</p></div>
+            <div className="flex justify-between items-center mb-6">
+              <h4 className="font-black text-slate-800 uppercase tracking-wider text-xs">Field Operations</h4>
+              <span className="text-sky-600 font-bold text-xs uppercase">Field Duty</span>
+            </div>
+            <div className="py-2">
+              <p className="text-xs text-slate-400 mb-1">Today's Assigned Route</p>
+              <p className="text-2xl font-black text-slate-800 tracking-tight">Active GPS Telemetry</p>
+            </div>
           </div>
           <div className="space-y-4">
-            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-3.5 flex gap-3 items-start"><div className="text-amber-600 shrink-0 mt-0.5"><Sparkles className="w-4 h-4 fill-amber-500 text-amber-500"/></div><p className="text-[10px] text-amber-800 leading-tight font-medium">{language==="te"?"మీ జీతం బ్యాంక్ ఖాతాకు నేరుగా జమ చేయబడింది.":"Credited directly via bank transfer."}</p></div>
-            <button onClick={()=>setActiveTab("payroll")} className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer text-center">{language==="te"?"జీతం రశీదు తెరవండి":"Open Salary Slips"}</button>
+            <div className="bg-sky-50 border border-sky-100 rounded-2xl p-3.5 flex gap-3 items-start">
+              <div className="text-sky-600 shrink-0 mt-0.5"><MapPin className="w-4 h-4 text-sky-500"/></div>
+              <p className="text-[10px] text-sky-800 leading-tight font-medium">Real-time GPS routing, navigation HUD, and destination check-in.</p>
+            </div>
+            <button onClick={()=>setActiveTab("fieldDuty")} className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer text-center">Open Field Duty</button>
           </div>
         </div>
       </section>

@@ -5,8 +5,6 @@ import {
   Calendar,
   Clock,
   Moon,
-  IndianRupee,
-  Landmark,
   CalendarDays,
   MapPin,
   MessageSquare,
@@ -95,26 +93,6 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = ({
           </button>
 
           <button
-            onClick={() => onSelectTab('advanceApprovals')}
-            className={`shrink-0 flex flex-col items-center justify-center min-w-[3.5rem] h-12 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'advanceApprovals' ? 'text-teal-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <IndianRupee className="w-5 h-5" />
-            <span className="text-[8px] font-bold uppercase mt-1 leading-none">Advance</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('adminPayroll')}
-            className={`shrink-0 flex flex-col items-center justify-center min-w-[3.5rem] h-12 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'adminPayroll' ? 'text-teal-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Landmark className="w-5 h-5" />
-            <span className="text-[8px] font-bold uppercase mt-1 leading-none">Payroll</span>
-          </button>
-
-          <button
             onClick={() => onSelectTab('officeLocations')}
             className={`shrink-0 flex flex-col items-center justify-center min-w-[3.5rem] h-12 rounded-xl transition-all cursor-pointer ${
               activeTab === 'officeLocations' ? 'text-teal-600 scale-105' : 'text-slate-400 hover:text-slate-600'
@@ -122,16 +100,6 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = ({
           >
             <MapPin className="w-5 h-5" />
             <span className="text-[8px] font-bold uppercase mt-1 leading-none">Offices</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('specialEvents')}
-            className={`shrink-0 flex flex-col items-center justify-center min-w-[3.5rem] h-12 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'specialEvents' ? 'text-teal-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Calendar className="w-5 h-5" />
-            <span className="text-[8px] font-bold uppercase mt-1 leading-none">Events</span>
           </button>
 
           <button
@@ -245,36 +213,6 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = ({
           >
             <Clock className="w-5 h-5" />
             <span className="text-[8px] font-bold uppercase mt-1 leading-none">Mispunch</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('advance')}
-            className={`shrink-0 flex flex-col items-center justify-center min-w-[3.5rem] h-12 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'advance' ? 'text-teal-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <IndianRupee className="w-5 h-5" />
-            <span className="text-[8px] font-bold uppercase mt-1 leading-none">Advance</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('payroll')}
-            className={`shrink-0 flex flex-col items-center justify-center min-w-[3.5rem] h-12 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'payroll' ? 'text-teal-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Landmark className="w-5 h-5" />
-            <span className="text-[8px] font-bold uppercase mt-1 leading-none">Salary</span>
-          </button>
-
-          <button
-            onClick={() => onSelectTab('events')}
-            className={`shrink-0 flex flex-col items-center justify-center min-w-[3.5rem] h-12 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'events' ? 'text-teal-600 scale-105' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <Calendar className="w-5 h-5" />
-            <span className="text-[8px] font-bold uppercase mt-1 leading-none">Events</span>
           </button>
 
           <button

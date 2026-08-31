@@ -7,8 +7,6 @@ import { useEmployees } from './hooks/useEmployees';
 import { useAuth } from './hooks/useAuth';
 import { useLeaves } from './hooks/useLeaves';
 import { useAttendance } from './hooks/useAttendance';
-import { usePayroll } from './hooks/usePayroll';
-import { useAdvances } from './hooks/useAdvances';
 import { useLocationPins } from './hooks/useLocationPins';
 import { useTaskModule } from './hooks/useTaskModule';
 
@@ -37,16 +35,11 @@ export default function App() {
       'dashboard': 'dashboard',
       'attendance': 'attendance',
       'leave': 'leave',
-      'advance': 'advance',
-      'payroll': 'payroll',
       'admin-dashboard': 'adminDashboard',
       'directory': 'directory',
       'attendance-overview': 'attendanceOverview',
       'leave-approvals': 'leaveApprovals',
-      'advance-approvals': 'advanceApprovals',
-      'run-payroll': 'adminPayroll',
       'office-locations': 'officeLocations',
-      'special-events': 'specialEvents',
       'messages': 'messages',
       'admin-settings': 'adminSettings',
       'missed-punches-admin': 'adminMissedPunches',
@@ -72,16 +65,11 @@ export default function App() {
       'dashboard': 'dashboard',
       'attendance': 'attendance',
       'leave': 'leave',
-      'advance': 'advance',
-      'payroll': 'payroll',
       'adminDashboard': 'admin-dashboard',
       'directory': 'directory',
       'attendanceOverview': 'attendance-overview',
       'leaveApprovals': 'leave-approvals',
-      'advanceApprovals': 'advance-approvals',
-      'adminPayroll': 'run-payroll',
       'officeLocations': 'office-locations',
-      'specialEvents': 'special-events',
       'messages': 'messages',
       'adminSettings': 'admin-settings',
       'adminMissedPunches': 'missed-punches-admin',
@@ -107,14 +95,11 @@ export default function App() {
         'dashboard': 'dashboard',
         'attendance': 'attendance',
         'leave': 'leave',
-        'payroll': 'payroll',
         'admin-dashboard': 'adminDashboard',
         'directory': 'directory',
         'team-attendance': 'attendanceOverview',
         'leave-approvals': 'leaveApprovals',
-        'run-payroll': 'adminPayroll',
         'office-locations': 'officeLocations',
-        'special-events': 'specialEvents',
         'messages': 'messages',
         'admin-settings': 'adminSettings',
         'missed-punches-admin': 'adminMissedPunches',
@@ -141,8 +126,6 @@ export default function App() {
   
   const { applyLeave, approveLeave, rejectLeave, updateBalances } = useLeaves(isLocalMode, loadData);
   const { toggleCheckIn, updateAttendance, forceCloseSession } = useAttendance(isLocalMode, loadData);
-  const { runBulkPayroll, updatePayslip, generateSinglePayslip } = usePayroll(isLocalMode, loadData);
-  const { submitAdvance, approveAdvance, rejectAdvance } = useAdvances(isLocalMode, loadData);
   const { addPin } = useLocationPins(currentUser?.id, isLocalMode);
   const { tasks, createTask, updateTask, updateTaskStatus, deleteTask } = useTaskModule(employees);
 
@@ -156,12 +139,10 @@ export default function App() {
     
     const adminTabs = [
       'adminDashboard', 'directory', 'attendanceOverview', 'leaveApprovals',
-      'advanceApprovals', 'adminPayroll', 'officeLocations', 'specialEvents',
-      'messages', 'adminSettings', 'dutyRoster', 'adminMissedPunches', 'fieldOps', 'adminTasks'
+      'officeLocations', 'messages', 'adminSettings', 'dutyRoster', 'adminMissedPunches', 'fieldOps', 'adminTasks'
     ];
     const employeeTabs = [
-      'dashboard', 'attendance', 'leave', 'advance', 'payroll',
-      'events', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'tasks', 'liveMap'
+      'dashboard', 'attendance', 'leave', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'tasks', 'liveMap'
     ];
 
     if (currentUser.role === 'admin' && !adminTabs.includes(activeTab)) {
@@ -304,18 +285,12 @@ export default function App() {
                 onApplyLeave={applyLeave}
                 onApproveLeave={approveLeave}
                 onRejectLeave={rejectLeave}
-                onSubmitAdvance={submitAdvance}
-                onApproveAdvance={approveAdvance}
-                onRejectAdvance={rejectAdvance}
                 onAddEmployee={addEmployee}
                 onUpdateEmployee={updateEmployee}
                 onDeleteEmployee={deleteEmployee}
                 onUpdateBalances={updateBalances}
                 onUpdateAttendance={updateAttendance}
                 onForceCloseSession={forceCloseSession}
-                onRunBulkPayroll={(month) => runBulkPayroll(employees, month)}
-                onGenerateSinglePayslip={generateSinglePayslip}
-                onUpdatePayslip={updatePayslip}
                 onCreateTask={createTask}
                 onUpdateTask={updateTask}
                 onDeleteTask={deleteTask}

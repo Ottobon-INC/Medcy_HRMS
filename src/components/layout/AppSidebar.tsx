@@ -5,15 +5,13 @@ import {
   Calendar,
   Clock,
   Moon,
-  IndianRupee,
-  Landmark,
   CalendarDays,
   MapPin,
   MessageSquare,
   CheckSquare,
   Settings,
-  HeartHandshake,
-  Radio
+  Radio,
+  HeartHandshake
 } from 'lucide-react';
 import { Employee } from '../../types';
 
@@ -141,40 +139,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               </button>
 
               <button
-                id="nav-tab-advance-approvals"
-                onClick={() => onSelectTab('advanceApprovals')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
-                  activeTab === 'advanceApprovals'
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                {activeTab === 'advanceApprovals' ? (
-                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
-                ) : (
-                  <IndianRupee className="w-4 h-4 shrink-0" />
-                )}
-                <span>Advance Approvals</span>
-              </button>
-
-              <button
-                id="nav-tab-admin-payroll"
-                onClick={() => onSelectTab('adminPayroll')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
-                  activeTab === 'adminPayroll'
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                {activeTab === 'adminPayroll' ? (
-                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
-                ) : (
-                  <Landmark className="w-4 h-4 shrink-0" />
-                )}
-                <span>Run Payroll</span>
-              </button>
-
-              <button
                 id="nav-tab-duty-roster"
                 onClick={() => onSelectTab('dutyRoster')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
@@ -206,23 +170,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   <MapPin className="w-4 h-4 shrink-0" />
                 )}
                 <span>Office Locations</span>
-              </button>
-
-              <button
-                id="nav-tab-special-events"
-                onClick={() => onSelectTab('specialEvents')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
-                  activeTab === 'specialEvents'
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                {activeTab === 'specialEvents' ? (
-                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
-                ) : (
-                  <Calendar className="w-4 h-4 shrink-0" />
-                )}
-                <span>Special Events</span>
               </button>
 
               <button
@@ -396,57 +343,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   <Moon className="w-4 h-4 shrink-0" />
                 )}
                 <span>Leave Requests</span>
-              </button>
-
-              <button
-                id="nav-tab-advance"
-                onClick={() => onSelectTab('advance')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
-                  activeTab === 'advance'
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                {activeTab === 'advance' ? (
-                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
-                ) : (
-                  <IndianRupee className="w-4 h-4 shrink-0" />
-                )}
-                <span>Salary Advance</span>
-              </button>
-
-              <button
-                id="nav-tab-payroll"
-                onClick={() => onSelectTab('payroll')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
-                  activeTab === 'payroll'
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                {activeTab === 'payroll' ? (
-                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
-                ) : (
-                  <Landmark className="w-4 h-4 shrink-0" />
-                )}
-                <span>Salary Slips</span>
-              </button>
-
-              <button
-                id="nav-tab-events"
-                onClick={() => onSelectTab('events')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
-                  activeTab === 'events'
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                {activeTab === 'events' ? (
-                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
-                ) : (
-                  <Calendar className="w-4 h-4 shrink-0" />
-                )}
-                <span>Special Events</span>
               </button>
 
               <button

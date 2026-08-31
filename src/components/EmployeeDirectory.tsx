@@ -1,10 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Edit3, Trash2, ArrowLeft, Calendar, Moon, Landmark, User, Mail, IndianRupee, CalendarDays, Eye, EyeOff, Power, FileText, Printer, X } from 'lucide-react';
+import { Plus, Edit3, Trash2, ArrowLeft, Calendar, Moon, User, Mail, IndianRupee, CalendarDays, Eye, EyeOff, Power, FileText, Printer, X } from 'lucide-react';
 import { Language, Employee, LeaveType } from '../types';
 import { translations } from '../translations';
 import AttendanceModule from './AttendanceModule';
 import LeaveModule from './LeaveModule';
-import PayrollModule from './PayrollModule';
 import ExperienceLetter from './ExperienceLetter';
 
 interface EmployeeDirectoryProps {
@@ -13,7 +12,6 @@ interface EmployeeDirectoryProps {
   onAddEmployee: (emp: Partial<Employee>) => void;
   onUpdateEmployee: (id: string, emp: Partial<Employee>) => void;
   onDeleteEmployee: (id: string) => void;
-  onUpdatePayslip: (empId: string, payslip: any) => void;
   // Propagate actions on employee's leave
   onApproveEmployeeLeave: (empId: string, reqId: string) => void;
   onRejectEmployeeLeave: (empId: string, reqId: string) => void;
@@ -27,7 +25,6 @@ export default function EmployeeDirectory({
   onAddEmployee,
   onUpdateEmployee,
   onDeleteEmployee,
-  onUpdatePayslip,
   onApproveEmployeeLeave,
   onRejectEmployeeLeave,
   onApplyEmployeeLeave,
@@ -37,7 +34,7 @@ export default function EmployeeDirectory({
 
   // UI state
   const [inspectingEmpId, setInspectingEmpId] = useState<string | null>(null);
-  const [inspectSubTab, setInspectSubTab] = useState<'attendance' | 'leave' | 'payroll' | 'docs'>('attendance');
+  const [inspectSubTab, setInspectSubTab] = useState<'attendance' | 'leave' | 'docs'>('attendance');
   const [viewingPhotoUrl, setViewingPhotoUrl] = useState<string | null>(null);
 
   const letterRef = useRef<HTMLDivElement>(null);
@@ -346,15 +343,6 @@ export default function EmployeeDirectory({
               <span>{dirText.tabLeave}</span>
             </button>
             <button
-              onClick={() => setInspectSubTab('payroll')}
-              className={`flex-1 md:flex-none flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all uppercase cursor-pointer ${
-                inspectSubTab === 'payroll' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              <Landmark className="w-3.5 h-3.5" />
-              <span>{dirText.tabPayroll}</span>
-            </button>
-            <button
               onClick={() => setInspectSubTab('docs')}
               className={`flex-1 md:flex-none flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all uppercase cursor-pointer ${
                 inspectSubTab === 'docs' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'
@@ -389,24 +377,6 @@ export default function EmployeeDirectory({
                 onApproveLeave={(reqId) => onApproveEmployeeLeave(activeEmployee.id, reqId)}
                 onRejectLeave={(reqId) => onRejectEmployeeLeave(activeEmployee.id, reqId)}
                 onUpdateBalances={(type, allotted, used) => onUpdateLeaveBalances(activeEmployee.id, type, allotted, used)}
-              />
-            </div>
-          )}
-
-          {inspectSubTab === 'payroll' && (
-            <div className="p-4 sm:p-6">
-              <PayrollModule
-                language={language}
-                payslips={activeEmployee.payslips}
-                employeeName={activeEmployee.name}
-                employeeId={activeEmployee.id}
-                employeeEmail={activeEmployee.email}
-                employeeDesignation={activeEmployee.designation}
-                employeeJoiningDate={activeEmployee.joiningDate}
-                employeeExperience={activeEmployee.experience}
-                employeeBankDetails={activeEmployee.bankDetails}
-                onUpdatePayslip={(payslip) => onUpdatePayslip(activeEmployee.id, payslip)}
-                onUpdateBankDetails={(bankDetails) => onUpdateEmployee(activeEmployee.id, { bankDetails })}
               />
             </div>
           )}
