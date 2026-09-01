@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Camera, X, MapPin, AlertCircle } from "lucide-react";
+import { Camera, X, MapPin, AlertCircle, Coffee } from "lucide-react";
 import { Language, CheckInLog, AttendanceRecord, LeaveBalance, Employee } from "../types";
 import { translations } from "../translations";
 import LocationPinTimeline from "./LocationPinTimeline";
 import TickerAlert from "./TickerAlert";
 import { submitMissedPunchRequest } from "../lib/services/missed-punch-service";
 import { fetchRoster } from "../lib/services/roster-service";
+import { getActiveBreak } from "../lib/services/break-service";
 
 interface DashboardSnapshotProps {
   language: Language;
@@ -40,6 +41,17 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
   const [pinLabel, setPinLabel] = useState("");
   const [isPinning, setIsPinning] = useState(false);
   const [todayShift, setTodayShift] = useState<import("../types").DutyRosterShift | null>(null);
+  const [isOnBreak, setIsOnBreak] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (currentUser?.id) {
+      getActiveBreak(currentUser.id).then(brk => {
+        if (isMounted) setIsOnBreak(Boolean(brk));
+      });
+    }
+    return () => { isMounted = false; };
+  }, [currentUser?.id, isCheckedIn]);
 
   useEffect(() => {
     const fetchTodayShift = async () => {
@@ -183,26 +195,100 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
         <div id="today-status-snap" className="lg:col-span-8 bg-white rounded-[32px] p-8 shadow-sm border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="space-y-4 text-center sm:text-left">
             <div>
-              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${isCheckedIn?"bg-teal-100 text-teal-700 animate-pulse":"bg-slate-100 text-slate-500"}`}>
-                {isCheckedIn?(language==="te"?"పనిలో ఉన్నారు":"Active Now"):(language==="te"?"హాజరు కాలేదు":"Not Checked-In")}
+              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                isOnBreak
+                  ? "bg-amber-100 text-amber-800 border border-amber-200 animate-pulse"
+                  : isCheckedIn
+                  ? "bg-teal-100 text-teal-700 animate-pulse"
+                  : "bg-slate-100 text-slate-500"
+              }`}>
+                {isOnBreak
+                  ? "☕ On Break (Tracking Paused)"
+                  : isCheckedIn
+                  ? (language === "te" ? "పనిలో ఉన్నారు" : "Active Now")
+                  : (language === "te" ? "హాజరు కాలేదు" : "Not Checked-In")}
               </span>
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-800 mt-3 leading-tight">{isCheckedIn?t.checkedIn:t.checkedOut}</h2>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-800 mt-3 leading-tight">
+                {isOnBreak
+                  ? (language === "te" ? "విరామంలో ఉన్నారు" : "On Break")
+                  : isCheckedIn ? t.checkedIn : t.checkedOut}
+              </h2>
               <p className="text-slate-500 text-sm mt-1">
-                {isCheckedIn?`${language==="te"?"మీరు విజయవంతంగా లోపలికి వచ్చారు":"You are checked in"} (${latestCheckIn?.checkInTime||""})`:hasCheckedOutToday?(language==="te"?"ఈ రోజు మీ షిఫ్ట్ ముగిసింది":"You have completed your shift for today."):(language==="te"?"మీ హాజరును ఇప్పుడే రికార్డ్ చేయండి":"Tap to register your shift presence today.")}
+                {isOnBreak
+                  ? (language === "te" ? "లైవ్ GPS ట్రాకింగ్ ఆపబడింది. పని పునఃప్రారంభించడానికి ఇక్కడ నొక్కండి." : "Live GPS location tracking is paused. Click to resume your shift.")
+                  : isCheckedIn
+                  ? `${language==="te"?"మీరు విజయవంతంగా లోపలికి వచ్చారు":"You are checked in"} (${latestCheckIn?.checkInTime||""})`
+                  : hasCheckedOutToday
+                  ? (language==="te"?"ఈ రోజు మీ షిఫ్ట్ ముగిసింది":"You have completed your shift for today.")
+                  : (language==="te"?"మీ హాజరును ఇప్పుడే రికార్డ్ చేయండి":"Tap to register your shift presence today.")}
               </p>
             </div>
             <div className="pt-2 flex flex-wrap justify-center sm:justify-start gap-4">
-              {[{label:"Shift Start",val:latestCheckIn?.checkInTime || todayShift?.shiftStart || "09:00 AM"},{label:"Worked Today",val:isCheckedIn?"Live Running":`${todayWorkedHrs} hrs`},{label:"Shift Stops",val:latestCheckIn?.checkOutTime || todayShift?.shiftEnd || "Pending"}].map(item=>(
+              {[{label:"Shift Start",val:latestCheckIn?.checkInTime || todayShift?.shiftStart || "09:00 AM"},{label:"Worked Today",val:isOnBreak?"Paused (On Break)":isCheckedIn?"Live Running":`${todayWorkedHrs} hrs`},{label:"Shift Stops",val:latestCheckIn?.checkOutTime || todayShift?.shiftEnd || "Pending"}].map(item=>(
                 <div key={item.label} className="text-center bg-slate-50 px-4 py-2 rounded-xl min-w-[100px]">
                   <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wide">{item.label}</p>
                   <p className="text-xs font-bold text-slate-700">{item.val}</p>
                 </div>
               ))}
             </div>
-            {isCheckedIn&&(<div className="mt-6 flex justify-center sm:justify-start"><button onClick={()=>setIsPinModalOpen(true)} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-6 rounded-xl transition-colors active:scale-95 border border-slate-200"><MapPin className="w-4 h-4 text-rose-500"/>{language==="te"?"లొకేషన్ పిన్ చేయండి":"Pin Location Now"}</button></div>)}
+            {isCheckedIn && (
+              <div className="mt-6 flex flex-wrap justify-center sm:justify-start gap-3">
+                {isOnBreak ? (
+                  <button 
+                    onClick={() => setActiveTab('attendance')} 
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
+                  >
+                    <Coffee className="w-4 h-4 text-amber-200" />
+                    {language === "te" ? "పనిని పునఃప్రారంభించండి (Resume)" : "Resume Duty & Tracking"}
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => setActiveTab('attendance')} 
+                    className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold py-2.5 px-6 rounded-xl transition-all active:scale-95 cursor-pointer"
+                  >
+                    <Coffee className="w-4 h-4 text-amber-600" />
+                    {language === "te" ? "విరామం తీసుకోండి" : "Take a Break"}
+                  </button>
+                )}
+                <button onClick={()=>setIsPinModalOpen(true)} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-6 rounded-xl transition-colors active:scale-95 border border-slate-200 cursor-pointer">
+                  <MapPin className="w-4 h-4 text-rose-500"/>
+                  {language==="te"?"లొకేషన్ పిన్ చేయండి":"Pin Location Now"}
+                </button>
+              </div>
+            )}
           </div>
-          <button id="go-to-checkin-tab" onClick={hasCheckedOutToday?undefined:()=>startCamera(false)} disabled={hasCheckedOutToday||isProcessing} className={`w-40 h-40 rounded-full border-[12px] flex flex-col items-center justify-center text-white transition-all duration-300 relative ${hasCheckedOutToday?"border-slate-100 bg-slate-300 cursor-not-allowed":isCheckedIn?"border-rose-50 bg-rose-500 hover:bg-rose-600 shadow-xl shadow-rose-200 active:scale-95 cursor-pointer":"border-teal-50 bg-teal-600 hover:bg-teal-700 shadow-xl shadow-teal-100 active:scale-95 cursor-pointer"}`}>
-            {isProcessing?<span className="text-xs font-bold animate-pulse">Processing...</span>:<><span className="font-black uppercase tracking-tighter text-sm">{hasCheckedOutToday?"Completed":isCheckedIn?"Punch Out":"Punch In"}</span><span className="text-[10px] opacity-80 mt-1">{hasCheckedOutToday?"పూర్తయింది":isCheckedIn?"వెళ్ళిపోండి":"లోపలికి రండి"}</span></>}
+          <button 
+            id="go-to-checkin-tab" 
+            onClick={hasCheckedOutToday ? undefined : isOnBreak ? () => setActiveTab('attendance') : () => startCamera(false)} 
+            disabled={hasCheckedOutToday || isProcessing} 
+            className={`w-40 h-40 rounded-full border-[12px] flex flex-col items-center justify-center text-white transition-all duration-300 relative ${
+              hasCheckedOutToday
+                ? "border-slate-100 bg-slate-300 cursor-not-allowed"
+                : isOnBreak
+                ? "border-amber-100 bg-amber-500 shadow-xl shadow-amber-200 hover:bg-amber-600 active:scale-95 cursor-pointer"
+                : isCheckedIn
+                ? "border-rose-50 bg-rose-500 hover:bg-rose-600 shadow-xl shadow-rose-200 active:scale-95 cursor-pointer"
+                : "border-teal-50 bg-teal-600 hover:bg-teal-700 shadow-xl shadow-teal-100 active:scale-95 cursor-pointer"
+            }`}
+          >
+            {isProcessing ? (
+              <span className="text-xs font-bold animate-pulse">Processing...</span>
+            ) : isOnBreak ? (
+              <>
+                <Coffee className="w-8 h-8 mb-1 animate-bounce" />
+                <span className="font-black uppercase tracking-tighter text-xs">On Break</span>
+                <span className="text-[10px] opacity-90 mt-1">Tap to Resume</span>
+              </>
+            ) : (
+              <>
+                <span className="font-black uppercase tracking-tighter text-sm">
+                  {hasCheckedOutToday ? "Completed" : isCheckedIn ? "Punch Out" : "Punch In"}
+                </span>
+                <span className="text-[10px] opacity-80 mt-1">
+                  {hasCheckedOutToday ? "పూర్తయింది" : isCheckedIn ? "వెళ్ళిపోండి" : "లోపలికి రండి"}
+                </span>
+              </>
+            )}
           </button>
         </div>
 

@@ -5,6 +5,7 @@ import { fieldOpsConfig } from '../lib/fieldOpsConfig';
 
 interface LiveTrackingContextType {
   isPublishing: boolean;
+  isOnBreak: boolean;
   activeVisitId: string | null;
   lastPosition: { lat: number; lng: number } | null;
   heading: number;
@@ -14,10 +15,13 @@ interface LiveTrackingContextType {
   error: string | null;
   startTracking: (visitId?: string | null) => void;
   stopTracking: () => void;
+  pauseTracking: () => void;
+  resumeTracking: () => void;
 }
 
 const LiveTrackingContext = createContext<LiveTrackingContextType>({
   isPublishing: false,
+  isOnBreak: false,
   activeVisitId: null,
   lastPosition: null,
   heading: 0,
@@ -26,7 +30,9 @@ const LiveTrackingContext = createContext<LiveTrackingContextType>({
   currentTrail: [],
   error: null,
   startTracking: () => {},
-  stopTracking: () => {}
+  stopTracking: () => {},
+  pauseTracking: () => {},
+  resumeTracking: () => {}
 });
 
 interface LiveTrackingProviderProps {
@@ -41,17 +47,37 @@ export const LiveTrackingProvider: React.FC<LiveTrackingProviderProps> = ({
   isClockedIn = false
 }) => {
   const publisher = useLiveLocationPublisher(currentUser?.id);
+  const [isOnBreak, setIsOnBreak] = React.useState(false);
 
-  // Handle automatic tracking based on isClockedIn status
+  // Sync initial break status from active break record
+  React.useEffect(() => {
+    let isMounted = true;
+    if (currentUser?.id && currentUser?.role === 'employee') {
+      import('../lib/services/break-service').then(({ getActiveBreak }) => {
+        getActiveBreak(currentUser.id).then(active => {
+          if (isMounted) {
+            setIsOnBreak(Boolean(active));
+          }
+        });
+      });
+    } else {
+      setIsOnBreak(false);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id, currentUser?.role]);
+
+  // Handle automatic tracking based on isClockedIn status, guarded by isOnBreak
   useEffect(() => {
     if (currentUser?.role === 'employee' && fieldOpsConfig.liveTrackingEnabled) {
-      if (isClockedIn && !publisher.isPublishing) {
+      if (isClockedIn && !isOnBreak && !publisher.isPublishing) {
         publisher.startPublishing(null);
-      } else if (!isClockedIn && publisher.isPublishing) {
+      } else if ((!isClockedIn || isOnBreak) && publisher.isPublishing) {
         publisher.stopPublishing();
       }
     }
-  }, [isClockedIn, publisher.isPublishing, currentUser?.role, publisher.startPublishing, publisher.stopPublishing]);
+  }, [isClockedIn, isOnBreak, publisher.isPublishing, currentUser?.role, publisher.startPublishing, publisher.stopPublishing]);
 
   // If user logs out or switches, stop tracking
   useEffect(() => {
@@ -62,10 +88,23 @@ export const LiveTrackingProvider: React.FC<LiveTrackingProviderProps> = ({
     }
   }, [currentUser?.id, currentUser?.role, publisher]);
 
+  const pauseTracking = React.useCallback(() => {
+    setIsOnBreak(true);
+    publisher.stopPublishing();
+  }, [publisher.stopPublishing]);
+
+  const resumeTracking = React.useCallback(() => {
+    setIsOnBreak(false);
+    if (isClockedIn && currentUser?.role === 'employee' && fieldOpsConfig.liveTrackingEnabled) {
+      publisher.startPublishing(null);
+    }
+  }, [isClockedIn, currentUser?.role, publisher.startPublishing]);
+
   return (
     <LiveTrackingContext.Provider
       value={{
         isPublishing: publisher.isPublishing,
+        isOnBreak,
         activeVisitId: publisher.activeVisitId,
         lastPosition: publisher.lastPosition,
         heading: publisher.heading,
@@ -74,7 +113,9 @@ export const LiveTrackingProvider: React.FC<LiveTrackingProviderProps> = ({
         currentTrail: publisher.currentTrail,
         error: publisher.error,
         startTracking: publisher.startPublishing,
-        stopTracking: publisher.stopPublishing
+        stopTracking: publisher.stopPublishing,
+        pauseTracking,
+        resumeTracking
       }}
     >
       {children}

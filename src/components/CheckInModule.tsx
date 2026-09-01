@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, ListCollapse, LogIn, LogOut, Camera, X, MapPin, Plus, AlertCircle, Building2, Stethoscope } from 'lucide-react';
+import { Clock, ListCollapse, LogIn, LogOut, Camera, X, MapPin, Plus, AlertCircle, Building2, Stethoscope, Coffee, Play, Pause } from 'lucide-react';
 import { Language, CheckInLog, PunchType, LocationPin, PinType } from '../types';
 import { translations } from '../translations';
 import LocationPinTimeline from './LocationPinTimeline';
 import { submitMissedPunchRequest } from '../lib/services/missed-punch-service';
+import { useLiveTracking } from '../contexts/LiveTrackingContext';
+import { getActiveBreak, startBreak, endBreak, getTodayBreaks, calculateCompletedBreakSeconds, BreakRecord } from '../lib/services/break-service';
 
 interface CheckInModuleProps {
   language: Language;
@@ -35,6 +37,15 @@ export default function CheckInModule({
   const [missedPunchReason, setMissedPunchReason] = useState('');
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
   const [requestSubmitted, setRequestSubmitted] = useState(false);
+
+  // Break tracking states
+  const [isOnBreak, setIsOnBreak] = useState(false);
+  const [activeBreak, setActiveBreak] = useState<BreakRecord | null>(null);
+  const [breakElapsedSeconds, setBreakElapsedSeconds] = useState(0);
+  const [todayBreaks, setTodayBreaks] = useState<BreakRecord[]>([]);
+  const [isBreakLoading, setIsBreakLoading] = useState(false);
+
+  const liveTracking = useLiveTracking();
   
   const handleSubmitMissedPunchRequest = async () => {
     if (!missedPunchDate) return;
@@ -107,6 +118,12 @@ export default function CheckInModule({
       if (isForPin) {
         handlePinSubmit(undefined);
       } else {
+        if (isCheckedIn && isOnBreak) {
+          await endBreak(employeeId);
+          setIsOnBreak(false);
+          setActiveBreak(null);
+          liveTracking.resumeTracking();
+        }
         const result = await onToggleCheckIn(undefined);
         if (result && !result.success) {
           if (result.error) {
@@ -143,6 +160,12 @@ export default function CheckInModule({
         stopCamera();
 
         setIsProcessing(true);
+        if (isCheckedIn && isOnBreak) {
+          await endBreak(employeeId);
+          setIsOnBreak(false);
+          setActiveBreak(null);
+          liveTracking.resumeTracking();
+        }
         const result = await onToggleCheckIn(photoData);
         setIsProcessing(false);
 
@@ -188,9 +211,107 @@ export default function CheckInModule({
     }
   };
 
+  // Fetch initial active break and today breaks
+  useEffect(() => {
+    let isMounted = true;
+    if (employeeId) {
+      getActiveBreak(employeeId).then(active => {
+        if (isMounted) {
+          if (active) {
+            setIsOnBreak(true);
+            setActiveBreak(active);
+            liveTracking.pauseTracking();
+          } else {
+            setIsOnBreak(false);
+            setActiveBreak(null);
+          }
+        }
+      });
+
+      getTodayBreaks(employeeId).then(breaks => {
+        if (isMounted) {
+          setTodayBreaks(breaks);
+        }
+      });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [employeeId, isCheckedIn]);
+
+  // Live break timer: tick elapsed break seconds every second while isOnBreak is true
+  useEffect(() => {
+    let interval: any;
+    if (isOnBreak && activeBreak && activeBreak.start_time) {
+      const calcBreakElapsed = () => {
+        const now = new Date();
+        const [h, m, s] = activeBreak.start_time.split(':').map(Number);
+        const startDate = new Date();
+        startDate.setHours(h, m, s || 0, 0);
+        let diffMs = now.getTime() - startDate.getTime();
+        if (diffMs < 0) diffMs = 0;
+        return Math.floor(diffMs / 1000);
+      };
+
+      setBreakElapsedSeconds(calcBreakElapsed());
+      interval = setInterval(() => {
+        setBreakElapsedSeconds(calcBreakElapsed());
+      }, 1000);
+    } else {
+      setBreakElapsedSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [isOnBreak, activeBreak]);
+
+  // Start break handler: pauses tracking, creates break in DB
+  const handleTakeBreak = async () => {
+    if (isBreakLoading || !isCheckedIn) return;
+    setIsBreakLoading(true);
+    try {
+      const record = await startBreak(employeeId);
+      setActiveBreak(record);
+      setIsOnBreak(true);
+      liveTracking.pauseTracking();
+      const updated = await getTodayBreaks(employeeId);
+      setTodayBreaks(updated);
+    } catch (err) {
+      console.error('Error starting break:', err);
+      alert('Failed to pause for break. Please try again.');
+    } finally {
+      setIsBreakLoading(false);
+    }
+  };
+
+  // Resume duty handler: resumes tracking, closes break in DB
+  const handleResumeDuty = async () => {
+    if (isBreakLoading) return;
+    setIsBreakLoading(true);
+    try {
+      await endBreak(employeeId);
+      setIsOnBreak(false);
+      setActiveBreak(null);
+      liveTracking.resumeTracking();
+      const updated = await getTodayBreaks(employeeId);
+      setTodayBreaks(updated);
+    } catch (err) {
+      console.error('Error resuming from break:', err);
+      alert('Failed to resume duty. Please try again.');
+    } finally {
+      setIsBreakLoading(false);
+    }
+  };
+
   // Main button click — direct camera punch-in or confirmation punch-out
   const handleMainButtonClick = () => {
     if (isCheckedIn) {
+      if (isOnBreak) {
+        alert(
+          language === 'te'
+            ? 'మీరు ప్రస్తుతం విరామంలో ఉన్నారు. దయచేసి పంచ్ అవుట్ చేయడానికి ముందు పనిని పునఃప్రారంభించండి (Resume Duty).'
+            : 'You are currently on a break. Please click "Resume Duty" before punching out.'
+        );
+        return;
+      }
       // Punch-out: show confirmation prompt first
       setShowEndShiftConfirm(true);
     } else {
@@ -248,7 +369,12 @@ export default function CheckInModule({
       return acc;
     }, 0);
 
+  const totalCompletedBreakSeconds = calculateCompletedBreakSeconds(todayBreaks);
+  const currentBreakSeconds = isOnBreak ? breakElapsedSeconds : 0;
+  const totalBreakSecondsToday = totalCompletedBreakSeconds + currentBreakSeconds;
+
   const totalSecondsToday = completedTodaySeconds + (isCheckedIn ? runningSeconds : 0);
+  const effectiveWorkSeconds = Math.max(0, totalSecondsToday - totalBreakSecondsToday);
 
   const todayStr = new Date().toISOString().split('T')[0];
   const todayLogs = logs.filter(l => l.date === todayStr);
@@ -275,17 +401,27 @@ export default function CheckInModule({
       {/* Upper Status Panel */}
       <div id="status-panel" className="bg-white rounded-[32px] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-300">
         <div id="status-text-block" className="space-y-2 text-center md:text-left">
-          <span className="text-[10px] bg-slate-100 px-3 py-1 text-slate-500 font-bold uppercase tracking-wider rounded-full inline-block">
-            {t.currentStatusLabel}
+          <span className={`text-[10px] px-3 py-1 font-bold uppercase tracking-wider rounded-full inline-block ${
+            isOnBreak ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-slate-100 text-slate-500'
+          }`}>
+            {isOnBreak ? (language === 'te' ? 'విరామం స్థితి' : 'Break Status') : t.currentStatusLabel}
           </span>
           <div className="flex items-center justify-center md:justify-start gap-2.5 mt-2">
-            <span className={`inline-block w-3 h-3 rounded-full ${isCheckedIn ? 'bg-teal-500 animate-pulse' : 'bg-amber-500'}`} />
+            <span className={`inline-block w-3 h-3 rounded-full ${
+              isOnBreak ? 'bg-amber-500 animate-ping' : isCheckedIn ? 'bg-teal-500 animate-pulse' : 'bg-amber-500'
+            }`} />
             <h2 className="text-2xl font-black text-slate-800">
-              {isCheckedIn ? t.checkedIn : t.checkedOut}
+              {isOnBreak
+                ? (language === 'te' ? 'విరామంలో ఉన్నారు' : 'On Break (Tracking Paused)')
+                : isCheckedIn ? t.checkedIn : t.checkedOut}
             </h2>
           </div>
           <p className="text-xs text-slate-400">
-            {isCheckedIn
+            {isOnBreak
+              ? (language === 'te'
+                  ? 'లైవ్ GPS లొకేషన్ ట్రాకింగ్ ఆపబడింది. పని పునఃప్రారంభించడానికి "Resume Duty" నొక్కండి.'
+                  : 'Live GPS location tracking is temporarily paused. Click "Resume Duty" when you return.')
+              : isCheckedIn
               ? (language === 'te' ? 'మీరు ఈరోజు పని ప్రారంభించారు. సమయం రికార్డ్ అవుతోంది.' : 'You have initiated your duty. Live clock is active.')
               : (language === 'te' ? 'పని ప్రారంభించడానికి క్రింది బటన్ నొక్కండి.' : 'Verify punch-in to initiate logging.')
             }
@@ -294,20 +430,26 @@ export default function CheckInModule({
 
         {/* Live Timer Visual */}
         <div id="live-timer-badge" className="bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 flex items-center gap-4 shadow-sm">
-          <div className="bg-teal-50 p-3 rounded-xl text-teal-600">
-            <Clock className={`w-6 h-6 ${isCheckedIn ? 'animate-pulse' : ''}`} />
+          <div className={`p-3 rounded-xl ${isOnBreak ? 'bg-amber-100 text-amber-600' : 'bg-teal-50 text-teal-600'}`}>
+            <Clock className={`w-6 h-6 ${isCheckedIn && !isOnBreak ? 'animate-pulse' : ''}`} />
           </div>
           <div>
             <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">
-              {t.workTimerLabel}
+              {isOnBreak ? (language === 'te' ? 'పని సమయం (పాజ్ చేయబడింది)' : 'Work Timer (Paused)') : t.workTimerLabel}
             </span>
             <span className="text-3xl font-black font-mono text-slate-800 tracking-tight block">
-              {formatTime(totalSecondsToday)}
+              {formatTime(effectiveWorkSeconds)}
             </span>
             {isCheckedIn && (
-              <span className="text-[9px] font-bold text-teal-600 uppercase tracking-widest animate-pulse block mt-0.5">
-                ● {t.runningLive}
-              </span>
+              isOnBreak ? (
+                <span className="text-[9px] font-bold text-amber-600 uppercase tracking-widest block mt-0.5">
+                  ⏸ Paused (On Break)
+                </span>
+              ) : (
+                <span className="text-[9px] font-bold text-teal-600 uppercase tracking-widest animate-pulse block mt-0.5">
+                  ● {t.runningLive}
+                </span>
+              )
             )}
           </div>
         </div>
@@ -317,13 +459,17 @@ export default function CheckInModule({
       <div id="button-card" className="bg-white rounded-[32px] p-8 md:p-12 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center space-y-8">
         <div className="max-w-md">
           <h3 className="text-xl font-bold text-slate-800">
-            {isCheckedIn
+            {isOnBreak
+              ? (language === 'te' ? 'విరామంలో ఉన్నారు' : 'Currently On A Break')
+              : isCheckedIn
               ? (language === 'te' ? "ఈరోజు పని ముగిస్తారా?" : "Done for the day?")
               : (language === 'te' ? "హాజరు వేసుకుంటారా?" : "Log Your Entry?")
             }
           </h3>
           <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-            {isCheckedIn
+            {isOnBreak
+              ? (language === 'te' ? 'లైవ్ ట్రాకింగ్ ఆపబడింది. పని ప్రారంభించేందుకు Resume నొక్కండి.' : 'Live tracking is paused. Resume duty when you are ready to restart tracking.')
+              : isCheckedIn
               ? (language === 'te' ? "పని పూర్తయిన తర్వాత పంచ్ అవుట్ క్లిక్ చేయండి." : "Click below to complete your current shift and log total hours.")
               : (language === 'te' ? "మీ డ్యూటీ టైమ్ కౌంట్ ప్రారంభించడానికి పంచ్ ఇన్ క్లిక్ చేయండి." : "This records your entry time precisely on the cloud server.")
             }
@@ -334,15 +480,25 @@ export default function CheckInModule({
         <button
           id="punch-toggle-btn"
           onClick={handleMainButtonClick}
-          disabled={isProcessing}
-          className={`group flex flex-col items-center justify-center w-48 h-48 md:w-52 md:h-52 rounded-full border-[12px] shadow-xl transition-all duration-300 cursor-pointer active:scale-95 disabled:opacity-60 ${
-            isCheckedIn
-              ? 'border-rose-50 bg-rose-500 hover:bg-rose-600 shadow-rose-200 text-white'
-              : 'border-teal-50 bg-teal-600 hover:bg-teal-700 shadow-teal-100 text-white'
+          disabled={isProcessing || isOnBreak}
+          className={`group flex flex-col items-center justify-center w-48 h-48 md:w-52 md:h-52 rounded-full border-[12px] shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-60 ${
+            isOnBreak
+              ? 'border-amber-100 bg-amber-500 shadow-amber-200 text-white cursor-not-allowed opacity-75'
+              : isCheckedIn
+              ? 'border-rose-50 bg-rose-500 hover:bg-rose-600 shadow-rose-200 text-white cursor-pointer'
+              : 'border-teal-50 bg-teal-600 hover:bg-teal-700 shadow-teal-100 text-white cursor-pointer'
           }`}
         >
           {isProcessing ? (
             <span className="text-xs font-bold animate-pulse">Processing...</span>
+          ) : isOnBreak ? (
+            <>
+              <Coffee className="w-10 h-10 mb-2 animate-bounce" />
+              <span className="font-black text-xs uppercase tracking-wider px-3 text-center leading-tight">
+                {language === 'te' ? 'విరామంలో ఉన్నారు' : 'On Break'}
+              </span>
+              <span className="text-[10px] opacity-90 font-mono mt-1">{formatTime(breakElapsedSeconds)}</span>
+            </>
           ) : isCheckedIn ? (
             <>
               <LogOut className="w-10 h-10 mb-2 group-hover:-translate-y-0.5 transition-transform" />
@@ -366,14 +522,87 @@ export default function CheckInModule({
           Logged using your local timezone: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </p>
         
+        {/* Break & Pin Controls */}
         {isCheckedIn && (
-          <button
-            onClick={() => setIsPinModalOpen(true)}
-            className="mt-6 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-8 rounded-xl transition-all active:scale-95"
-          >
-            <MapPin className="w-5 h-5 text-rose-500" />
-            {language === 'te' ? 'లొకేషన్ పిన్ చేయండి' : 'Pin Location Now'}
-          </button>
+          <div className="w-full max-w-md space-y-3">
+            {isOnBreak ? (
+              /* Active Break Banner & Resume Button */
+              <div id="active-break-card" className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-2 border-amber-300/80 rounded-2xl p-5 shadow-sm space-y-4 animate-in fade-in duration-300">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+                      <Coffee className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-sm font-black text-amber-900 leading-tight">
+                        {language === 'te' ? 'విరామంలో ఉన్నారు' : 'Currently On Break'}
+                      </h4>
+                      <span className="text-[11px] font-bold text-amber-700 flex items-center gap-1.5 mt-0.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                        {language === 'te' ? 'లైవ్ ట్రాకింగ్ ఆపబడింది' : '📍 Live Tracking Paused'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="text-right">
+                    <span className="text-[9px] font-bold text-amber-600 uppercase tracking-wider block">
+                      Break Time
+                    </span>
+                    <span className="font-mono text-lg font-black text-amber-950">
+                      {formatTime(breakElapsedSeconds)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    id="resume-duty-btn"
+                    onClick={handleResumeDuty}
+                    disabled={isBreakLoading}
+                    className="w-full flex items-center justify-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-6 rounded-xl shadow-md shadow-emerald-600/20 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <Play className="w-5 h-5 fill-current" />
+                    <span className="text-sm uppercase tracking-wider">
+                      {isBreakLoading ? 'Resuming...' : (language === 'te' ? 'పనిని పునఃప్రారంభించండి' : 'Resume Duty & Tracking')}
+                    </span>
+                  </button>
+                </div>
+                
+                <p className="text-[10px] text-amber-700/80 text-center font-medium">
+                  {language === 'te' 
+                    ? 'మీరు తిరిగి పని ప్రారంభించినప్పుడు లైవ్ ట్రాకింగ్ ఆటోమేటిక్‌గా పునఃప్రారంభమవుతుంది.'
+                    : 'Live GPS location publishing will automatically restart when you resume.'}
+                </p>
+              </div>
+            ) : (
+              /* Take Break & Pin Location Buttons */
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button
+                  id="take-break-btn"
+                  onClick={handleTakeBreak}
+                  disabled={isBreakLoading}
+                  className="flex-1 min-w-[170px] flex items-center justify-center gap-2.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 font-bold py-3 px-5 rounded-2xl shadow-sm transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <Coffee className="w-5 h-5 text-amber-600" />
+                  <span>{isBreakLoading ? 'Pausing...' : (language === 'te' ? 'విరామం తీసుకోండి' : 'Take a Break')}</span>
+                </button>
+
+                <button
+                  onClick={() => setIsPinModalOpen(true)}
+                  className="flex-1 min-w-[170px] flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 px-5 rounded-2xl transition-all active:scale-95 cursor-pointer"
+                >
+                  <MapPin className="w-5 h-5 text-rose-500" />
+                  <span>{language === 'te' ? 'లొకేషన్ పిన్ చేయండి' : 'Pin Location Now'}</span>
+                </button>
+              </div>
+            )}
+
+            {totalCompletedBreakSeconds > 0 && (
+              <p className="text-[11px] text-slate-400 font-medium text-center">
+                ☕ Total completed break time today: <span className="font-bold text-slate-600">{formatTime(totalCompletedBreakSeconds)}</span>
+              </p>
+            )}
+          </div>
         )}
       </div>
 
