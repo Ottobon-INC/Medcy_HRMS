@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Camera, X, MapPin, AlertCircle, Coffee } from "lucide-react";
+import { Camera, X, MapPin, AlertCircle, Coffee, Play } from "lucide-react";
 import { Language, CheckInLog, AttendanceRecord, LeaveBalance, Employee } from "../types";
 import { translations } from "../translations";
 import LocationPinTimeline from "./LocationPinTimeline";
 import TickerAlert from "./TickerAlert";
 import { submitMissedPunchRequest } from "../lib/services/missed-punch-service";
 import { fetchRoster } from "../lib/services/roster-service";
-import { getActiveBreak } from "../lib/services/break-service";
+import { getActiveBreak, startBreak, endBreak } from "../lib/services/break-service";
+import { useLiveTracking } from "../contexts/LiveTrackingContext";
 
 interface DashboardSnapshotProps {
   language: Language;
@@ -42,6 +43,8 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
   const [isPinning, setIsPinning] = useState(false);
   const [todayShift, setTodayShift] = useState<import("../types").DutyRosterShift | null>(null);
   const [isOnBreak, setIsOnBreak] = useState(false);
+  const [isBreakLoading, setIsBreakLoading] = useState(false);
+  const liveTracking = useLiveTracking();
 
   useEffect(() => {
     let isMounted = true;
@@ -52,6 +55,36 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
     }
     return () => { isMounted = false; };
   }, [currentUser?.id, isCheckedIn]);
+
+  const handleTakeBreak = async () => {
+    if (isBreakLoading || !isCheckedIn) return;
+    setIsBreakLoading(true);
+    try {
+      await startBreak(currentUser.id);
+      setIsOnBreak(true);
+      liveTracking.pauseTracking();
+    } catch (err) {
+      console.error("Error starting break:", err);
+      alert("Failed to pause for break. Please try again.");
+    } finally {
+      setIsBreakLoading(false);
+    }
+  };
+
+  const handleResumeDuty = async () => {
+    if (isBreakLoading) return;
+    setIsBreakLoading(true);
+    try {
+      await endBreak(currentUser.id);
+      setIsOnBreak(false);
+      liveTracking.resumeTracking();
+    } catch (err) {
+      console.error("Error resuming duty:", err);
+      alert("Failed to resume duty. Please try again.");
+    } finally {
+      setIsBreakLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchTodayShift = async () => {
@@ -235,19 +268,21 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
               <div className="mt-6 flex flex-wrap justify-center sm:justify-start gap-3">
                 {isOnBreak ? (
                   <button 
-                    onClick={() => setActiveTab('attendance')} 
-                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
+                    onClick={handleResumeDuty}
+                    disabled={isBreakLoading}
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer disabled:opacity-60"
                   >
-                    <Coffee className="w-4 h-4 text-amber-200" />
-                    {language === "te" ? "పనిని పునఃప్రారంభించండి (Resume)" : "Resume Duty & Tracking"}
+                    <Play className="w-4 h-4 fill-current text-emerald-100" />
+                    <span>{isBreakLoading ? "Resuming..." : (language === "te" ? "పనిని పునఃప్రారంభించండి" : "Resume Duty & Tracking")}</span>
                   </button>
                 ) : (
                   <button 
-                    onClick={() => setActiveTab('attendance')} 
-                    className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold py-2.5 px-6 rounded-xl transition-all active:scale-95 cursor-pointer"
+                    onClick={handleTakeBreak}
+                    disabled={isBreakLoading}
+                    className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold py-2.5 px-6 rounded-xl transition-all active:scale-95 cursor-pointer disabled:opacity-60"
                   >
                     <Coffee className="w-4 h-4 text-amber-600" />
-                    {language === "te" ? "విరామం తీసుకోండి" : "Take a Break"}
+                    <span>{isBreakLoading ? "Pausing..." : (language === "te" ? "విరామం తీసుకోండి" : "Take a Break")}</span>
                   </button>
                 )}
                 <button onClick={()=>setIsPinModalOpen(true)} className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-6 rounded-xl transition-colors active:scale-95 border border-slate-200 cursor-pointer">
@@ -259,8 +294,8 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
           </div>
           <button 
             id="go-to-checkin-tab" 
-            onClick={hasCheckedOutToday ? undefined : isOnBreak ? () => setActiveTab('attendance') : () => startCamera(false)} 
-            disabled={hasCheckedOutToday || isProcessing} 
+            onClick={hasCheckedOutToday ? undefined : isOnBreak ? handleResumeDuty : () => startCamera(false)} 
+            disabled={hasCheckedOutToday || isProcessing || isBreakLoading} 
             className={`w-40 h-40 rounded-full border-[12px] flex flex-col items-center justify-center text-white transition-all duration-300 relative ${
               hasCheckedOutToday
                 ? "border-slate-100 bg-slate-300 cursor-not-allowed"
