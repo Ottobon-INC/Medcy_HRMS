@@ -47,6 +47,7 @@ interface AppRouterProps {
   onUpdateTask: (id: string, updates: any) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
   onUpdateTaskStatus: (id: string, status: any) => Promise<void>;
+  onOpenProfile?: () => void;
 }
 
 export const AppRouter: React.FC<AppRouterProps> = ({
@@ -58,6 +59,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
   tasks,
   noDataText,
   setActiveTab,
+  onOpenProfile,
   onToggleCheckIn,
   onAddPin,
   onApplyLeave,
@@ -216,7 +218,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
       );
     case 'adminSettings':
       return (
-        <AdminSettings language={language} />
+        <AdminSettings language={language} onOpenProfile={onOpenProfile} />
       );
     case 'dutyRoster':
       return (

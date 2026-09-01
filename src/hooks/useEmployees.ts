@@ -65,6 +65,16 @@ export function useEmployees() {
     await loadData();
   };
 
+  const changePassword = async (id: string, newPassword: string) => {
+    await employeeService.updateEmployeePassword(id, newPassword);
+    setEmployees(prev => {
+      const updated = prev.map(e => e.id === id ? { ...e, password: newPassword } : e);
+      saveLocalData(updated);
+      return updated;
+    });
+    await loadData();
+  };
+
   return {
     employees,
     isLoading,
@@ -74,6 +84,7 @@ export function useEmployees() {
     addEmployee,
     updateEmployee,
     deleteEmployee,
-    toggleStatus
+    toggleStatus,
+    changePassword
   };
 }

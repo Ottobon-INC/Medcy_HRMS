@@ -19,12 +19,14 @@ interface AppSidebarProps {
   currentUser: Employee;
   activeTab: string;
   onSelectTab: (tab: string) => void;
+  onOpenProfile?: () => void;
 }
 
 export const AppSidebar: React.FC<AppSidebarProps> = ({
   currentUser,
   activeTab,
-  onSelectTab
+  onSelectTab,
+  onOpenProfile
 }) => {
   const getAvatarInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').slice(0, 2);
@@ -37,17 +39,26 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm sticky top-24">
         
         {/* Quick Profile Segment */}
-        <div className="p-3 mb-4 bg-slate-50 rounded-xl border border-slate-100/50 flex items-center gap-3">
-          <div className="bg-teal-50 text-teal-700 w-10 h-10 rounded-xl flex items-center justify-center font-black">
-            {getAvatarInitials(currentUser.name)}
+        <button
+          onClick={onOpenProfile}
+          title="Click to view profile & change password"
+          className="w-full p-3 mb-4 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-100 hover:border-slate-200/80 flex items-center justify-between text-left transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="bg-teal-50 group-hover:bg-teal-100 text-teal-700 w-10 h-10 rounded-xl flex items-center justify-center font-black transition-colors shrink-0">
+              {getAvatarInitials(currentUser.name)}
+            </div>
+            <div className="truncate">
+              <h4 className="text-xs font-bold text-slate-800 leading-tight truncate group-hover:text-teal-700 transition-colors">{currentUser.name}</h4>
+              <p className="text-[10px] text-slate-400 font-medium leading-none mt-1.5 uppercase tracking-wide">
+                {isAdmin ? 'Clinic Administrator' : currentUser.designation}
+              </p>
+            </div>
           </div>
-          <div className="truncate">
-            <h4 className="text-xs font-bold text-slate-800 leading-tight truncate">{currentUser.name}</h4>
-            <p className="text-[10px] text-slate-400 font-medium leading-none mt-1.5 uppercase tracking-wide">
-              {isAdmin ? 'Clinic Administrator' : currentUser.designation}
-            </p>
-          </div>
-        </div>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-teal-600 bg-teal-50 px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            Edit
+          </span>
+        </button>
 
         <nav className="space-y-1">
           {isAdmin ? (

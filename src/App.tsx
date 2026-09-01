@@ -121,7 +121,7 @@ export default function App() {
   }, []);
 
   // --- Domain Hooks ---
-  const { employees, isLoading, error, isLocalMode, loadData, addEmployee, updateEmployee, deleteEmployee } = useEmployees();
+  const { employees, isLoading, error, isLocalMode, loadData, addEmployee, updateEmployee, deleteEmployee, changePassword } = useEmployees();
   const { currentUser, currentUserId, login, logout } = useAuth(employees);
   
   const { applyLeave, approveLeave, rejectLeave, updateBalances } = useLeaves(isLocalMode, loadData);
@@ -246,7 +246,7 @@ export default function App() {
             currentUser={currentUser}
             onClose={() => setShowProfileModal(false)}
             onUpdatePassword={async (newPassword) => {
-              await updateEmployee(currentUser.id, { password: newPassword });
+              await changePassword(currentUser.id, newPassword);
             }}
           />
         )}
@@ -259,6 +259,7 @@ export default function App() {
             currentUser={currentUser}
             activeTab={activeTab}
             onSelectTab={setActiveTab}
+            onOpenProfile={() => setShowProfileModal(true)}
           />
 
           {/* Primary Content Router */}
@@ -278,6 +279,7 @@ export default function App() {
                 tasks={tasks}
                 noDataText={t.noData}
                 setActiveTab={setActiveTab}
+                onOpenProfile={() => setShowProfileModal(true)}
                 onToggleCheckIn={(userId, isCheckedIn, photoData, punchType, punchNote) =>
                   toggleCheckIn(userId, isCheckedIn, photoData, punchType, punchNote)
                 }

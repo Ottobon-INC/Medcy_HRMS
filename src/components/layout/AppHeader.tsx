@@ -47,12 +47,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <button
             id="user-profile-btn"
             onClick={onOpenProfile}
-            className="hidden md:flex items-center gap-2.5 bg-slate-50 hover:bg-slate-100 py-1.5 pl-2.5 pr-4 rounded-full border border-slate-100 transition-colors cursor-pointer"
+            title="My Profile & Security Settings"
+            className="flex items-center gap-2.5 bg-slate-50 hover:bg-slate-100 p-1 sm:py-1.5 sm:pl-2.5 sm:pr-4 rounded-full border border-slate-200/70 hover:border-slate-300 transition-all cursor-pointer shadow-sm hover:shadow"
           >
-            <div className="bg-teal-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black">
+            <div className="bg-teal-600 text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black shrink-0">
               {getAvatarInitials(currentUser.name)}
             </div>
-            <div className="text-left">
+            <div className="text-left hidden sm:block">
               <span className="text-xs font-bold text-slate-800 block leading-tight">{currentUser.name}</span>
               <span className="text-[9px] text-slate-400 font-medium block leading-none mt-0.5">{currentUser.id}</span>
             </div>

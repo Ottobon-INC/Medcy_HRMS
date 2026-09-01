@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, CheckCircle, RefreshCcw, Plus, Trash2 } from 'lucide-react';
+import { Settings, Save, CheckCircle, RefreshCcw, Plus, Trash2, KeyRound } from 'lucide-react';
 import { Language } from '../types';
 import { translations } from '../translations';
 import { fetchPayrollConfig, upsertPayrollConfig, PayrollConfig, PayrollTier } from '../lib/services/payroll-config-service';
 
 interface AdminSettingsProps {
   language: Language;
+  onOpenProfile?: () => void;
 }
 
-export default function AdminSettings({ language }: AdminSettingsProps) {
+export default function AdminSettings({ language, onOpenProfile }: AdminSettingsProps) {
   const t = translations[language];
   const [config, setConfig] = useState<PayrollConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -134,6 +135,33 @@ export default function AdminSettings({ language }: AdminSettingsProps) {
           </p>
         </div>
       </div>
+
+      {/* Admin Profile & Password Quick Access */}
+      {onOpenProfile && (
+        <div className="bg-gradient-to-r from-teal-50/90 via-emerald-50/50 to-white rounded-[28px] p-5 sm:p-6 border border-teal-100/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-600/20 shrink-0">
+              <KeyRound className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-800">
+                {language === 'te' ? 'అడ్మిన్ ప్రొఫైల్ & పాస్‌వర్డ్ సెట్టింగ్‌లు' : 'Admin Profile & Security Settings'}
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {language === 'te' ? 'మీ ఖాతా పాస్‌వర్డ్ మరియు ప్రొఫైల్ సమాచారాన్ని నవీకరించండి.' : 'Manage your administrator password and account credentials.'}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenProfile}
+            className="shrink-0 px-4 py-2.5 bg-white hover:bg-slate-50 text-teal-700 border border-teal-200 hover:border-teal-300 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-teal-600" />
+            <span>{language === 'te' ? 'పాస్‌వర్డ్ మార్చండి' : 'Change Password'}</span>
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-slate-100 shadow-sm">
         <form onSubmit={handleSave} className="space-y-8">

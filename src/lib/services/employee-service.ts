@@ -305,11 +305,30 @@ export async function updateEmployee(id: string, fields: Partial<Employee>): Pro
   }
 }
 
+export async function updateEmployeePassword(id: string, newPassword: string): Promise<void> {
+  const { error } = await supabase
+    .from('HRMS_employees')
+    .update({ password: newPassword })
+    .eq('id', id);
+  if (error) {
+    console.error('Error updating employee password:', error);
+    throw error;
+  }
+}
+
 export async function deleteEmployee(id: string): Promise<void> {
   const { error } = await supabase
     .from('HRMS_employees')
     .delete()
     .eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteAllNonAdminEmployees(): Promise<void> {
+  const { error } = await supabase
+    .from('HRMS_employees')
+    .delete()
+    .eq('role', 'employee');
   if (error) throw error;
 }
 
@@ -324,7 +343,113 @@ export async function toggleEmployeeStatus(id: string, status: 'active' | 'inact
 }
 
 export async function seedInitialDatabase() {
-  const employeesToSeed: any[] = [];
+  const employeesToSeed = [
+    {
+      id: 'EMP-2026-001',
+      name: 'M. Karan',
+      email: 'karanking035@gmail.com',
+      password: 'karanking035@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9704945077',
+      gender: 'male',
+      experience: 0,
+      dob: '2000-12-19'
+    },
+    {
+      id: 'EMP-2026-002',
+      name: 'Rajesh',
+      email: 'inkallurajesh9@gmail.com',
+      password: 'inkallurajesh9@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9494477778',
+      gender: 'male',
+      experience: 0,
+      dob: '1983-01-11'
+    },
+    {
+      id: 'EMP-2026-003',
+      name: 'P. Mahesh Babu',
+      email: 'purrimaheshbabu@gmail.com',
+      password: 'purrimaheshbabu@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9494906392',
+      gender: 'male',
+      experience: 0,
+      dob: '1995-06-20'
+    },
+    {
+      id: 'EMP-2026-004',
+      name: 'G. Rambabu',
+      email: 'rambabu@gmail.com',
+      password: 'rambabu@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9493940820',
+      gender: 'male',
+      experience: 0,
+      dob: null
+    },
+    {
+      id: 'EMP-2026-005',
+      name: 'S. Manoj Kumar',
+      email: 'mrmandy222@gmail.com',
+      password: 'mrmandy222@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9182867219',
+      gender: 'male',
+      experience: 0,
+      dob: '2000-07-16'
+    },
+    {
+      id: 'EMP-2026-006',
+      name: 'T. Appalanaidu',
+      email: 'appunaiduterli2345@gmail.com',
+      password: 'appunaiduterli2345@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9951839088',
+      gender: 'male',
+      experience: 0,
+      dob: '1995-06-15'
+    },
+    {
+      id: 'EMP-2026-007',
+      name: 'A. Hari Krishna',
+      email: 'hemnathharry81@gmail.com',
+      password: 'hemnathharry81@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9885728580',
+      gender: 'male',
+      experience: 0,
+      dob: '1999-11-30'
+    }
+  ];
 
   const { count } = await supabase
     .from('HRMS_employees')
@@ -337,43 +462,12 @@ export async function seedInitialDatabase() {
     const leaveBalancesToSeed: any[] = [];
     employeesToSeed.forEach(emp => {
       leaveBalancesToSeed.push(
-        { employee_id: emp.id, leave_type: 'sick', total_allotted: 6, used: emp.id === 'EMP-2026-089' ? 2 : emp.id === 'EMP-2026-112' ? 1 : 0 },
-        { employee_id: emp.id, leave_type: 'casual', total_allotted: 8, used: emp.id === 'EMP-2026-089' ? 3 : emp.id === 'EMP-2026-112' ? 1 : emp.id === 'EMP-2026-145' ? 2 : 0 }
+        { employee_id: emp.id, leave_type: 'sick', total_allotted: 6, used: 0 },
+        { employee_id: emp.id, leave_type: 'casual', total_allotted: 8, used: 0 },
+        { employee_id: emp.id, leave_type: 'paternity', total_allotted: 7, used: 0 }
       );
     });
     await supabase.from('HRMS_leave_balances').insert(leaveBalancesToSeed);
-
-    const leaveRequestsToSeed = [
-      { employee_id: 'EMP-2026-089', leave_type: 'sick', from_date: '2026-06-05', to_date: '2026-06-06', reason: 'Suffering from viral fever and cold.', status: 'Approved' },
-      { employee_id: 'EMP-2026-089', leave_type: 'casual', from_date: '2026-06-22', to_date: '2026-06-23', reason: 'Attending family function in hometown.', status: 'Approved' },
-      { employee_id: 'EMP-2026-112', leave_type: 'sick', from_date: '2026-06-12', to_date: '2026-06-12', reason: 'Severe migraine headache.', status: 'Approved' }
-    ];
-    await supabase.from('HRMS_leave_requests').insert(leaveRequestsToSeed);
-
-    const attendanceToSeed = [
-      { employee_id: 'EMP-2026-089', date: '2026-07-13', status: 'Present', check_in_time: '09:05:22', check_out_time: '18:12:45' },
-      { employee_id: 'EMP-2026-112', date: '2026-07-13', status: 'Present', check_in_time: '08:58:34' }
-    ];
-    await supabase.from('HRMS_attendance').insert(attendanceToSeed);
-
-    const payrollToSeed = [{
-      employee_id: 'EMP-2026-089', month: '2026-06', basic_pay: 45000,
-      allowances: [{ nameKey: 'hra', amount: 18000 }, { nameKey: 'medicalAllow', amount: 3000 }, { nameKey: 'conveyanceAllow', amount: 1500 }],
-      deductions: [{ nameKey: 'providentFund', amount: 5400 }, { nameKey: 'professionalTax', amount: 200 }],
-      net_pay: 58200
-    }];
-    await supabase.from('HRMS_payroll').insert(payrollToSeed);
-
-    const invoicesToSeed = [{
-      invoice_number: 'INV-2026-042', client_name: 'Apollo Corporate Health Services',
-      client_details: 'Plot No. 10, VIP Road, Visakhapatnam, Andhra Pradesh - 530003\nAttn: Accounts & Payroll Department\nPayment Term: Net 15 Days',
-      items: [
-        { id: '1', description: 'Consultant Pathologist Professional Services (July 2026)', quantity: 1, rate: 120000 },
-        { id: '2', description: 'On-site Medical Officer Charge - Contract Staffing', quantity: 22, rate: 3500 },
-        { id: '3', description: 'Administrative Support & Payroll Management Fee', quantity: 1, rate: 15000 }
-      ],
-      total: 212000, payable_amount: 250160, tax_percent: 18, due_date: '2026-07-25'
-    }];
-    await supabase.from('HRMS_invoices').insert(invoicesToSeed);
   }
 }
+
