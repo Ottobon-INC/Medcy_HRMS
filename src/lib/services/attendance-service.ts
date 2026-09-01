@@ -171,14 +171,33 @@ export async function clockOutEmployee(
     if (location) payload.check_out_location = location;
     if (latLng) payload.check_out_lat_lng = latLng;
     
-    const { error } = await supabase
+    let { error } = await supabase
       .from('HRMS_attendance')
       .update(payload)
       .eq('id', activeSession.id);
-    if (error) throw error;
+
+    // Fallback if check_out_location / check_out_lat_lng / check_out_photo_url columns don't exist in remote table schema
+    if (error && (error.code === '42703' || error.code === 'PGRST204')) {
+      delete payload.check_out_location;
+      delete payload.check_out_lat_lng;
+      let retry = await supabase
+        .from('HRMS_attendance')
+        .update(payload)
+        .eq('id', activeSession.id);
+
+      if (retry.error && (retry.error.code === '42703' || retry.error.code === 'PGRST204') && payload.check_out_photo_url) {
+        delete payload.check_out_photo_url;
+        retry = await supabase
+          .from('HRMS_attendance')
+          .update(payload)
+          .eq('id', activeSession.id);
+      }
+      if (retry.error) throw retry.error;
+    } else if (error) {
+      throw error;
+    }
   } else {
     // If no active session found to clock out, just return or create a new session if needed.
-    // For now, if somehow missing, we just create a new row.
     const { data: allSessions } = await supabase
       .from('HRMS_attendance')
       .select('session_number')
@@ -201,10 +220,22 @@ export async function clockOutEmployee(
     if (location) payload.check_out_location = location;
     if (latLng) payload.check_out_lat_lng = latLng;
     
-    const { error } = await supabase
+    let { error } = await supabase
       .from('HRMS_attendance')
       .insert([payload]);
-    if (error) throw error;
+
+    if (error && (error.code === '42703' || error.code === 'PGRST204')) {
+      delete payload.check_out_location;
+      delete payload.check_out_lat_lng;
+      let retry = await supabase.from('HRMS_attendance').insert([payload]);
+      if (retry.error && (retry.error.code === '42703' || retry.error.code === 'PGRST204') && payload.check_out_photo_url) {
+        delete payload.check_out_photo_url;
+        retry = await supabase.from('HRMS_attendance').insert([payload]);
+      }
+      if (retry.error) throw retry.error;
+    } else if (error) {
+      throw error;
+    }
   }
 }
 

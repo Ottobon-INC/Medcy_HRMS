@@ -98,8 +98,8 @@ export function useAttendance(isLocalMode: boolean, loadData: () => Promise<void
       await loadData();
       return { success: true };
     } catch (err: any) {
-      console.error("Check-in error:", err);
-      return { success: false, error: "Failed to record attendance. Please try again." };
+      console.error("Attendance record error:", err);
+      return { success: false, error: err?.message || "Failed to record attendance. Please try again." };
     }
   };
 
