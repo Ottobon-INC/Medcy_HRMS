@@ -448,6 +448,111 @@ export async function seedInitialDatabase() {
       gender: 'male',
       experience: 0,
       dob: '1999-11-30'
+    },
+    {
+      id: 'EMP-2026-008',
+      name: 'Shiva Kumar',
+      email: 'balivada.shiva@gmail.com',
+      password: 'balivada.shiva@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '846018424',
+      gender: 'male',
+      experience: 0,
+      dob: '1989-08-06'
+    },
+    {
+      id: 'EMP-2026-009',
+      name: 'Gondu Srinivasa Rao',
+      email: 'gondusrinivaskrishna@gmail.com',
+      password: 'gondusrinivaskrishna@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9705686880',
+      gender: 'male',
+      experience: 0,
+      dob: '1988-06-20'
+    },
+    {
+      id: 'EMP-2026-010',
+      name: 'Dhanusha Dadi',
+      email: 'dhanushadadi88@gmail.com',
+      password: 'dhanushadadi88@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '8008668844',
+      gender: 'female',
+      experience: 0,
+      dob: '1993-09-03'
+    },
+    {
+      id: 'EMP-2026-011',
+      name: 'R. Ravi Kumar',
+      email: 'ravildm09@gmail.com',
+      password: 'ravildm09@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9182068148',
+      gender: 'male',
+      experience: 0,
+      dob: '1978-06-01'
+    },
+    {
+      id: 'EMP-2026-012',
+      name: 'Gonti Shyam',
+      email: 'sanjushyam7382@gmail.com',
+      password: 'sanjushyam7382@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '7331140843',
+      gender: 'male',
+      experience: 0,
+      dob: '2001-03-06'
+    },
+    {
+      id: 'EMP-2026-013',
+      name: 'U. Jayavani',
+      email: 'ugrangijaya@gmail.com',
+      password: 'ugrangijaya@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '8500880441',
+      gender: 'female',
+      experience: 0,
+      dob: '1990-02-23'
+    },
+    {
+      id: 'EMP-2026-014',
+      name: 'S. Kishore Reddy',
+      email: 'sattikishorereddy@gmail.com',
+      password: 'sattikishorereddy@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9959004840',
+      gender: 'male',
+      experience: 0,
+      dob: '1988-06-28'
     }
   ];
 
@@ -463,9 +568,13 @@ export async function seedInitialDatabase() {
     employeesToSeed.forEach(emp => {
       leaveBalancesToSeed.push(
         { employee_id: emp.id, leave_type: 'sick', total_allotted: 6, used: 0 },
-        { employee_id: emp.id, leave_type: 'casual', total_allotted: 8, used: 0 },
-        { employee_id: emp.id, leave_type: 'paternity', total_allotted: 7, used: 0 }
+        { employee_id: emp.id, leave_type: 'casual', total_allotted: 8, used: 0 }
       );
+      if (emp.gender === 'female') {
+        leaveBalancesToSeed.push({ employee_id: emp.id, leave_type: 'maternity', total_allotted: 90, used: 0 });
+      } else {
+        leaveBalancesToSeed.push({ employee_id: emp.id, leave_type: 'paternity', total_allotted: 7, used: 0 });
+      }
     });
     await supabase.from('HRMS_leave_balances').insert(leaveBalancesToSeed);
   }
