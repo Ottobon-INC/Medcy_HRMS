@@ -13,6 +13,25 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="MedcyHRMS" />
     <meta name="format-detection" content="telephone=no" />
+    <script>
+      // Immediate PWA update listener & automatic reload on activation
+      if ('serviceWorker' in navigator) {
+        var isReloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (!isReloading) {
+            isReloading = true;
+            window.location.reload();
+          }
+        });
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            for (var i = 0; i < registrations.length; i++) {
+              registrations[i].update().catch(function () {});
+            }
+          });
+        });
+      }
+    </script>
   </head>
   <body class="bg-slate-900 text-slate-100 antialiased selection:bg-teal-500 selection:text-white">
     <div id="root"></div>
