@@ -166,11 +166,6 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
   const hasCheckedOutToday = !!(latestCheckIn && latestCheckIn.checkOutTime !== null);
   const currentMonthStr = new Date().toISOString().substring(0, 7);
   const presentDays = attendanceRecords.filter(r => r.date.startsWith(currentMonthStr) && r.status === "present").length;
-  const sickLeft = leaveBalance.sick.allowed - leaveBalance.sick.taken;
-  const casualLeft = leaveBalance.casual.allowed - leaveBalance.casual.taken;
-  let totalLeft = sickLeft + casualLeft;
-  if (leaveBalance.maternity) totalLeft += leaveBalance.maternity.allowed - leaveBalance.maternity.taken;
-  if (leaveBalance.paternity) totalLeft += leaveBalance.paternity.allowed - leaveBalance.paternity.taken;
   const todayWorkedSecs = logs.filter(l => l.date === todayStr && l.checkOutTime !== null).reduce((acc, log) => {
     if (log.checkInTime && log.checkOutTime) {
       const [h1,m1,s1] = log.checkInTime.split(":").map(Number);
@@ -213,11 +208,24 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
 
         {pins.filter(p=>p.date===todayStr).length>0&&(<div className="lg:col-span-12"><LocationPinTimeline language={language} pins={pins.filter(p=>p.date===todayStr)}/></div>)}
 
-        <div id="leaves-balance-snap" onClick={()=>setActiveTab("leave")} className="lg:col-span-4 bg-teal-600 rounded-[32px] p-8 text-white relative overflow-hidden flex flex-col justify-between shadow-lg shadow-teal-100/50 min-h-[250px] cursor-pointer group hover:bg-teal-700 transition-all duration-300">
-          <div className="relative z-10"><h3 className="text-lg font-bold tracking-tight">{t.snapLeaveTitle}</h3><p className="text-teal-100 text-xs">సెలవు నిల్వ</p></div>
-          <div className="relative z-10 flex items-baseline gap-1.5 my-3"><span className="text-6xl font-black leading-none">{totalLeft.toString().padStart(2,"0")}</span><span className="text-teal-100 uppercase text-xs font-bold tracking-wider">{t.leaveLeftOf.split(" ")[0]}</span></div>
-          <div className="relative z-10 bg-white/10 rounded-2xl p-4 flex justify-between items-center text-xs"><div><p className="font-semibold">{t.leaveSick.split(" ")[0]}: {sickLeft} days</p><p className="opacity-70 mt-0.5 italic">{t.btnSubmitLeave.split(" ")[0]}</p></div><div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center group-hover:translate-x-1.5 transition-all">→</div></div>
-          <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-teal-500 rounded-full opacity-40 pointer-events-none"/>
+        <div id="leaves-balance-snap" onClick={()=>setActiveTab("leave")} className="lg:col-span-4 bg-gradient-to-br from-teal-600 to-teal-700 rounded-[32px] p-8 text-white relative overflow-hidden flex flex-col justify-between shadow-lg shadow-teal-100/50 min-h-[250px] cursor-pointer group hover:from-teal-700 hover:to-teal-800 transition-all duration-300">
+          <div className="relative z-10">
+            <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/20 text-teal-100">
+              Leave Portal
+            </span>
+            <h3 className="text-xl font-bold tracking-tight mt-3">{t.leave}</h3>
+            <p className="text-teal-100 text-xs mt-1">Submit & track your leave applications</p>
+          </div>
+          <div className="relative z-10 bg-white/10 rounded-2xl p-4 flex justify-between items-center text-xs">
+            <div>
+              <p className="font-bold text-sm">Apply for Leave</p>
+              <p className="opacity-80 mt-0.5 text-[11px]">{t.btnSubmitLeave || 'Submit Application'}</p>
+            </div>
+            <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center group-hover:translate-x-1.5 transition-all font-bold">
+              →
+            </div>
+          </div>
+          <div className="absolute -right-4 -bottom-4 w-32 h-32 bg-teal-500/30 rounded-full blur-xl pointer-events-none"/>
         </div>
       </section>
 

@@ -32,6 +32,7 @@ jspm_packages/
 # Vite output
 dist
 dist-ssr
+dev-dist
 build/
 coverage/
 

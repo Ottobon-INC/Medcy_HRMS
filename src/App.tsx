@@ -17,7 +17,7 @@ import UserProfileModal from './components/UserProfileModal';
 // Layout Components
 import { AppHeader } from './components/layout/AppHeader';
 import { AppSidebar } from './components/layout/AppSidebar';
-import { AppMobileNav } from './components/layout/AppMobileNav';
+import { MobileDrawerNav } from './components/layout/MobileDrawerNav';
 import { AppRouter } from './components/layout/AppRouter';
 import { PwaInstallPrompt } from './components/shared/PwaInstallPrompt';
 import { OfflineIndicator } from './components/shared/OfflineIndicator';
@@ -56,6 +56,7 @@ export default function App() {
   });
   
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Sync activeTab to LocalStorage and URL
   useEffect(() => {
@@ -227,7 +228,7 @@ export default function App() {
 
   return (
     <LiveTrackingProvider currentUser={currentUser} isClockedIn={currentUser.isCheckedIn}>
-      <div id="app-root-shell" className="min-h-screen bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900 pb-16 lg:pb-0">
+      <div id="app-root-shell" className="min-h-screen bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900">
         <OfflineIndicator />
         <PwaInstallPrompt />
         
@@ -237,6 +238,7 @@ export default function App() {
           onOpenProfile={() => setShowProfileModal(true)}
           onLogout={handleLogout}
           onLogoClick={() => setActiveTab(currentUser.role === 'admin' ? 'adminDashboard' : 'dashboard')}
+          onOpenMenu={() => setMobileNavOpen(true)}
         />
 
         {/* User Profile View / Edit Modal */}
@@ -303,15 +305,15 @@ export default function App() {
 
         </div>
 
-        {/* 3. Mobile Bottom Navigation Panel */}
-        <AppMobileNav
+        {/* 3. Mobile Slide-in Drawer Navigation */}
+        <MobileDrawerNav
+          isOpen={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
           currentUser={currentUser}
           activeTab={activeTab}
           onSelectTab={setActiveTab}
+          onOpenProfile={() => setShowProfileModal(true)}
         />
-
-        {/* Spacing compensation on mobile */}
-        <div className="h-16 lg:hidden no-print" />
 
       </div>
     </LiveTrackingProvider>

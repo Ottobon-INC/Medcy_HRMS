@@ -17,15 +17,15 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
   const { data: advances, error: advError } = await supabase.from('HRMS_advance_requests').select('*');
   const { data: pins, error: pinsError } = await supabase.from('HRMS_location_pins').select('*');
 
-  if (attError) console.error('Error fetching attendance:', attError);
-  if (leavesError) console.error('Error fetching leave_requests:', leavesError);
-  if (balError) console.error('Error fetching leave_balances:', balError);
-  if (payError) console.error('Error fetching payroll:', payError);
-  if (advError) console.error('Error fetching advances:', advError);
-  if (pinsError) console.error('Error fetching location_pins:', pinsError);
+  if (attError) console.warn('Attendance sync notice:', attError.message);
+  if (leavesError) console.warn('Leave requests sync notice:', leavesError.message);
+  if (balError) console.warn('Leave balances sync notice:', balError.message);
+  if (payError && payError.code !== 'PGRST205') console.warn('Payroll sync notice:', payError.message);
+  if (advError && advError.code !== 'PGRST205') console.warn('Advances sync notice:', advError.message);
+  if (pinsError && pinsError.code !== 'PGRST205') console.warn('Location pins sync notice:', pinsError.message);
 
   const { data: quotas, error: quotaError } = await supabase.from('HRMS_monthly_leave_quota').select('*');
-  if (quotaError) console.error('Error fetching monthly quotas:', quotaError);
+  if (quotaError && quotaError.code !== 'PGRST205') console.warn('Monthly quotas sync notice:', quotaError.message);
   
   const currentMonth = new Date().toISOString().substring(0, 7);
   const quotaList = quotas || [];

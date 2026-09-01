@@ -1,5 +1,7 @@
 node_modules
 dist
+dev-dist
+scripts
 .git
 .gitignore
 .dockerignore
@@ -12,3 +14,4 @@ database
 *.ps1
 *.log
 scratch
+

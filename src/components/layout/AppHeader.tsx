@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut } from 'lucide-react';
+import { LogOut, Menu } from 'lucide-react';
 import { Employee } from '../../types';
 import SmsLogo from '../SmsLogo';
 
@@ -8,13 +8,15 @@ interface AppHeaderProps {
   onOpenProfile: () => void;
   onLogout: () => void;
   onLogoClick?: () => void;
+  onOpenMenu?: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   currentUser,
   onOpenProfile,
   onLogout,
-  onLogoClick
+  onLogoClick,
+  onOpenMenu
 }) => {
   const getAvatarInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').slice(0, 2);
@@ -27,7 +29,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       <div className="w-full mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
         
         {/* Brand / Logo Area */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Mobile Hamburger 3-Line Menu Trigger */}
+          <button
+            id="mobile-menu-toggle-btn"
+            onClick={onOpenMenu}
+            title="Open Navigation Menu"
+            className="lg:hidden p-2 text-slate-700 hover:text-teal-700 hover:bg-teal-50 rounded-xl transition-all cursor-pointer border border-slate-200 hover:border-teal-200 active:scale-95 flex items-center justify-center shrink-0 shadow-xs"
+            aria-label="Open Navigation Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
           <SmsLogo 
             className="cursor-pointer" 
             onClick={onLogoClick} 

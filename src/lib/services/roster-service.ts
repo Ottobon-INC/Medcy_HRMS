@@ -13,7 +13,9 @@ export async function fetchRoster(weekStartDate: string): Promise<DutyRosterShif
     .lte('shift_date', weekEndDateStr);
 
   if (error) {
-    console.error("Failed to fetch duty roster:", error);
+    if (error.code !== 'PGRST205') {
+      console.warn("Duty roster sync notice:", error.message);
+    }
     return [];
   }
 

@@ -22,7 +22,9 @@ export async function getMonthlyQuota(empId: string, month: string = getCurrentM
     .maybeSingle();
 
   if (error) {
-    console.error("Error fetching monthly quota:", error);
+    if (error.code !== 'PGRST205') {
+      console.warn("Monthly quota notice:", error.message);
+    }
     return null;
   }
 

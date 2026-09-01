@@ -82,54 +82,6 @@ export default function LeaveModule({
     const diffTime = Math.abs(new Date(toDate).getTime() - new Date(fromDate).getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-    if (leaveType === 'monthly') {
-      const remaining = monthlyQuota?.remaining || 0;
-      if (diffDays > remaining) {
-        setErrorMsg(
-          language === 'te'
-            ? `క్షమించండి! మీ దగ్గర తగినన్ని నెలవారీ సెలవులు లేవు. మీకు ${remaining} మాత్రమే మిగిలి ఉన్నాయి.`
-            : `Insufficient balance! You requested ${diffDays} days but only have ${remaining} days left.`
-        );
-        return;
-      }
-      if (diffDays > 3) {
-        setErrorMsg(
-          language === 'te'
-            ? `నిరంతర సెలవు 3 రోజులకు మించకూడదు. దయచేసి మీ అభ్యర్థనను విభజించండి.`
-            : `Monthly leave cannot exceed 3 days per month.`
-        );
-        return;
-      }
-    } else {
-      const balance = leaveBalance[leaveType];
-      if (balance) {
-        const remaining = balance.allowed - balance.taken;
-        if (diffDays > remaining) {
-          setErrorMsg(
-            language === 'te'
-              ? `క్షమించండి! మీ దగ్గర తగినన్ని సెలవులు లేవు. మీకు ${remaining} మాత్రమే మిగిలి ఉన్నాయి.`
-              : `Insufficient balance! You requested ${diffDays} days but only have ${remaining} days left.`
-          );
-          return;
-        }
-        
-        if ((leaveType === 'sick' || leaveType === 'casual') && diffDays > 3) {
-          setErrorMsg(
-            language === 'te'
-              ? `నిరంతర సెలవు 3 రోజులకు మించకూడదు. దయచేసి మీ అభ్యర్థనను విభజించండి.`
-              : `Continuous leave cannot exceed 3 days for this leave type.`
-          );
-          return;
-        } else if (leaveType === 'maternity' && diffDays > 90) {
-          setErrorMsg(`Maternity leave cannot exceed 90 days.`);
-          return;
-        } else if (leaveType === 'paternity' && diffDays > 7) {
-          setErrorMsg(`Paternity leave cannot exceed 7 days.`);
-          return;
-        }
-      }
-    }
-
     try {
       await onApplyLeave(leaveType, fromDate, toDate, reason);
       setSuccessMsg(language === 'te' ? 'సెలవు అప్లికేషన్ విజయవంతంగా సబ్మిట్ చేయబడింది!' : 'Leave application submitted successfully!');
@@ -207,72 +159,7 @@ export default function LeaveModule({
         </div>
       </div>
 
-      {/* Leave Balances Header Cards */}
-      <div id="leave-balances-grid" className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Monthly Quota Card */}
-        <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm flex flex-col justify-between relative group">
-          {onUpdateBalances && (
-             <button onClick={() => openManageModal('monthly')} className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                <ShieldAlert className="w-4 h-4" />
-             </button>
-          )}
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Monthly Quota</span>
-          <div className="mt-4 flex items-baseline gap-1">
-            <span className="text-3xl font-black font-mono text-slate-800">{monthlyQuota.remaining}</span>
-            <span className="text-xs text-slate-400 font-medium">/ {monthlyQuota.allotted} {t.leaveLeftOf.split(' ')[0]}</span>
-          </div>
-          <div className="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden">
-            <div 
-              className="bg-indigo-500 h-full rounded-full transition-all duration-500" 
-              style={{ width: `${(monthlyQuota.remaining / monthlyQuota.allotted) * 100}%` }}
-            />
-          </div>
-        </div>
 
-        {/* Maternity Leave Card */}
-        {gender === 'female' && leaveBalance.maternity && (
-          <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm flex flex-col justify-between relative group">
-            {onUpdateBalances && (
-              <button onClick={() => openManageModal('maternity')} className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-pink-600 hover:bg-pink-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                  <ShieldAlert className="w-4 h-4" />
-              </button>
-            )}
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t.leaveMaternity || 'Maternity Leave'}</span>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-3xl font-black font-mono text-slate-800">{leaveBalance.maternity.allowed - leaveBalance.maternity.taken}</span>
-              <span className="text-xs text-slate-400 font-medium">/ {leaveBalance.maternity.allowed} {t.leaveLeftOf.split(' ')[0]}</span>
-            </div>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden">
-              <div 
-                className="bg-pink-400 h-full rounded-full transition-all duration-500" 
-                style={{ width: `${((leaveBalance.maternity.allowed - leaveBalance.maternity.taken) / leaveBalance.maternity.allowed) * 100}%` }}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Paternity Leave Card */}
-        {gender === 'male' && leaveBalance.paternity && (
-          <div className="bg-white rounded-[24px] p-6 border border-slate-100 shadow-sm flex flex-col justify-between relative group">
-            {onUpdateBalances && (
-              <button onClick={() => openManageModal('paternity')} className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                  <ShieldAlert className="w-4 h-4" />
-              </button>
-            )}
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t.leavePaternity || 'Paternity Leave'}</span>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-3xl font-black font-mono text-slate-800">{leaveBalance.paternity.allowed - leaveBalance.paternity.taken}</span>
-              <span className="text-xs text-slate-400 font-medium">/ {leaveBalance.paternity.allowed} {t.leaveLeftOf.split(' ')[0]}</span>
-            </div>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden">
-              <div 
-                className="bg-blue-400 h-full rounded-full transition-all duration-500" 
-                style={{ width: `${((leaveBalance.paternity.allowed - leaveBalance.paternity.taken) / leaveBalance.paternity.allowed) * 100}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Main Content Pane */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
