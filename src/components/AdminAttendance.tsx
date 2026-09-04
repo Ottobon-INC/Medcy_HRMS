@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, UserCheck, AlertCircle, ArrowLeft, Users, Check, Moon, HelpCircle, MapPin, Clock, FileWarning, CheckCircle, XCircle } from 'lucide-react';
-import { Language, Employee, AttendanceStatus, MissedPunchRequest } from '../types';
+import { Language, Employee, AttendanceStatus, MissedPunchRequest, Branch } from '../types';
 import { translations } from '../translations';
 import { generateMonthOptions, formatMonth } from '../lib/utils';
 import LocationPinTimeline from './LocationPinTimeline';
@@ -18,6 +18,7 @@ export default function AdminAttendance({ language, employees, onUpdateAttendanc
   // Filters
   const monthOptions = generateMonthOptions(2018, 1);
   const [selectedMonth, setSelectedMonth] = useState(monthOptions[0] || '2026-07');
+  const [attendanceBranchFilter, setAttendanceBranchFilter] = useState<Branch | 'all'>('all');
   const [editTarget, setEditTarget] = useState<{empId: string, date: string, status: AttendanceStatus | 'blank'} | null>(null);
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -65,16 +66,21 @@ export default function AdminAttendance({ language, employees, onUpdateAttendanc
     };
   };
 
-  // Calculate statistics for today across the team
-  const totalEmployees = employees.filter(e => e.role !== 'admin').length;
+  // Branch-scoped employees
+  const filteredEmployees = employees.filter(e => 
+    attendanceBranchFilter === 'all' || (e.branch || 'visakhapatnam') === attendanceBranchFilter
+  );
+
+  // Calculate statistics for today across the scoped team
+  const totalEmployees = filteredEmployees.filter(e => e.role !== 'admin').length;
   
-  const presentToday = employees.filter(e => {
+  const presentToday = filteredEmployees.filter(e => {
     if (e.role === 'admin') return false;
     const todayRec = e.attendanceRecords.find(r => r.date === todayStr);
     return e.isCheckedIn || (todayRec && todayRec.status === 'present');
   }).length;
 
-  const leaveToday = employees.filter(e => {
+  const leaveToday = filteredEmployees.filter(e => {
     if (e.role === 'admin') return false;
     const todayRec = e.attendanceRecords.find(r => r.date === todayStr);
     return todayRec && todayRec.status === 'leave';
@@ -155,22 +161,58 @@ export default function AdminAttendance({ language, employees, onUpdateAttendanc
           </p>
         </div>
 
-        {/* Month Picker Selector */}
-        <div className="flex items-center gap-2">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
-            {t.monthSelector || "Select Month"}:
-          </label>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="border border-slate-200 bg-slate-50 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/10 cursor-pointer"
-          >
-            {monthOptions.map(month => (
-              <option key={month} value={month}>
-                {formatMonth(month, language)}
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Branch Filter Selector */}
+          <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+            <button
+              onClick={() => setAttendanceBranchFilter('all')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                attendanceBranchFilter === 'all'
+                  ? 'bg-white text-teal-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              All Branches
+            </button>
+            <button
+              onClick={() => setAttendanceBranchFilter('visakhapatnam')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                attendanceBranchFilter === 'visakhapatnam'
+                  ? 'bg-white text-teal-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Visakhapatnam
+            </button>
+            <button
+              onClick={() => setAttendanceBranchFilter('vizianagaram')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                attendanceBranchFilter === 'vizianagaram'
+                  ? 'bg-white text-indigo-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Vizianagaram
+            </button>
+          </div>
+
+          {/* Month Picker Selector */}
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider whitespace-nowrap">
+              {t.monthSelector || "Select Month"}:
+            </label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="border border-slate-200 bg-slate-50 rounded-xl px-4 py-2 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500/10 cursor-pointer"
+            >
+              {monthOptions.map(month => (
+                <option key={month} value={month}>
+                  {formatMonth(month, language)}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -233,20 +275,29 @@ export default function AdminAttendance({ language, employees, onUpdateAttendanc
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {employees
+              {filteredEmployees
                 .filter(emp => emp.role !== 'admin')
-                .map(emp => (
+                .map(emp => {
+                  const empBranch = emp.branch || 'visakhapatnam';
+                  return (
                   <tr key={emp.id} className="hover:bg-slate-50/50">
                     <td className="p-4 truncate">
-                      <p className="text-xs font-bold text-slate-800 leading-none flex items-center gap-2">
-                        {emp.name}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-slate-800 leading-none">
+                          {emp.name}
+                        </span>
+                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                          empBranch === 'visakhapatnam' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                        }`}>
+                          {empBranch === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}
+                        </span>
                         {calculateLiveHours(emp) && (
                           <span className={`inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full border ${calculateLiveHours(emp)?.isActive ? 'bg-teal-50 text-teal-600 border-teal-100 animate-pulse' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
                             <Clock className="w-2.5 h-2.5" />
                             {calculateLiveHours(emp)?.text}
                           </span>
                         )}
-                      </p>
+                      </div>
                       <span className="text-[9px] text-slate-400 font-medium font-mono mt-1 block">{emp.id}</span>
                     </td>
                     
@@ -283,7 +334,8 @@ export default function AdminAttendance({ language, employees, onUpdateAttendanc
                       );
                     })}
                   </tr>
-                ))}
+                  );
+                })}
             </tbody>
           </table>
         </div>

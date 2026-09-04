@@ -22,6 +22,7 @@ import { AppRouter } from './components/layout/AppRouter';
 import { PwaInstallPrompt } from './components/shared/PwaInstallPrompt';
 import { OfflineIndicator } from './components/shared/OfflineIndicator';
 import { LiveTrackingProvider } from './contexts/LiveTrackingContext';
+import { filterEmployeesByScope } from './lib/services/employee-service';
 
 export default function App() {
   // Pure English for VizagIVF HRMS
@@ -32,6 +33,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<string>(() => {
     const path = window.location.pathname.substring(1);
     const pathToTab: Record<string, string> = {
+      'executive-overview': 'executiveOverview',
+      'org-chart': 'orgChart',
       'dashboard': 'dashboard',
       'attendance': 'attendance',
       'leave': 'leave',
@@ -63,6 +66,8 @@ export default function App() {
     localStorage.setItem('medcy_active_tab', activeTab);
     
     const tabToPath: Record<string, string> = {
+      'executiveOverview': 'executive-overview',
+      'orgChart': 'org-chart',
       'dashboard': 'dashboard',
       'attendance': 'attendance',
       'leave': 'leave',
@@ -93,6 +98,8 @@ export default function App() {
     const handlePopState = () => {
       const path = window.location.pathname.substring(1);
       const pathToTab: Record<string, string> = {
+        'executive-overview': 'executiveOverview',
+        'org-chart': 'orgChart',
         'dashboard': 'dashboard',
         'attendance': 'attendance',
         'leave': 'leave',
@@ -138,17 +145,22 @@ export default function App() {
   useEffect(() => {
     if (!currentUser) return;
     
+    const isExecutive = currentUser.hierarchyLevel === 'executive';
+    const isManager = currentUser.hierarchyLevel === 'manager';
+    const isAdminLevel = currentUser.role === 'admin' || isExecutive || isManager;
+
     const adminTabs = [
       'adminDashboard', 'directory', 'attendanceOverview', 'leaveApprovals',
-      'officeLocations', 'messages', 'adminSettings', 'dutyRoster', 'adminMissedPunches', 'fieldOps', 'adminTasks'
+      'officeLocations', 'messages', 'adminSettings', 'dutyRoster', 'adminMissedPunches', 'fieldOps', 'adminTasks',
+      'executiveOverview', 'orgChart'
     ];
     const employeeTabs = [
       'dashboard', 'attendance', 'leave', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'tasks', 'liveMap'
     ];
 
-    if (currentUser.role === 'admin' && !adminTabs.includes(activeTab)) {
-      setActiveTab('adminDashboard');
-    } else if (currentUser.role === 'employee' && !employeeTabs.includes(activeTab)) {
+    if (isAdminLevel && !adminTabs.includes(activeTab)) {
+      setActiveTab(isExecutive ? 'executiveOverview' : 'adminDashboard');
+    } else if (!isAdminLevel && !employeeTabs.includes(activeTab)) {
       setActiveTab('dashboard');
     }
   }, [currentUserId, currentUser, activeTab]);
@@ -215,7 +227,9 @@ export default function App() {
           employees={employees}
           onLoginSuccess={(emp) => {
             login(emp.id);
-            if (emp.role === 'admin') {
+            if (emp.hierarchyLevel === 'executive') {
+              setActiveTab('executiveOverview');
+            } else if (emp.role === 'admin' || emp.hierarchyLevel === 'manager') {
               setActiveTab('adminDashboard');
             } else {
               setActiveTab('dashboard');
@@ -225,6 +239,9 @@ export default function App() {
       </>
     );
   }
+
+  // Derived scoped employees based on current user hierarchy level & branch
+  const scopedEmployees = filterEmployeesByScope(currentUser, employees);
 
   return (
     <LiveTrackingProvider currentUser={currentUser} isClockedIn={currentUser.isCheckedIn}>
@@ -237,7 +254,11 @@ export default function App() {
           currentUser={currentUser}
           onOpenProfile={() => setShowProfileModal(true)}
           onLogout={handleLogout}
-          onLogoClick={() => setActiveTab(currentUser.role === 'admin' ? 'adminDashboard' : 'dashboard')}
+          onLogoClick={() => setActiveTab(
+            currentUser.hierarchyLevel === 'executive' 
+              ? 'executiveOverview' 
+              : ((currentUser.role === 'admin' || currentUser.hierarchyLevel === 'manager') ? 'adminDashboard' : 'dashboard')
+          )}
           onOpenMenu={() => setMobileNavOpen(true)}
         />
 
@@ -276,7 +297,7 @@ export default function App() {
                 activeTab={activeTab}
                 language={language}
                 currentUser={currentUser}
-                employees={employees}
+                employees={scopedEmployees}
                 isLocalMode={isLocalMode}
                 tasks={tasks}
                 noDataText={t.noData}

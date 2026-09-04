@@ -12,7 +12,9 @@ import {
   CheckSquare,
   Settings,
   Radio,
-  HeartHandshake
+  HeartHandshake,
+  Activity,
+  Network
 } from 'lucide-react';
 import { Employee } from '../../types';
 
@@ -33,7 +35,18 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
   onSelectTab,
   onOpenProfile
 }) => {
-  const isAdmin = currentUser.role === 'admin';
+  const isExecutive = currentUser.hierarchyLevel === 'executive';
+  const isManager = currentUser.hierarchyLevel === 'manager';
+  const isAdmin = currentUser.role === 'admin' || isExecutive || isManager;
+
+  let roleSubtitle = currentUser.designation || 'Staff';
+  if (isExecutive) {
+    roleSubtitle = 'Executive · Both Branches';
+  } else if (isManager) {
+    roleSubtitle = 'Operations Manager · Both Branches';
+  } else if (currentUser.branch) {
+    roleSubtitle = `${currentUser.designation || 'Staff'} · ${currentUser.branch === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}`;
+  }
 
   // Prevent background body scroll when drawer is open
   useEffect(() => {
@@ -106,15 +119,17 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
             className="w-full p-3 bg-slate-50 hover:bg-teal-50/60 rounded-xl border border-slate-100 hover:border-teal-200 flex items-center justify-between text-left transition-all cursor-pointer group"
           >
             <div className="flex items-center gap-3 min-w-0">
-              <div className="bg-teal-600 text-white w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-sm ${
+                isExecutive ? 'bg-amber-100 text-amber-800' : isManager ? 'bg-blue-100 text-blue-800' : 'bg-teal-600 text-white'
+              }`}>
                 {getAvatarInitials(currentUser.name)}
               </div>
               <div className="truncate">
                 <h4 className="text-xs font-bold text-slate-800 leading-tight truncate group-hover:text-teal-700 transition-colors">
                   {currentUser.name}
                 </h4>
-                <p className="text-[10px] text-slate-400 font-medium leading-none mt-1 uppercase tracking-wide">
-                  {isAdmin ? 'Administrator' : currentUser.designation || 'Staff'}
+                <p className="text-[10px] text-slate-400 font-semibold leading-none mt-1 uppercase tracking-wide">
+                  {roleSubtitle}
                 </p>
               </div>
             </div>
@@ -133,6 +148,20 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
           {isAdmin ? (
             /* --- ADMIN NAV BUTTONS --- */
             <>
+              {isExecutive && (
+                <button
+                  onClick={() => handleTabClick('executiveOverview')}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+                    activeTab === 'executiveOverview'
+                      ? 'bg-amber-50 text-amber-800 font-bold border border-amber-200'
+                      : 'text-slate-600 hover:bg-amber-50/50 hover:text-amber-800'
+                  }`}
+                >
+                  <Activity className={`w-4 h-4 shrink-0 ${activeTab === 'executiveOverview' ? 'text-amber-600' : 'text-slate-400'}`} />
+                  <span>Executive Overview</span>
+                </button>
+              )}
+
               <button
                 onClick={() => handleTabClick('adminDashboard')}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
@@ -142,7 +171,19 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
                 }`}
               >
                 <Home className={`w-4 h-4 shrink-0 ${activeTab === 'adminDashboard' ? 'text-teal-600' : 'text-slate-400'}`} />
-                <span>Admin Dashboard</span>
+                <span>Operations Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => handleTabClick('orgChart')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+                  activeTab === 'orgChart'
+                    ? 'bg-teal-50 text-teal-700 font-bold border border-teal-100'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Network className={`w-4 h-4 shrink-0 ${activeTab === 'orgChart' ? 'text-teal-600' : 'text-slate-400'}`} />
+                <span>Org Hierarchy</span>
               </button>
 
               <button

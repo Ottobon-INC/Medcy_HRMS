@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, Check, X, Moon, Clock, User, MessageSquare, AlertCircle } from 'lucide-react';
-import { Language, Employee, LeaveRequest } from '../types';
+import { Language, Employee, LeaveRequest, Branch } from '../types';
 import { translations } from '../translations';
 
 interface AdminLeaveApprovalsProps {
@@ -20,12 +20,16 @@ export default function AdminLeaveApprovals({
 
   // Optional notes per request ID
   const [decisionNotes, setDecisionNotes] = useState<Record<string, string>>({});
+  const [leaveBranchFilter, setLeaveBranchFilter] = useState<Branch | 'all'>('all');
 
-  // Compile leave requests across all employees
+  // Compile leave requests across all employees, filtered by selected branch
   const pendingRequests: { emp: Employee; req: LeaveRequest }[] = [];
   const processedRequests: { emp: Employee; req: LeaveRequest }[] = [];
 
   employees.forEach(emp => {
+    if (leaveBranchFilter !== 'all' && (emp.branch || 'visakhapatnam') !== leaveBranchFilter) {
+      return;
+    }
     emp.leaveRequests.forEach(req => {
       if (req.status === 'pending') {
         pendingRequests.push({ emp, req });
@@ -92,14 +96,49 @@ export default function AdminLeaveApprovals({
   return (
     <div id="admin-leaves-container" className="space-y-8 animate-fadeIn">
       
-      {/* 1. Title Header */}
-      <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm">
-        <h2 className="text-xl font-bold font-display text-slate-800">
-          {localizedText.title}
-        </h2>
-        <p className="text-xs text-slate-400 mt-1">
-          {localizedText.subtitle}
-        </p>
+      {/* 1. Title Header & Branch Selector */}
+      <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold font-display text-slate-800">
+            {localizedText.title}
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            {localizedText.subtitle}
+          </p>
+        </div>
+
+        <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+          <button
+            onClick={() => setLeaveBranchFilter('all')}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              leaveBranchFilter === 'all'
+                ? 'bg-white text-teal-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            All Branches
+          </button>
+          <button
+            onClick={() => setLeaveBranchFilter('visakhapatnam')}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              leaveBranchFilter === 'visakhapatnam'
+                ? 'bg-white text-teal-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Visakhapatnam
+          </button>
+          <button
+            onClick={() => setLeaveBranchFilter('vizianagaram')}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              leaveBranchFilter === 'vizianagaram'
+                ? 'bg-white text-indigo-700 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Vizianagaram
+          </button>
+        </div>
       </div>
 
       {/* 2. Pending Requests Grid list */}
@@ -123,6 +162,7 @@ export default function AdminLeaveApprovals({
             {pendingRequests.map(({ emp, req }) => {
               const daysCount = calculateDays(req.fromDate, req.toDate);
               const noteText = decisionNotes[req.id] || '';
+              const empBranch = emp.branch || 'visakhapatnam';
 
               return (
                 <div 
@@ -137,8 +177,15 @@ export default function AdminLeaveApprovals({
                         {emp.name.split(' ').map(n => n[0]).join('')}
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-slate-800">{emp.name}</h4>
-                        <p className="text-[10px] text-slate-400">{emp.designation} • ID: {emp.id}</p>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-xs font-bold text-slate-800">{emp.name}</h4>
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                            empBranch === 'visakhapatnam' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                          }`}>
+                            {empBranch === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-400">{emp.designation} • ID: {emp.id} • Reports to: Ravi Kumar</p>
                       </div>
                     </div>
 

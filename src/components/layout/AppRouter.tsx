@@ -21,6 +21,9 @@ const AdminSettings = React.lazy(() => import('../AdminSettings'));
 const DutyRosterModule = React.lazy(() => import('../DutyRosterModule'));
 const TaskModule = React.lazy(() => import('../TaskModule'));
 const AdminTaskManager = React.lazy(() => import('../AdminTaskManager'));
+const ExecutiveOverview = React.lazy(() => import('../ExecutiveOverview'));
+const OrgHierarchyView = React.lazy(() => import('../OrgHierarchyView'));
+
 
 interface AppRouterProps {
   activeTab: string;
@@ -245,6 +248,24 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           onUpdateTask={onUpdateTask}
           onDeleteTask={onDeleteTask}
           onUpdateStatus={onUpdateTaskStatus}
+        />
+      );
+    case 'executiveOverview':
+      return (
+        <ExecutiveOverview
+          language={language}
+          currentUser={currentUser}
+          employees={employees}
+          tasks={tasks}
+          setActiveTab={setActiveTab}
+        />
+      );
+    case 'orgChart':
+      return (
+        <OrgHierarchyView
+          language={language}
+          currentUser={currentUser}
+          employees={employees}
         />
       );
 

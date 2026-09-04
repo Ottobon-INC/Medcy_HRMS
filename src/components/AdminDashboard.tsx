@@ -311,12 +311,20 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
             </div>
           ) : (
             <div className="space-y-4">
-              {pendingRequests.slice(0, 3).map(({ req, empName, empId }) => (
+              {pendingRequests.slice(0, 3).map(({ req, empName, empId }) => {
+                const empObj = employees.find(e => e.id === empId);
+                const empBranch = empObj?.branch || 'visakhapatnam';
+                return (
                 <div key={req.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-bold text-slate-800">{empName}</span>
                       <span className="text-[10px] text-slate-400 font-medium">({empId})</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                        empBranch === 'visakhapatnam' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                      }`}>
+                        {empBranch === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}
+                      </span>
                     </div>
                     <p className="text-[11px] font-bold text-teal-700">
                       {req.type.toUpperCase()} LEAVE • {req.fromDate} to {req.toDate}
@@ -334,7 +342,8 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
                     <ArrowRight className="w-3 h-3" />
                   </button>
                 </div>
-              ))}
+                );
+              })}
               
               {pendingCount > 3 && (
                 <button
@@ -375,7 +384,14 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
                       {emp.name.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-slate-800">{emp.name}</h4>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="text-sm font-bold text-slate-800">{emp.name}</h4>
+                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                          (emp.branch || 'visakhapatnam') === 'visakhapatnam' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                        }`}>
+                          {(emp.branch || 'visakhapatnam') === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}
+                        </span>
+                      </div>
                       <p className="text-[10px] text-slate-400 font-mono">{emp.id}</p>
                     </div>
                   </div>

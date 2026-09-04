@@ -1,5 +1,5 @@
 import { supabase } from '../supabase-client';
-import { Employee, LeaveBalance, LeaveType, LeaveStatus, AttendanceRecord, AttendanceStatus, CheckInLog, Payslip, MonthlyLeaveQuota } from '../../types';
+import { Employee, LeaveBalance, LeaveType, LeaveStatus, AttendanceRecord, AttendanceStatus, CheckInLog, Payslip, MonthlyLeaveQuota, Branch, HierarchyLevel } from '../../types';
 
 export async function fetchAllEmployeesData(): Promise<Employee[]> {
   const { data: emps, error: empError } = await supabase
@@ -37,7 +37,7 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
   const advancesList = advances || [];
   const pinsList = pins || [];
 
-  return emps.map(emp => {
+  const mappedEmployees: Employee[] = emps.map(emp => {
     // Map leave balances
     const empBalances = balancesList.filter(b => b.employee_id === emp.id);
     const leaveBalance: LeaveBalance = {
@@ -168,6 +168,25 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
       };
     }
 
+    // Branch & Hierarchy Resolution with robust backward compatibility
+    const branch: Branch = (emp.branch as Branch) || 'visakhapatnam';
+    let hierarchyLevel: HierarchyLevel = emp.hierarchy_level as HierarchyLevel;
+    if (!hierarchyLevel) {
+      if (emp.id === 'EMP-2026-011' || (emp.name && emp.name.toLowerCase().includes('ravi kumar'))) {
+        hierarchyLevel = 'manager';
+      } else if (emp.id === 'EMP-EXEC-001' || emp.id === 'EMP-EXEC-002' || (emp.name && (emp.name.toLowerCase().includes('indra') || emp.name.toLowerCase().includes('anoopama')))) {
+        hierarchyLevel = 'executive';
+      } else {
+        hierarchyLevel = emp.role === 'admin' ? 'manager' : 'employee';
+      }
+    }
+    const isExecOrManager = hierarchyLevel === 'executive' || hierarchyLevel === 'manager';
+    const managedBranches: Branch[] = Array.isArray(emp.managed_branches)
+      ? emp.managed_branches
+      : (isExecOrManager ? ['visakhapatnam', 'vizianagaram'] : [branch]);
+    const reportingTo: string | undefined = emp.reporting_to || (hierarchyLevel === 'employee' ? 'EMP-2026-011' : undefined);
+    const resolvedRole = (isExecOrManager || emp.role === 'admin') ? 'admin' : 'employee';
+
     return {
       id: emp.id,
       name: emp.name,
@@ -175,13 +194,17 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
       designation: emp.designation,
       joiningDate: emp.joining_date,
       basicSalary: Number(emp.basic_pay),
-      role: emp.role as 'employee' | 'admin',
+      role: resolvedRole as 'employee' | 'admin',
       password: emp.password,
       status: (emp.status || 'active') as 'active' | 'inactive',
       phone: emp.phone,
       gender: emp.gender as 'male' | 'female' | 'other' | undefined,
       experience: Number(emp.experience) || 0,
       bankDetails: emp.bank_details as any,
+      branch,
+      hierarchyLevel,
+      managedBranches,
+      reportingTo,
       isCheckedIn,
       leaveBalance,
       monthlyQuota,
@@ -210,30 +233,130 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
     };
 
   });
+
+  // Ensure Executive accounts (Indra Mam & Anoopama Mam) exist for immediate login/testing
+  if (!mappedEmployees.some(e => e.id === 'EMP-EXEC-001' || e.name.toLowerCase().includes('indra'))) {
+    mappedEmployees.unshift({
+      id: 'EMP-EXEC-001',
+      name: 'Indra Mam',
+      email: 'indra@vizagivf.com',
+      password: 'password',
+      role: 'admin',
+      designation: 'Executive Director',
+      joiningDate: '2026-01-01',
+      basicSalary: 0,
+      status: 'active',
+      phone: '9999999901',
+      gender: 'female',
+      experience: 10,
+      branch: 'visakhapatnam',
+      hierarchyLevel: 'executive',
+      managedBranches: ['visakhapatnam', 'vizianagaram'],
+      isCheckedIn: false,
+      leaveBalance: { sick: { allowed: 12, taken: 0 }, casual: { allowed: 12, taken: 0 } },
+      monthlyQuota: { id: 'exec1', month: currentMonth, allotted: 5, used: 0, remaining: 5 },
+      leaveRequests: [],
+      attendanceRecords: [],
+      checkInLogs: [],
+      payslips: [],
+      advanceRequests: []
+    });
+  }
+
+  if (!mappedEmployees.some(e => e.id === 'EMP-EXEC-002' || e.name.toLowerCase().includes('anoopama'))) {
+    mappedEmployees.unshift({
+      id: 'EMP-EXEC-002',
+      name: 'Anoopama Mam',
+      email: 'anoopama@vizagivf.com',
+      password: 'password',
+      role: 'admin',
+      designation: 'Executive Director',
+      joiningDate: '2026-01-01',
+      basicSalary: 0,
+      status: 'active',
+      phone: '9999999902',
+      gender: 'female',
+      experience: 10,
+      branch: 'visakhapatnam',
+      hierarchyLevel: 'executive',
+      managedBranches: ['visakhapatnam', 'vizianagaram'],
+      isCheckedIn: false,
+      leaveBalance: { sick: { allowed: 12, taken: 0 }, casual: { allowed: 12, taken: 0 } },
+      monthlyQuota: { id: 'exec2', month: currentMonth, allotted: 5, used: 0, remaining: 5 },
+      leaveRequests: [],
+      attendanceRecords: [],
+      checkInLogs: [],
+      payslips: [],
+      advanceRequests: []
+    });
+  }
+
+  return mappedEmployees;
+}
+
+/**
+ * Scopes the visible list of employees based on the current user's hierarchy level and branch responsibilities.
+ * - Executive (Indra mam, Anoopama mam): Full cross-org visibility (all branches)
+ * - Manager (Ravi Kumar): Full access across assigned branches (both Visakhapatnam and Vizianagaram)
+ * - Employee: Restricted to self only
+ */
+export function filterEmployeesByScope(
+  currentUser: Employee | null | undefined,
+  allEmployees: Employee[]
+): Employee[] {
+  if (!currentUser) return allEmployees;
+
+  // Executive tier: Complete visibility across all branches and levels
+  if (currentUser.hierarchyLevel === 'executive') {
+    return allEmployees;
+  }
+
+  // Manager tier: Access to all employees within their managed branches
+  if (currentUser.hierarchyLevel === 'manager' || currentUser.role === 'admin') {
+    const branches = currentUser.managedBranches && currentUser.managedBranches.length > 0
+      ? currentUser.managedBranches
+      : (currentUser.branch ? [currentUser.branch] : ['visakhapatnam', 'vizianagaram']);
+
+    return allEmployees.filter(emp => {
+      // Always include executives or other managers for org structure/reporting views
+      if (emp.hierarchyLevel === 'executive' || emp.id === currentUser.id) return true;
+      const empBranch = emp.branch || 'visakhapatnam';
+      return branches.includes(empBranch);
+    });
+  }
+
+  // Employee tier: Only personal record
+  return allEmployees.filter(emp => emp.id === currentUser.id);
 }
 
 export async function createEmployee(emp: Omit<Employee, 'isCheckedIn' | 'leaveBalance' | 'leaveRequests' | 'attendanceRecords' | 'checkInLogs' | 'payslips'>): Promise<void> {
+  const payload: any = {
+    id: emp.id,
+    name: emp.name,
+    email: emp.email,
+    password: emp.password || 'password',
+    role: emp.role,
+    designation: emp.designation,
+    joining_date: emp.joiningDate,
+    basic_pay: emp.basicSalary,
+    status: emp.status || 'active',
+    phone: emp.phone || null,
+    gender: emp.gender || null,
+    experience: emp.experience || 0,
+    bank_details: emp.bankDetails || null,
+    branch: emp.branch || 'visakhapatnam',
+    hierarchy_level: emp.hierarchyLevel || 'employee',
+    managed_branches: emp.managedBranches || (emp.hierarchyLevel === 'manager' ? ['visakhapatnam', 'vizianagaram'] : [emp.branch || 'visakhapatnam']),
+    reporting_to: emp.reportingTo || (emp.hierarchyLevel === 'employee' ? 'EMP-2026-011' : null)
+  };
+
   const { error } = await supabase
     .from('HRMS_employees')
-    .insert([{
-      id: emp.id,
-      name: emp.name,
-      email: emp.email,
-      password: emp.password || 'password',
-      role: emp.role,
-      designation: emp.designation,
-      joining_date: emp.joiningDate,
-      basic_pay: emp.basicSalary,
-      status: emp.status || 'active',
-      phone: emp.phone || null,
-      gender: emp.gender || null,
-      experience: emp.experience || 0,
-      bank_details: emp.bankDetails || null
-    }]);
+    .insert([payload]);
 
   if (error) {
     console.error("First insert failed:", error);
-    // Fallback if the remote DB has not been migrated with status and phone columns
+    // Fallback if the remote DB has not been migrated with new columns
     const fallbackData = {
       id: emp.id,
       name: emp.name || 'Unknown',
@@ -281,6 +404,10 @@ export async function updateEmployee(id: string, fields: Partial<Employee>): Pro
   if (fields.gender !== undefined) updatePayload.gender = fields.gender;
   if (fields.experience !== undefined) updatePayload.experience = fields.experience;
   if (fields.bankDetails !== undefined) updatePayload.bank_details = fields.bankDetails;
+  if (fields.branch !== undefined) updatePayload.branch = fields.branch;
+  if (fields.hierarchyLevel !== undefined) updatePayload.hierarchy_level = fields.hierarchyLevel;
+  if (fields.managedBranches !== undefined) updatePayload.managed_branches = fields.managedBranches;
+  if (fields.reportingTo !== undefined) updatePayload.reporting_to = fields.reportingTo;
 
   if (Object.keys(updatePayload).length > 0) {
     const { error } = await supabase
@@ -294,6 +421,10 @@ export async function updateEmployee(id: string, fields: Partial<Employee>): Pro
       delete updatePayload.gender;
       delete updatePayload.experience;
       delete updatePayload.bank_details;
+      delete updatePayload.branch;
+      delete updatePayload.hierarchy_level;
+      delete updatePayload.managed_branches;
+      delete updatePayload.reporting_to;
       if (Object.keys(updatePayload).length > 0) {
         const { error: retryError } = await supabase
           .from('HRMS_employees')
@@ -499,8 +630,8 @@ export async function seedInitialDatabase() {
       name: 'R. Ravi Kumar',
       email: 'ravildm09@gmail.com',
       password: 'ravildm09@gmail.com',
-      role: 'employee',
-      designation: 'Employee',
+      role: 'admin',
+      designation: 'Branch Operations Manager',
       joining_date: '2026-09-01',
       basic_pay: 0.00,
       status: 'active',
@@ -508,6 +639,36 @@ export async function seedInitialDatabase() {
       gender: 'male',
       experience: 0,
       dob: '1978-06-01'
+    },
+    {
+      id: 'EMP-EXEC-001',
+      name: 'Indra Mam',
+      email: 'indra@vizagivf.com',
+      password: 'password',
+      role: 'admin',
+      designation: 'Executive Director',
+      joining_date: '2026-01-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9999999901',
+      gender: 'female',
+      experience: 10,
+      dob: '1980-01-01'
+    },
+    {
+      id: 'EMP-EXEC-002',
+      name: 'Anoopama Mam',
+      email: 'anoopama@vizagivf.com',
+      password: 'password',
+      role: 'admin',
+      designation: 'Executive Director',
+      joining_date: '2026-01-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9999999902',
+      gender: 'female',
+      experience: 10,
+      dob: '1982-01-01'
     },
     {
       id: 'EMP-2026-012',

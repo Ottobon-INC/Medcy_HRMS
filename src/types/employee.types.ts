@@ -1,3 +1,4 @@
+import type { Branch, HierarchyLevel } from './common.types';
 import type { LeaveBalance, LeaveRequest, MonthlyLeaveQuota } from './leave.types';
 import type { AttendanceRecord, CheckInLog } from './attendance.types';
 import type { Payslip } from './payroll.types';
@@ -23,6 +24,10 @@ export interface Employee {
   password?: string;
   status: 'active' | 'inactive';
   phone?: string;
+  branch?: Branch;
+  hierarchyLevel?: HierarchyLevel;
+  managedBranches?: Branch[];
+  reportingTo?: string;
   isCheckedIn: boolean;
   leaveBalance: LeaveBalance;
   leaveRequests: LeaveRequest[];

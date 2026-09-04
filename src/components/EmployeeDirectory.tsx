@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Edit3, Trash2, ArrowLeft, Calendar, Moon, User, Mail, IndianRupee, CalendarDays, Eye, EyeOff, Power, FileText, Printer, X } from 'lucide-react';
-import { Language, Employee, LeaveType } from '../types';
+import { Plus, Edit3, Trash2, ArrowLeft, Calendar, Moon, User, Mail, IndianRupee, CalendarDays, Eye, EyeOff, Power, FileText, Printer, X, Building2 } from 'lucide-react';
+import { Language, Employee, LeaveType, Branch, HierarchyLevel } from '../types';
 import { translations } from '../translations';
 import AttendanceModule from './AttendanceModule';
 import LeaveModule from './LeaveModule';
@@ -54,6 +54,7 @@ export default function EmployeeDirectory({
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editTargetId, setEditTargetId] = useState<string | null>(null);
+  const [directoryBranchFilter, setDirectoryBranchFilter] = useState<Branch | 'all'>('all');
 
   // Form State
   const [formName, setFormName] = useState('');
@@ -65,6 +66,8 @@ export default function EmployeeDirectory({
   const [formPhone, setFormPhone] = useState('');
   const [formPassword, setFormPassword] = useState('');
   const [formStatus, setFormStatus] = useState<'active' | 'inactive'>('active');
+  const [formBranch, setFormBranch] = useState<Branch>('visakhapatnam');
+  const [formHierarchyLevel, setFormHierarchyLevel] = useState<HierarchyLevel>('employee');
   const [showPassword, setShowPassword] = useState(false);
   const [formGender, setFormGender] = useState<'male' | 'female' | 'other' | undefined>(undefined);
   const [formExperience, setFormExperience] = useState<number>(0);
@@ -85,6 +88,8 @@ export default function EmployeeDirectory({
     setFormPhone('');
     setFormPassword('');
     setFormStatus('active');
+    setFormBranch('visakhapatnam');
+    setFormHierarchyLevel('employee');
     setFormGender(undefined);
     setFormExperience(0);
     setFormBankAccountNo('');
@@ -106,6 +111,8 @@ export default function EmployeeDirectory({
     setFormPhone(emp.phone || '');
     setFormPassword(emp.password || '');
     setFormStatus(emp.status || 'active');
+    setFormBranch(emp.branch || 'visakhapatnam');
+    setFormHierarchyLevel(emp.hierarchyLevel || (emp.role === 'admin' ? 'manager' : 'employee'));
     setFormGender(emp.gender || undefined);
     setFormExperience(emp.experience || 0);
     setFormBankAccountNo(emp.bankDetails?.accountNumber || '');
@@ -131,7 +138,10 @@ export default function EmployeeDirectory({
         designation: formDesignation,
         joiningDate: formJoiningDate,
         basicSalary: Number(formBasicSalary),
-        role: formRole,
+        role: formHierarchyLevel === 'executive' || formHierarchyLevel === 'manager' ? 'admin' : formRole,
+        branch: formBranch,
+        hierarchyLevel: formHierarchyLevel,
+        reportingTo: formHierarchyLevel === 'employee' ? 'EMP-2026-011' : undefined,
         phone: formPhone,
         password: formPassword,
         status: formStatus,
@@ -160,7 +170,10 @@ export default function EmployeeDirectory({
       designation: formDesignation,
       joiningDate: formJoiningDate,
       basicSalary: Number(formBasicSalary),
-      role: formRole,
+      role: formHierarchyLevel === 'executive' || formHierarchyLevel === 'manager' ? 'admin' : formRole,
+      branch: formBranch,
+      hierarchyLevel: formHierarchyLevel,
+      reportingTo: formHierarchyLevel === 'employee' ? 'EMP-2026-011' : undefined,
       phone: formPhone,
       password: formPassword,
       status: formStatus,
@@ -406,7 +419,7 @@ export default function EmployeeDirectory({
   return (
     <div id="directory-roster-view" className="space-y-6 animate-fadeIn">
       
-      {/* Directory Title Panel */}
+      {/* Directory Title Panel & Branch Filter */}
       <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold font-display text-slate-800">
@@ -417,14 +430,49 @@ export default function EmployeeDirectory({
           </p>
         </div>
 
-        <button
-          id="btn-add-employee"
-          onClick={handleOpenAdd}
-          className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-teal-600/15 cursor-pointer transition-all active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{dirText.btnNew}</span>
-        </button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+            <button
+              onClick={() => setDirectoryBranchFilter('all')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                directoryBranchFilter === 'all'
+                  ? 'bg-white text-teal-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              All ({employees.length})
+            </button>
+            <button
+              onClick={() => setDirectoryBranchFilter('visakhapatnam')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                directoryBranchFilter === 'visakhapatnam'
+                  ? 'bg-white text-teal-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Visakhapatnam ({employees.filter(e => (e.branch || 'visakhapatnam') === 'visakhapatnam').length})
+            </button>
+            <button
+              onClick={() => setDirectoryBranchFilter('vizianagaram')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                directoryBranchFilter === 'vizianagaram'
+                  ? 'bg-white text-indigo-700 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Vizianagaram ({employees.filter(e => e.branch === 'vizianagaram').length})
+            </button>
+          </div>
+
+          <button
+            id="btn-add-employee"
+            onClick={handleOpenAdd}
+            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-teal-600/15 cursor-pointer transition-all active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{dirText.btnNew}</span>
+          </button>
+        </div>
       </div>
 
       {/* Roster Listing Card */}
@@ -442,7 +490,14 @@ export default function EmployeeDirectory({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {employees.map((emp) => (
+              {employees
+                .filter(emp => directoryBranchFilter === 'all' || (emp.branch || 'visakhapatnam') === directoryBranchFilter)
+                .map((emp) => {
+                  const empBranch = emp.branch || 'visakhapatnam';
+                  const isExec = emp.hierarchyLevel === 'executive';
+                  const isMgr = emp.hierarchyLevel === 'manager';
+
+                  return (
                 <tr
                   key={emp.id}
                   id={`roster-row-${emp.id}`}
@@ -452,15 +507,37 @@ export default function EmployeeDirectory({
                   {/* Name and ID */}
                   <td className="p-5">
                     <div className="flex items-center gap-3">
-                      <div className={`min-w-[36px] w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs group-hover:scale-105 transition-all shrink-0 ${emp.status === 'inactive' ? 'bg-slate-200 text-slate-500' : 'bg-teal-50 text-teal-700'}`}>
+                      <div className={`min-w-[36px] w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs group-hover:scale-105 transition-all shrink-0 ${
+                        isExec ? 'bg-amber-100 text-amber-800' : isMgr ? 'bg-blue-100 text-blue-800' : emp.status === 'inactive' ? 'bg-slate-200 text-slate-500' : 'bg-teal-50 text-teal-700'
+                      }`}>
                         {emp.name.split(' ').map(n => n[0]).join('')}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-800 group-hover:text-teal-700 transition-colors truncate">
-                          {emp.name}
-                          {emp.status === 'inactive' && <span className="ml-2 px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[9px] rounded uppercase font-bold">Inactive</span>}
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold text-slate-800 group-hover:text-teal-700 transition-colors truncate">
+                            {emp.name}
+                          </p>
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                            empBranch === 'visakhapatnam' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                          }`}>
+                            {empBranch === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}
+                          </span>
+                          {isExec && (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                              Executive
+                            </span>
+                          )}
+                          {isMgr && (
+                            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200">
+                              Manager
+                            </span>
+                          )}
+                          {emp.status === 'inactive' && <span className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[8px] rounded uppercase font-bold">Inactive</span>}
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5 truncate">
+                          {emp.id} • {emp.email}
+                          {!isExec && !isMgr && <span className="ml-1.5 text-slate-400 font-medium">↳ Direct report: Ravi Kumar</span>}
                         </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5 truncate">{emp.id} • {emp.email}</p>
                       </div>
                     </div>
                   </td>
@@ -574,7 +651,8 @@ export default function EmployeeDirectory({
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+            })}
             </tbody>
           </table>
         </div>
@@ -747,6 +825,33 @@ export default function EmployeeDirectory({
                       <option value="current">Current</option>
                     </select>
                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Branch Location</label>
+                  <select
+                    value={formBranch}
+                    onChange={(e) => setFormBranch(e.target.value as Branch)}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/10 text-slate-700"
+                  >
+                    <option value="visakhapatnam">Visakhapatnam (Main)</option>
+                    <option value="vizianagaram">Vizianagaram (Branch)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hierarchy Tier</label>
+                  <select
+                    value={formHierarchyLevel}
+                    onChange={(e) => setFormHierarchyLevel(e.target.value as HierarchyLevel)}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/10 text-slate-700"
+                  >
+                    <option value="employee">Level 1: Staff Employee</option>
+                    <option value="manager">Level 2: Operations Manager</option>
+                    <option value="executive">Level 3: Executive Director</option>
+                  </select>
                 </div>
               </div>
 
@@ -964,6 +1069,33 @@ export default function EmployeeDirectory({
                       <option value="current">Current</option>
                     </select>
                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Branch Location</label>
+                  <select
+                    value={formBranch}
+                    onChange={(e) => setFormBranch(e.target.value as Branch)}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/10 text-slate-700"
+                  >
+                    <option value="visakhapatnam">Visakhapatnam (Main)</option>
+                    <option value="vizianagaram">Vizianagaram (Branch)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hierarchy Tier</label>
+                  <select
+                    value={formHierarchyLevel}
+                    onChange={(e) => setFormHierarchyLevel(e.target.value as HierarchyLevel)}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500/10 text-slate-700"
+                  >
+                    <option value="employee">Level 1: Staff Employee</option>
+                    <option value="manager">Level 2: Operations Manager</option>
+                    <option value="executive">Level 3: Executive Director</option>
+                  </select>
                 </div>
               </div>
 
