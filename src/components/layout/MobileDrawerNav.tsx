@@ -14,7 +14,8 @@ import {
   Radio,
   HeartHandshake,
   Activity,
-  Network
+  Network,
+  Camera
 } from 'lucide-react';
 import { Employee } from '../../types';
 
@@ -267,7 +268,19 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
                 }`}
               >
                 <MapPin className={`w-4 h-4 shrink-0 ${activeTab === 'fieldOps' ? 'text-teal-600' : 'text-slate-400'}`} />
-                <span>Field Operations</span>
+                <span>Field Visit Register</span>
+              </button>
+
+              <button
+                onClick={() => handleTabClick('adminLiveMap')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+                  activeTab === 'adminLiveMap'
+                    ? 'bg-teal-50 text-teal-700 font-bold border border-teal-100'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Radio className={`w-4 h-4 shrink-0 ${activeTab === 'adminLiveMap' ? 'text-teal-600' : 'text-slate-400'}`} />
+                <span>Staff Live Map</span>
               </button>
 
               <button
@@ -330,7 +343,19 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
                 }`}
               >
                 <MapPin className={`w-4 h-4 shrink-0 ${activeTab === 'fieldDuty' ? 'text-teal-600' : 'text-slate-400'}`} />
-                <span>Field Duty</span>
+                <span>Field Navigation</span>
+              </button>
+
+              <button
+                onClick={() => handleTabClick('callCapture')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+                  activeTab === 'callCapture'
+                    ? 'bg-teal-50 text-teal-700 font-bold border border-teal-100'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Camera className={`w-4 h-4 shrink-0 ${activeTab === 'callCapture' ? 'text-teal-600' : 'text-slate-400'}`} />
+                <span>Visit Log</span>
               </button>
 
               <button

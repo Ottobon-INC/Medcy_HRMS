@@ -44,8 +44,8 @@ export function useFieldVisits(employeeId: string | undefined, sessionId: string
       const updated = await fieldVisitService.updateVisitStatus(
         visitId,
         employeeId,
-        sessionId,
         status,
+        sessionId,
         loc.latitude,
         loc.longitude,
         undefined,

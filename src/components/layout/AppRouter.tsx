@@ -23,6 +23,8 @@ const TaskModule = React.lazy(() => import('../TaskModule'));
 const AdminTaskManager = React.lazy(() => import('../AdminTaskManager'));
 const ExecutiveOverview = React.lazy(() => import('../ExecutiveOverview'));
 const OrgHierarchyView = React.lazy(() => import('../OrgHierarchyView'));
+const CallPhotoCaptureView = React.lazy(() => import('../fieldops/CallPhotoCaptureView').then(m => ({ default: m.CallPhotoCaptureView })));
+const AdminLiveMapDashboard = React.lazy(() => import('../AdminLiveMapDashboard'));
 
 
 interface AppRouterProps {
@@ -120,6 +122,14 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           isLocalMode={isLocalMode}
         />
       );
+    case 'callCapture':
+      return (
+        <CallPhotoCaptureView
+          language={language}
+          employeeId={currentUser.id}
+          isLocalMode={isLocalMode}
+        />
+      );
     case 'liveMap':
       return (
         <EmployeeMapDashboard
@@ -200,6 +210,13 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           isLocalMode={isLocalMode}
           employees={employees}
           adminId={currentUser.id}
+        />
+      );
+    case 'adminLiveMap':
+      return (
+        <AdminLiveMapDashboard
+          employees={employees}
+          isLocalMode={isLocalMode}
         />
       );
     case 'leaveApprovals':

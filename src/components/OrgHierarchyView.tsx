@@ -23,20 +23,32 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
 
   const todayStr = new Date().toISOString().split('T')[0];
 
-  // 1. Executive Tier: Indra Mam & Anoopama Mam
-  const executives = employees.filter(e => 
-    e.hierarchyLevel === 'executive' || 
-    e.name.toLowerCase().includes('indra') || 
-    e.name.toLowerCase().includes('anoopama')
-  );
+  // 1. Executive Tier: Indra Mam & Anoopama Mam (Cross-Branch Board of Directors)
+  const executives = employees.filter(e => {
+    const isExec = e.hierarchyLevel === 'executive' || 
+      e.name.toLowerCase().includes('indra') || 
+      e.name.toLowerCase().includes('anoopama');
+    if (!isExec) return false;
+    // If a branch is selected, only show executives if they belong to or oversee that branch
+    if (branchFilter === 'all') return true;
+    const branch = e.branch || 'visakhapatnam';
+    const manages = e.managedBranches || [branch];
+    return branch === branchFilter || manages.includes(branchFilter);
+  });
 
-  // 2. Manager Tier: R. Ravi Kumar
-  const managers = employees.filter(e => 
-    (e.hierarchyLevel === 'manager' || e.id === 'EMP-2026-011' || e.name.toLowerCase().includes('ravi kumar')) &&
-    !executives.some(ex => ex.id === e.id)
-  );
+  // 2. Manager / Branch Lead Tier: e.g. R. Ravi Kumar
+  const managers = employees.filter(e => {
+    const isMgr = (e.hierarchyLevel === 'manager' || e.id === 'EMP-2026-011' || e.name.toLowerCase().includes('ravi kumar')) &&
+      !executives.some(ex => ex.id === e.id);
+    if (!isMgr) return false;
+    // Bifurcate by selected branch
+    if (branchFilter === 'all') return true;
+    const branch = e.branch || 'visakhapatnam';
+    const manages = e.managedBranches || [branch];
+    return branch === branchFilter || manages.includes(branchFilter);
+  });
 
-  // 3. Base Employees
+  // 3. Base Employees (Clinical & Field Workforce)
   const baseEmployees = employees.filter(e => 
     !executives.some(ex => ex.id === e.id) &&
     !managers.some(mg => mg.id === e.id)
@@ -44,7 +56,8 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
 
   // Filter base employees by branch & search
   const filteredBase = baseEmployees.filter(e => {
-    const matchesBranch = branchFilter === 'all' || (e.branch || 'visakhapatnam') === branchFilter;
+    const empBranch = e.branch || 'visakhapatnam';
+    const matchesBranch = branchFilter === 'all' || empBranch === branchFilter;
     const matchesSearch = e.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           e.designation.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           e.id.toLowerCase().includes(searchQuery.toLowerCase());
@@ -105,7 +118,7 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              All Branches
+              All Branches ({employees.length})
             </button>
             <button
               onClick={() => setBranchFilter('visakhapatnam')}
@@ -115,7 +128,7 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              Visakhapatnam
+              Visakhapatnam ({employees.filter(e => (e.branch || 'visakhapatnam') === 'visakhapatnam').length})
             </button>
             <button
               onClick={() => setBranchFilter('vizianagaram')}
@@ -125,7 +138,7 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              Vizianagaram
+              Vizianagaram ({employees.filter(e => e.branch === 'vizianagaram').length})
             </button>
           </div>
         </div>
@@ -137,7 +150,7 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
         {/* LEVEL 1: EXECUTIVES */}
         <div className="w-full flex flex-col items-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[10px] font-black uppercase tracking-widest mb-4">
-            Level 3 · Executive Leadership (Cross-Branch)
+            Level 3 · Executive Leadership {branchFilter === 'all' ? '(Cross-Branch)' : `(${branchFilter === 'visakhapatnam' ? 'Visakhapatnam' : 'Vizianagaram'})`}
           </div>
 
           <div className="flex items-center justify-center gap-4 sm:gap-8 flex-wrap">
@@ -166,7 +179,11 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
                   <div className="mt-4 pt-3 border-t border-amber-100/80 flex items-center justify-between text-[10px]">
                     <span className="text-slate-500 flex items-center gap-1 font-medium">
                       <Building2 className="w-3 h-3 text-amber-600" />
-                      Visakhapatnam & Vizianagaram
+                      {branchFilter === 'visakhapatnam' 
+                        ? 'Visakhapatnam Operations' 
+                        : branchFilter === 'vizianagaram'
+                        ? 'Vizianagaram Operations'
+                        : 'Visakhapatnam & Vizianagaram'}
                     </span>
                     <span className="inline-flex items-center gap-1 font-bold text-slate-700">
                       <span className={`w-2 h-2 rounded-full ring-2 ${status.dotClass}`} />
@@ -185,10 +202,10 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
           </div>
         </div>
 
-        {/* LEVEL 2: OPERATIONS MANAGER (R. Ravi Kumar) */}
+        {/* LEVEL 2: OPERATIONS MANAGER / BRANCH LEAD */}
         <div className="w-full flex flex-col items-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-800 text-[10px] font-black uppercase tracking-widest mb-4">
-            Level 2 · General Management (Both Branches)
+            Level 2 · {branchFilter === 'all' ? 'General Management (Both Branches)' : `${branchFilter === 'visakhapatnam' ? 'Visakhapatnam' : 'Vizianagaram'} Operations Lead`}
           </div>
 
           <div className="flex items-center justify-center gap-4">
@@ -206,7 +223,7 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
                       </div>
                       <div>
                         <span className="text-[9px] font-black uppercase tracking-wider text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
-                          Branch Operations Manager
+                          {branchFilter === 'all' ? 'Branch Operations Manager' : `${branchFilter === 'visakhapatnam' ? 'Visakhapatnam' : 'Vizianagaram'} Lead`}
                         </span>
                         <h3 className="text-sm font-black text-slate-900 mt-1">{mgr.name}</h3>
                         <p className="text-[10px] text-slate-500 font-medium">{mgr.id}</p>
@@ -228,7 +245,11 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
                   <div className="mt-3 pt-3 border-t border-blue-100 flex items-center justify-between text-[10px]">
                     <span className="text-slate-500 flex items-center gap-1 font-bold">
                       <MapPin className="w-3 h-3 text-blue-600" />
-                      Visakhapatnam + Vizianagaram
+                      {branchFilter === 'visakhapatnam' 
+                        ? 'Visakhapatnam Branch' 
+                        : branchFilter === 'vizianagaram'
+                        ? 'Vizianagaram Branch'
+                        : 'Visakhapatnam + Vizianagaram'}
                     </span>
                     <span className="inline-flex items-center gap-1 font-bold text-slate-700">
                       <span className={`w-2 h-2 rounded-full ring-2 ${status.dotClass}`} />
@@ -251,10 +272,10 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
         <div className="w-full">
           <div className="flex items-center justify-between mb-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800 text-[10px] font-black uppercase tracking-widest">
-              Level 1 · Clinical & Operational Staff ({filteredBase.length})
+              Level 1 · {branchFilter === 'visakhapatnam' ? 'Visakhapatnam' : branchFilter === 'vizianagaram' ? 'Vizianagaram' : 'All'} Staff ({filteredBase.length})
             </div>
             <span className="text-xs text-slate-400 font-medium">
-              Direct reports to R. Ravi Kumar
+              Direct reports to R. Ravi Kumar ({branchFilter === 'visakhapatnam' ? 'Visakhapatnam Lead' : branchFilter === 'vizianagaram' ? 'Vizianagaram Lead' : 'Operations Manager'})
             </span>
           </div>
 

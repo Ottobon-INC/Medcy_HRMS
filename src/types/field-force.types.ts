@@ -58,6 +58,7 @@ export interface FieldVisit {
   actualAddress?: string;
   arrivalDistanceM?: number;
   durationMinutes?: number;
+  startPhotoUrl?: string;
   proofPhotoUrl?: string;
   completionNotes?: string;
   patientName?: string;

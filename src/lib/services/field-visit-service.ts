@@ -30,6 +30,7 @@ function mapVisit(data: any): FieldVisit {
     actualAddress: data.actual_address,
     arrivalDistanceM: data.arrival_distance_m,
     durationMinutes: data.duration_minutes,
+    startPhotoUrl: data.start_photo_url || undefined,
     proofPhotoUrl: data.proof_photo_url,
     completionNotes: data.completion_notes,
     patientName: data.patient_name,
@@ -92,8 +93,8 @@ export async function createVisit(visit: Partial<FieldVisit>): Promise<FieldVisi
 export async function updateVisitStatus(
   visitId: string,
   employeeId: string,
-  sessionId: string,
   status: FieldVisitStatus,
+  sessionId?: string,
   latitude?: number,
   longitude?: number,
   accuracyM?: number,
@@ -175,18 +176,54 @@ export async function updateVisitStatus(
       
     case 'IN_PROGRESS':
       eventType = 'VISIT_IN_PROGRESS';
+      if (!existing.started_at) updatePayload.started_at = now;
+      if (latitude && longitude) {
+        updatePayload.actual_latitude = latitude;
+        updatePayload.actual_longitude = longitude;
+      }
+      if (address) updatePayload.actual_address = address;
+      if (photoData) {
+        updatePayload.start_photo_url = photoData;
+        await addProof(visitId, 'photo', photoData, latitude, longitude);
+      }
       break;
 
     default:
       eventType = 'VISIT_EN_ROUTE'; // fallback
   }
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('HRMS_field_visits')
     .update(updatePayload)
     .eq('id', visitId)
-    .select()
-    .single();
+    .select();
+
+  // Gracefully fallback if newer columns do not exist on legacy table
+  if (error && (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('start_photo_url') || error.message?.includes('proof_photo_url') || error.message?.includes('completion_notes'))) {
+    let shouldRetry = false;
+    if (updatePayload.start_photo_url !== undefined) {
+      delete updatePayload.start_photo_url;
+      shouldRetry = true;
+    }
+    if (updatePayload.proof_photo_url !== undefined) {
+      delete updatePayload.proof_photo_url;
+      shouldRetry = true;
+    }
+    if (updatePayload.completion_notes !== undefined) {
+      delete updatePayload.completion_notes;
+      shouldRetry = true;
+    }
+    
+    if (shouldRetry) {
+      const retry = await supabase
+        .from('HRMS_field_visits')
+        .update(updatePayload)
+        .eq('id', visitId)
+        .select();
+      data = retry.data;
+      error = retry.error;
+    }
+  }
 
   if (error) throw error;
 
@@ -196,6 +233,108 @@ export async function updateVisitStatus(
   // Additional explicit event for location exception
   if (updatePayload.location_exception) {
      await logFieldEvent(employeeId, 'LOCATION_EXCEPTION', visitId, sessionId, latitude, longitude, accuracyM, address, metadata);
+  }
+
+  // If update returned 0 rows (e.g. due to RLS on RETURNING clause), fallback to merging existing
+  const updatedData = data && data.length > 0 ? data[0] : { ...existing, ...updatePayload };
+  
+  return mapVisit(updatedData);
+}
+
+export async function startCallWithPhoto(
+  visitId: string,
+  employeeId: string,
+  photoData: string,
+  latitude?: number,
+  longitude?: number,
+  address?: string,
+  notes?: string
+): Promise<FieldVisit> {
+  return updateVisitStatus(
+    visitId,
+    employeeId,
+    'IN_PROGRESS',
+    undefined,
+    latitude,
+    longitude,
+    10,
+    address,
+    photoData,
+    notes
+  );
+}
+
+export async function completeCallWithPhoto(
+  visitId: string,
+  employeeId: string,
+  photoData: string,
+  latitude?: number,
+  longitude?: number,
+  notes?: string
+): Promise<FieldVisit> {
+  return updateVisitStatus(
+    visitId,
+    employeeId,
+    'COMPLETED',
+    undefined,
+    latitude,
+    longitude,
+    10,
+    undefined, // address
+    photoData,
+    notes
+  );
+}
+
+export async function createAdHocCall(
+  employeeId: string,
+  title: string,
+  startPhotoData: string,
+  latitude?: number,
+  longitude?: number,
+  address?: string
+): Promise<FieldVisit> {
+  const today = new Date().toISOString().split('T')[0];
+  const nowTime = new Date().toTimeString().slice(0, 5);
+
+  const payload: any = {
+    employee_id: employeeId,
+    title,
+    visit_type: 'DOCTOR_VISIT',
+    scheduled_date: today,
+    scheduled_start: nowTime,
+    status: 'IN_PROGRESS',
+    started_at: new Date().toISOString(),
+    start_photo_url: startPhotoData,
+    actual_latitude: latitude,
+    actual_longitude: longitude,
+    actual_address: address,
+    priority: 'normal',
+    allowed_radius_meters: 500,
+    location_exception: false
+  };
+
+  let { data, error } = await supabase
+    .from('HRMS_field_visits')
+    .insert([payload])
+    .select()
+    .single();
+
+  if (error && (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('start_photo_url')) && payload.start_photo_url !== undefined) {
+    delete payload.start_photo_url;
+    const retry = await supabase
+      .from('HRMS_field_visits')
+      .insert([payload])
+      .select()
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
+
+  if (error) throw error;
+
+  if (data?.id && startPhotoData) {
+    await addProof(data.id, 'photo', startPhotoData, latitude, longitude);
   }
 
   return mapVisit(data);

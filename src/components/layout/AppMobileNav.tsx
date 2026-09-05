@@ -172,7 +172,7 @@ export const AppMobileNav: React.FC<AppMobileNavProps> = ({
             }`}
           >
             <MapPin className="w-5 h-5" />
-            <span className="text-[8px] font-bold uppercase mt-1 leading-none">Duty</span>
+            <span className="text-[8px] font-bold uppercase mt-1 leading-none">Field Nav</span>
           </button>
 
           <button

@@ -350,12 +350,12 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
         </div>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-100 flex flex-col justify-between min-h-[280px]">
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h4 className="font-black text-slate-800 uppercase tracking-wider text-xs">{t.attendance}</h4>
-              <span className="text-teal-600 font-bold text-xs uppercase">{new Date().toLocaleString("en-IN",{month:"long",year:"numeric"}).toUpperCase()}</span>
+              <h4 className="font-black text-slate-800 uppercase tracking-wider text-xs">{language==="te"?"హాజరు సారాంశం":"Attendance Summary"}</h4>
+              <span className="text-teal-600 font-bold text-xs uppercase">{language==="te"?"ఈ నెల":"This Month"}</span>
             </div>
             <div className="flex justify-between items-end gap-2.5 h-24 my-4">
               {[40,70,55,80,65].map((h,i)=>(<div key={i} className="flex-1 bg-slate-100 rounded-t-lg hover:bg-slate-200 transition-colors" style={{height:`${h}%`}}/>))}
@@ -367,6 +367,8 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
             <button onClick={()=>setActiveTab("attendance")} className="mt-4 text-xs font-bold text-teal-600 hover:text-teal-700 underline cursor-pointer">{language==="te"?"హాజరు షీట్ చూడండి":"View Full Sheet"}</button>
           </div>
         </div>
+
+        {/* Field Operations Card */}
         <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-100 flex flex-col justify-between min-h-[280px]">
           <div>
             <div className="flex justify-between items-center mb-6">
@@ -383,7 +385,28 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
               <div className="text-sky-600 shrink-0 mt-0.5"><MapPin className="w-4 h-4 text-sky-500"/></div>
               <p className="text-[10px] text-sky-800 leading-tight font-medium">Real-time GPS routing, navigation HUD, and destination check-in.</p>
             </div>
-            <button onClick={()=>setActiveTab("fieldDuty")} className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer text-center">Open Field Duty</button>
+            <button onClick={()=>setActiveTab("fieldDuty")} className="w-full py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer text-center">Open Field Navigation</button>
+          </div>
+        </div>
+
+        {/* Call Photos & Verification Card */}
+        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-slate-100 flex flex-col justify-between min-h-[280px] hover:border-teal-300 transition-colors">
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h4 className="font-black text-slate-800 uppercase tracking-wider text-xs">Field Visits</h4>
+              <span className="text-teal-600 font-bold text-xs uppercase">Photo Proof</span>
+            </div>
+            <div className="py-2">
+              <p className="text-xs text-slate-400 mb-1">Doctor & Clinic Visits</p>
+              <p className="text-2xl font-black text-slate-800 tracking-tight">GPS-Verified Proof Photos</p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="bg-teal-50 border border-teal-100 rounded-2xl p-3.5 flex gap-3 items-start">
+              <div className="text-teal-600 shrink-0 mt-0.5"><Camera className="w-4 h-4 text-teal-600"/></div>
+              <p className="text-[10px] text-teal-800 leading-tight font-medium">Snap verified starting and ending photos with GPS watermarks for your visits.</p>
+            </div>
+            <button onClick={()=>setActiveTab("callCapture")} className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer text-center">Start Field Visit Log</button>
           </div>
         </div>
       </section>

@@ -48,10 +48,12 @@ export default function App() {
       'missed-punches-admin': 'adminMissedPunches',
       'missed-punches': 'employeeMissedPunches',
       'field-duty': 'fieldDuty',
+      'call-capture': 'callCapture',
       'field-ops': 'fieldOps',
       'live-map': 'liveMap',
       'tasks': 'tasks',
-      'admin-tasks': 'adminTasks'
+      'admin-tasks': 'adminTasks',
+      'admin-live-map': 'adminLiveMap'
     };
     
     if (pathToTab[path]) return pathToTab[path];
@@ -81,10 +83,12 @@ export default function App() {
       'adminMissedPunches': 'missed-punches-admin',
       'employeeMissedPunches': 'missed-punches',
       'fieldDuty': 'field-duty',
+      'callCapture': 'call-capture',
       'fieldOps': 'field-ops',
       'liveMap': 'live-map',
       'tasks': 'tasks',
-      'adminTasks': 'admin-tasks'
+      'adminTasks': 'admin-tasks',
+      'adminLiveMap': 'admin-live-map'
     };
     
     const newPath = '/' + (tabToPath[activeTab] || activeTab);
@@ -113,10 +117,12 @@ export default function App() {
         'missed-punches-admin': 'adminMissedPunches',
         'missed-punches': 'employeeMissedPunches',
         'field-duty': 'fieldDuty',
+        'call-capture': 'callCapture',
         'field-ops': 'fieldOps',
         'live-map': 'liveMap',
         'tasks': 'tasks',
-        'admin-tasks': 'adminTasks'
+        'admin-tasks': 'adminTasks',
+        'admin-live-map': 'adminLiveMap'
       };
       
       if (pathToTab[path]) {
@@ -152,10 +158,10 @@ export default function App() {
     const adminTabs = [
       'adminDashboard', 'directory', 'attendanceOverview', 'leaveApprovals',
       'officeLocations', 'messages', 'adminSettings', 'dutyRoster', 'adminMissedPunches', 'fieldOps', 'adminTasks',
-      'executiveOverview', 'orgChart'
+      'executiveOverview', 'orgChart', 'adminLiveMap'
     ];
     const employeeTabs = [
-      'dashboard', 'attendance', 'leave', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'tasks', 'liveMap'
+      'dashboard', 'attendance', 'leave', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'callCapture', 'tasks', 'liveMap'
     ];
 
     if (isAdminLevel && !adminTabs.includes(activeTab)) {
