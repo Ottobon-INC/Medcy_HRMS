@@ -168,23 +168,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               </button>
 
               <button
-                id="nav-tab-admin-missed-punches"
-                onClick={() => onSelectTab('adminMissedPunches')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
-                  activeTab === 'adminMissedPunches'
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                {activeTab === 'adminMissedPunches' ? (
-                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
-                ) : (
-                  <Clock className="w-4 h-4 shrink-0" />
-                )}
-                <span>Missed Punches</span>
-              </button>
-
-              <button
                 id="nav-tab-leave-approvals"
                 onClick={() => onSelectTab('leaveApprovals')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
@@ -199,23 +182,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   <Moon className="w-4 h-4 shrink-0" />
                 )}
                 <span>Leave Approvals</span>
-              </button>
-
-              <button
-                id="nav-tab-duty-roster"
-                onClick={() => onSelectTab('dutyRoster')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
-                  activeTab === 'dutyRoster'
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                {activeTab === 'dutyRoster' ? (
-                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
-                ) : (
-                  <CalendarDays className="w-4 h-4 shrink-0" />
-                )}
-                <span>Duty Roster</span>
               </button>
 
               <button
@@ -377,23 +343,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               </button>
 
               <button
-                id="nav-tab-employee-missed-punches"
-                onClick={() => onSelectTab('employeeMissedPunches')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
-                  activeTab === 'employeeMissedPunches'
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                {activeTab === 'employeeMissedPunches' ? (
-                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
-                ) : (
-                  <Clock className="w-4 h-4 shrink-0" />
-                )}
-                <span>Missed Punches</span>
-              </button>
-
-              <button
                 id="nav-tab-leave"
                 onClick={() => onSelectTab('leave')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
@@ -408,23 +357,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   <Moon className="w-4 h-4 shrink-0" />
                 )}
                 <span>Leave Requests</span>
-              </button>
-
-              <button
-                id="nav-tab-my-roster"
-                onClick={() => onSelectTab('myRoster')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold tracking-wide transition-all uppercase cursor-pointer ${
-                  activeTab === 'myRoster'
-                    ? 'bg-teal-50 text-teal-700 font-bold'
-                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                }`}
-              >
-                {activeTab === 'myRoster' ? (
-                  <span className="w-1.5 h-1.5 bg-teal-600 rounded-full shrink-0" />
-                ) : (
-                  <CalendarDays className="w-4 h-4 shrink-0" />
-                )}
-                <span>Duty Roster</span>
               </button>
 
               <button

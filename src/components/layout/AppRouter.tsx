@@ -4,20 +4,16 @@ import { Employee, Language, Task, PunchType, LeaveBalance, PinType } from '../.
 // Lazy Loaded Modules
 const DashboardSnapshot = React.lazy(() => import('../DashboardSnapshot'));
 const AttendanceModule = React.lazy(() => import('../AttendanceModule'));
-const EmployeeMissedPunches = React.lazy(() => import('../EmployeeMissedPunches'));
 const FieldDutyModule = React.lazy(() => import('../FieldDutyModule'));
-const EmployeeRoster = React.lazy(() => import('../EmployeeRoster'));
 const LeaveModule = React.lazy(() => import('../LeaveModule'));
 const AdminDashboard = React.lazy(() => import('../AdminDashboard'));
 const EmployeeDirectory = React.lazy(() => import('../EmployeeDirectory'));
 const AdminAttendance = React.lazy(() => import('../AdminAttendance'));
-const AdminMissedPunches = React.lazy(() => import('../AdminMissedPunches'));
 const FieldOpsModule = React.lazy(() => import('../FieldOpsModule'));
 const AdminLeaveApprovals = React.lazy(() => import('../AdminLeaveApprovals'));
 const AdminOfficeLocations = React.lazy(() => import('../AdminOfficeLocations'));
 const MessagingModule = React.lazy(() => import('../MessagingModule').then(m => ({ default: m.MessagingModule })));
 const AdminSettings = React.lazy(() => import('../AdminSettings'));
-const DutyRosterModule = React.lazy(() => import('../DutyRosterModule'));
 const TaskModule = React.lazy(() => import('../TaskModule'));
 const AdminTaskManager = React.lazy(() => import('../AdminTaskManager'));
 const ExecutiveOverview = React.lazy(() => import('../ExecutiveOverview'));
@@ -105,13 +101,6 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           attendanceRecords={currentUser.attendanceRecords}
         />
       );
-    case 'employeeMissedPunches':
-      return (
-        <EmployeeMissedPunches
-          language={language}
-          currentUser={currentUser}
-        />
-      );
     case 'fieldDuty':
       return (
         <FieldDutyModule
@@ -129,13 +118,6 @@ export const AppRouter: React.FC<AppRouterProps> = ({
         />
       );
 
-    case 'myRoster':
-      return (
-        <EmployeeRoster 
-          language={language}
-          employeeId={currentUser.id}
-        />
-      );
     case 'leave':
       return (
         <LeaveModule
@@ -186,14 +168,6 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           onForceCloseSession={onForceCloseSession}
         />
       );
-    case 'adminMissedPunches':
-      return (
-        <AdminMissedPunches
-          language={language}
-          employees={employees}
-          adminId={currentUser.id}
-        />
-      );
     case 'fieldOps':
       return (
         <FieldOpsModule
@@ -224,10 +198,6 @@ export const AppRouter: React.FC<AppRouterProps> = ({
     case 'adminSettings':
       return (
         <AdminSettings language={language} onOpenProfile={onOpenProfile} />
-      );
-    case 'dutyRoster':
-      return (
-        <DutyRosterModule language={language} employees={employees} />
       );
     case 'tasks':
       return (

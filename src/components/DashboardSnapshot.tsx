@@ -4,10 +4,7 @@ import { Language, CheckInLog, AttendanceRecord, LeaveBalance, Employee } from "
 import { translations } from "../translations";
 import LocationPinTimeline from "./LocationPinTimeline";
 import TickerAlert from "./TickerAlert";
-import { submitMissedPunchRequest } from "../lib/services/missed-punch-service";
-import { fetchRoster } from "../lib/services/roster-service";
 import { getActiveBreak, startBreak, endBreak } from "../lib/services/break-service";
-import { useLiveTracking } from "../contexts/LiveTrackingContext";
 
 interface DashboardSnapshotProps {
   language: Language;
@@ -33,18 +30,12 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
   const [isProcessing, setIsProcessing] = useState(false);
   const [punchType, setPunchType] = useState<import("../types").PunchType>("in_office");
   const [punchNote, setPunchNote] = useState("");
-  const [missedPunchDate, setMissedPunchDate] = useState<string | null>(null);
-  const [missedPunchReason, setMissedPunchReason] = useState("");
-  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
-  const [requestSubmitted, setRequestSubmitted] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [pinType, setPinType] = useState<import("../types").PinType>("field_visit");
   const [pinLabel, setPinLabel] = useState("");
   const [isPinning, setIsPinning] = useState(false);
-  const [todayShift, setTodayShift] = useState<import("../types").DutyRosterShift | null>(null);
   const [isOnBreak, setIsOnBreak] = useState(false);
   const [isBreakLoading, setIsBreakLoading] = useState(false);
-  const liveTracking = useLiveTracking();
 
   useEffect(() => {
     let isMounted = true;
@@ -62,7 +53,6 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
     try {
       await startBreak(currentUser.id);
       setIsOnBreak(true);
-      liveTracking.pauseTracking();
     } catch (err) {
       console.error("Error starting break:", err);
       alert("Failed to pause for break. Please try again.");
@@ -77,7 +67,6 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
     try {
       await endBreak(currentUser.id);
       setIsOnBreak(false);
-      liveTracking.resumeTracking();
     } catch (err) {
       console.error("Error resuming duty:", err);
       alert("Failed to resume duty. Please try again.");
@@ -85,24 +74,6 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
       setIsBreakLoading(false);
     }
   };
-
-  useEffect(() => {
-    const fetchTodayShift = async () => {
-      const today = new Date();
-      // To get the start of the week for fetchRoster
-      const d = new Date(today);
-      const day = d.getDay() || 7; 
-      if (day !== 1) d.setHours(-24 * (day - 1));
-      d.setHours(0, 0, 0, 0);
-      const weekStartStr = d.toLocaleDateString('en-CA');
-      
-      const data = await fetchRoster(weekStartStr);
-      const todayStr = today.toLocaleDateString('en-CA');
-      const publishedShift = data.find(s => s.employeeId === currentUser.id && s.shiftDate === todayStr && s.isPublished);
-      setTodayShift(publishedShift || null);
-    };
-    fetchTodayShift();
-  }, [currentUser.id]);
 
   // Attach stream using useEffect so the video DOM element is guaranteed to be mounted
   useEffect(() => {
@@ -149,11 +120,8 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
     setIsProcessing(true);
     const result = await onToggleCheckIn(photoData, punchType, punchNote);
     setIsProcessing(false);
-    if (result && !result.success) {
-      if (result.error) {
-        if (result.error.startsWith("missed_punchout:")) setMissedPunchDate(result.error.split(":")[1]);
-        else alert(result.error);
-      }
+    if (result && !result.success && result.error) {
+      alert(result.error);
     }
   };
 
@@ -171,17 +139,6 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
     const photoData = canvas.toDataURL("image/jpeg", 0.6);
     stopCamera();
     await proceedWithCheckIn(photoData);
-  };
-
-  const handleSubmitMissedPunchRequest = async () => {
-    if (!missedPunchDate) return;
-    setIsSubmittingRequest(true);
-    try {
-      await submitMissedPunchRequest(currentUser.id, missedPunchDate, "out", missedPunchReason);
-      setRequestSubmitted(true);
-    } catch (err: any) {
-      alert("Failed to submit: " + (err.message || JSON.stringify(err)));
-    } finally { setIsSubmittingRequest(false); }
   };
 
   const handlePinSubmit = async (photoData?: string) => {
@@ -248,7 +205,7 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
               </h2>
               <p className="text-slate-500 text-sm mt-1">
                 {isOnBreak
-                  ? (language === "te" ? "లైవ్ GPS ట్రాకింగ్ ఆపబడింది. పని పునఃప్రారంభించడానికి ఇక్కడ నొక్కండి." : "Live GPS location tracking is paused. Click to resume your shift.")
+                  ? (language === "te" ? "మీరు విరామంలో ఉన్నారు. పని పునఃప్రారంభించడానికి ఇక్కడ నొక్కండి." : "Shift paused on break. Click to resume your shift.")
                   : isCheckedIn
                   ? `${language==="te"?"మీరు విజయవంతంగా లోపలికి వచ్చారు":"You are checked in"} (${latestCheckIn?.checkInTime||""})`
                   : hasCheckedOutToday
@@ -257,7 +214,7 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
               </p>
             </div>
             <div className="pt-2 flex flex-wrap justify-center sm:justify-start gap-4">
-              {[{label:"Shift Start",val:latestCheckIn?.checkInTime || todayShift?.shiftStart || "09:00 AM"},{label:"Worked Today",val:isOnBreak?"Paused (On Break)":isCheckedIn?"Live Running":`${todayWorkedHrs} hrs`},{label:"Shift Stops",val:latestCheckIn?.checkOutTime || todayShift?.shiftEnd || "Pending"}].map(item=>(
+              {[{label:"Shift Start",val:latestCheckIn?.checkInTime || "09:00 AM"},{label:"Worked Today",val:isOnBreak?"Paused (On Break)":isCheckedIn?"Live Running":`${todayWorkedHrs} hrs`},{label:"Shift Stops",val:latestCheckIn?.checkOutTime || "Pending"}].map(item=>(
                 <div key={item.label} className="text-center bg-slate-50 px-4 py-2 rounded-xl min-w-[100px]">
                   <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wide">{item.label}</p>
                   <p className="text-xs font-bold text-slate-700">{item.val}</p>
@@ -273,7 +230,7 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
                     className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl transition-all shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer disabled:opacity-60"
                   >
                     <Play className="w-4 h-4 fill-current text-emerald-100" />
-                    <span>{isBreakLoading ? "Resuming..." : (language === "te" ? "పనిని పునఃప్రారంభించండి" : "Resume Duty & Tracking")}</span>
+                    <span>{isBreakLoading ? "Resuming..." : (language === "te" ? "పనిని పునఃప్రారంభించండి" : "Resume Duty")}</span>
                   </button>
                 ) : (
                   <button 
@@ -437,29 +394,6 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50"><h3 className="font-bold text-slate-800 flex items-center gap-2"><Camera className="w-5 h-5 text-teal-600"/>{language==="te"?"పిన్ ఫోటో":"Pin Photo"}</h3><button onClick={stopCamera} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><X className="w-5 h-5 text-slate-500"/></button></div>
             <div className="relative bg-black aspect-video"><video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover"/><canvas ref={canvasRef} className="hidden"/><div className="absolute inset-0 border-4 border-teal-500/30 m-4 rounded-xl pointer-events-none"/></div>
             <div className="p-6"><button onClick={handleCaptureAndPin} className="bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all flex items-center gap-2 w-full justify-center active:scale-95"><Camera className="w-5 h-5"/>{language==="te"?"ఫోటో తీయండి":"Capture & Pin"}</button></div>
-          </div>
-        </div>
-      )}
-
-      {/* Missed Punch-Out Modal */}
-      {missedPunchDate&&(
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fadeIn">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center space-y-4">
-            {!requestSubmitted?(<>
-              <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto"><AlertCircle className="w-8 h-8"/></div>
-              <h3 className="text-xl font-bold text-slate-800">{language==="te"?"పంచ్ అవుట్ మిస్ అయింది":"Missed Punch-Out Detected"}</h3>
-              <p className="text-sm text-slate-500 text-left bg-amber-50 rounded-xl p-3 border border-amber-100">{language==="te"?`మీరు ${missedPunchDate} న పంచ్ అవుట్ చేయలేదు.`:`You did not punch out on ${missedPunchDate}. Please submit a request to Admin.`}</p>
-              <div className="text-left"><label className="block text-xs font-bold text-slate-700 mb-1">{language==="te"?"కారణం (ఐచ్ఛికం)":"Reason (Optional)"}</label><textarea value={missedPunchReason} onChange={e=>setMissedPunchReason(e.target.value)} placeholder={language==="te"?"ఉదా: అత్యవసర పరిస్థితి":"e.g. Had an emergency"} rows={3} className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400/30"/></div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={()=>{setMissedPunchDate(null);setMissedPunchReason("");}} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-xs uppercase tracking-wider">{language==="te"?"రద్దు":"Cancel"}</button>
-                <button onClick={handleSubmitMissedPunchRequest} disabled={isSubmittingRequest} className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-xs uppercase tracking-wider shadow-md disabled:opacity-60">{isSubmittingRequest?(language==="te"?"పంపుతున్నారు...":"Submitting..."):(language==="te"?"అడ్మిన్‌కు అభ్యర్థించు":"Request Admin Access")}</button>
-              </div>
-            </>):(<>
-              <div className="w-16 h-16 bg-teal-50 text-teal-500 rounded-full flex items-center justify-center mx-auto"><svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg></div>
-              <h3 className="text-xl font-bold text-slate-800">{language==="te"?"అభ్యర్థన పంపబడింది":"Request Submitted!"}</h3>
-              <p className="text-sm text-slate-500">{language==="te"?"మీ అభ్యర్థన అడ్మిన్‌కు పంపబడింది.":"Your request has been sent to Admin. Once approved, you can punch in normally."}</p>
-              <button onClick={()=>{setMissedPunchDate(null);setMissedPunchReason("");setRequestSubmitted(false);}} className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-colors text-xs uppercase tracking-wider shadow-md">{language==="te"?"సరే":"Got It"}</button>
-            </>)}
           </div>
         </div>
       )}

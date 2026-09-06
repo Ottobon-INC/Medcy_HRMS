@@ -8,7 +8,7 @@ export function useVisitPins(visits: FieldVisit[]) {
   const [loading, setLoading] = useState(false);
 
   const loadPins = useCallback(async () => {
-    if (!fieldOpsConfig.liveTrackingEnabled || visits.length === 0) {
+    if (visits.length === 0) {
       setPins([]);
       return;
     }

@@ -238,7 +238,7 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
                     </div>
                     <div className="flex items-center justify-between">
                       <span>Authority:</span>
-                      <span className="font-bold text-slate-800">Leave Approvals & Duty Roster</span>
+                      <span className="font-bold text-slate-800">Leave Approvals & Attendance</span>
                     </div>
                   </div>
 

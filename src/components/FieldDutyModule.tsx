@@ -5,7 +5,6 @@ import { Language, FieldVisitStatus, FieldVisit, PinCategory } from '../types';
 import { MapPin, Navigation2, CheckCircle2, Plus, Map, Radio, Compass } from 'lucide-react';
 import RequestVisitModal from './RequestVisitModal';
 import VisitDetailSheet from './VisitDetailSheet';
-import { useLiveTracking } from '../contexts/LiveTrackingContext';
 import { fieldOpsConfig } from '../lib/fieldOpsConfig';
 import { DropPinModal } from './fieldops/DropPinModal';
 import { useFieldPins } from '../hooks/useFieldPins';
@@ -21,8 +20,6 @@ interface FieldDutyModuleProps {
 export default function FieldDutyModule({ language, employeeId, isLocalMode }: FieldDutyModuleProps) {
   const { session, loading: sessionLoading, startDuty, endDuty } = useFieldDuty(employeeId, isLocalMode);
   const { visits, loading: visitsLoading, updateStatus: baseUpdateStatus, createVisitRequest } = useFieldVisits(employeeId, session?.id, isLocalMode);
-  const { isPublishing, activeVisitId, lastPosition, heading, speedKmh, accuracyM, startTracking, stopTracking } = useLiveTracking();
-
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
   const [routes, setRoutes] = useState<Record<string, OsrmRoute>>({});
@@ -34,25 +31,16 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
   const { pins: currentVisitPins, refreshPins } = useFieldPins(activeVisitForPins);
 
   const isActive = session?.status === 'active';
-  const isLiveEnabled = fieldOpsConfig.liveTrackingEnabled;
 
-  // Auto-start live publisher when on duty
-  useEffect(() => {
-    if (isLiveEnabled && isActive && !isPublishing) {
-      const activeEnRouteVisit = visits.find(v => v.status === 'EN_ROUTE');
-      startTracking(activeEnRouteVisit?.id || null);
-    }
-  }, [isLiveEnabled, isActive, visits, isPublishing, startTracking]);
-
-  // Fetch OSRM driving routes from current position to destination for all visits
+  // Fetch OSRM driving routes from default/actual position to destination for all visits
   useEffect(() => {
     const fetchAllRoutes = async () => {
       const newRoutes: Record<string, OsrmRoute> = {};
       for (const visit of visits) {
         if (!visit.assignedLatitude || !visit.assignedLongitude) continue;
 
-        const startLat = lastPosition?.lat ?? visit.actualLatitude ?? fieldOpsConfig.defaultCenter[0];
-        const startLng = lastPosition?.lng ?? visit.actualLongitude ?? fieldOpsConfig.defaultCenter[1];
+        const startLat = visit.actualLatitude ?? fieldOpsConfig.defaultCenter[0];
+        const startLng = visit.actualLongitude ?? fieldOpsConfig.defaultCenter[1];
 
         const r = await fetchRoute(startLat, startLng, visit.assignedLatitude, visit.assignedLongitude);
         if (r) {
@@ -65,36 +53,18 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
     if (visits.length > 0) {
       fetchAllRoutes();
     }
-  }, [visits, lastPosition?.lat, lastPosition?.lng]);
+  }, [visits]);
 
-  // Wrapper around updateStatus to manage live tracking state (re-associate with visit if needed)
   const handleUpdateStatus = async (
     visitId: string,
     status: FieldVisitStatus,
     photoData?: string,
     notes?: string
   ) => {
-    const result = await baseUpdateStatus(visitId, status, photoData, notes);
-
-    if (result.success) {
-      if (status === 'EN_ROUTE') {
-        // Start tracking with the new visit ID
-        startTracking(visitId);
-      } else if (['ARRIVED', 'COMPLETED', 'CANCELLED', 'MISSED'].includes(status)) {
-        // Just clear the visit ID from tracking, but keep tracking on duty
-        if (activeVisitId === visitId) {
-          startTracking(null);
-        }
-      }
-    }
-
-    return result;
+    return baseUpdateStatus(visitId, status, photoData, notes);
   };
 
   const handleEndDuty = async () => {
-    if (isLiveEnabled) {
-      stopTracking();
-    }
     return endDuty();
   };
 
@@ -106,8 +76,8 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
     const visitTarget = dropPinVisit || visits.find(v => v.id === selectedVisitId);
     if (!visitTarget) return false;
 
-    const lat = lastPosition?.lat ?? visitTarget.actualLatitude ?? visitTarget.assignedLatitude;
-    const lng = lastPosition?.lng ?? visitTarget.actualLongitude ?? visitTarget.assignedLongitude;
+    const lat = visitTarget.actualLatitude ?? visitTarget.assignedLatitude;
+    const lng = visitTarget.actualLongitude ?? visitTarget.assignedLongitude;
 
     if (!lat || !lng) {
       alert('Could not determine current location to drop pin.');
@@ -153,11 +123,6 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
           </h2>
           <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
             {session ? (isActive ? 'Duty Active' : 'Duty Completed') : 'Not Started'}
-            {isLiveEnabled && isPublishing && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                <Radio className="w-3 h-3 animate-pulse" /> Live Telemetry On
-              </span>
-            )}
           </p>
         </div>
 
@@ -248,11 +213,6 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        {isCurrentEnRoute && (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
-                            <Radio className="w-2.5 h-2.5 animate-pulse" /> Live
-                          </span>
-                        )}
                         <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg ${getStatusBadge(visit.status)}`}>
                           {visit.status}
                         </span>
@@ -310,8 +270,8 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
       {/* Standalone Drop Pin Modal */}
       {dropPinVisit && (
         <DropPinModal
-          currentLat={lastPosition?.lat ?? dropPinVisit.assignedLatitude ?? fieldOpsConfig.defaultCenter[0]}
-          currentLng={lastPosition?.lng ?? dropPinVisit.assignedLongitude ?? fieldOpsConfig.defaultCenter[1]}
+          currentLat={dropPinVisit.assignedLatitude ?? fieldOpsConfig.defaultCenter[0]}
+          currentLng={dropPinVisit.assignedLongitude ?? fieldOpsConfig.defaultCenter[1]}
           visitTitle={dropPinVisit.title}
           onClose={() => setDropPinVisit(null)}
           onSavePin={handleSavePin}

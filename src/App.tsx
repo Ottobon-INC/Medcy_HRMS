@@ -21,7 +21,6 @@ import { MobileDrawerNav } from './components/layout/MobileDrawerNav';
 import { AppRouter } from './components/layout/AppRouter';
 import { PwaInstallPrompt } from './components/shared/PwaInstallPrompt';
 import { OfflineIndicator } from './components/shared/OfflineIndicator';
-import { LiveTrackingProvider } from './contexts/LiveTrackingContext';
 import { filterEmployeesByScope } from './lib/services/employee-service';
 
 export default function App() {
@@ -45,15 +44,11 @@ export default function App() {
       'office-locations': 'officeLocations',
       'messages': 'messages',
       'admin-settings': 'adminSettings',
-      'missed-punches-admin': 'adminMissedPunches',
-      'missed-punches': 'employeeMissedPunches',
       'field-duty': 'fieldDuty',
       'call-capture': 'callCapture',
       'field-ops': 'fieldOps',
-      'live-map': 'liveMap',
       'tasks': 'tasks',
-      'admin-tasks': 'adminTasks',
-      'admin-live-map': 'adminLiveMap'
+      'admin-tasks': 'adminTasks'
     };
     
     if (pathToTab[path]) return pathToTab[path];
@@ -80,15 +75,11 @@ export default function App() {
       'officeLocations': 'office-locations',
       'messages': 'messages',
       'adminSettings': 'admin-settings',
-      'adminMissedPunches': 'missed-punches-admin',
-      'employeeMissedPunches': 'missed-punches',
       'fieldDuty': 'field-duty',
       'callCapture': 'call-capture',
       'fieldOps': 'field-ops',
-      'liveMap': 'live-map',
       'tasks': 'tasks',
-      'adminTasks': 'admin-tasks',
-      'adminLiveMap': 'admin-live-map'
+      'adminTasks': 'admin-tasks'
     };
     
     const newPath = '/' + (tabToPath[activeTab] || activeTab);
@@ -114,15 +105,11 @@ export default function App() {
         'office-locations': 'officeLocations',
         'messages': 'messages',
         'admin-settings': 'adminSettings',
-        'missed-punches-admin': 'adminMissedPunches',
-        'missed-punches': 'employeeMissedPunches',
         'field-duty': 'fieldDuty',
         'call-capture': 'callCapture',
         'field-ops': 'fieldOps',
-        'live-map': 'liveMap',
         'tasks': 'tasks',
-        'admin-tasks': 'adminTasks',
-        'admin-live-map': 'adminLiveMap'
+        'admin-tasks': 'adminTasks'
       };
       
       if (pathToTab[path]) {
@@ -157,11 +144,11 @@ export default function App() {
 
     const adminTabs = [
       'adminDashboard', 'directory', 'attendanceOverview', 'leaveApprovals',
-      'officeLocations', 'messages', 'adminSettings', 'dutyRoster', 'adminMissedPunches', 'fieldOps', 'adminTasks',
+      'officeLocations', 'messages', 'adminSettings', 'fieldOps', 'adminTasks',
       'executiveOverview', 'orgChart'
     ];
     const employeeTabs = [
-      'dashboard', 'attendance', 'leave', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'callCapture', 'tasks'
+      'dashboard', 'attendance', 'leave', 'messages', 'fieldDuty', 'callCapture', 'tasks'
     ];
 
     if (isAdminLevel && !adminTabs.includes(activeTab)) {
@@ -250,8 +237,7 @@ export default function App() {
   const scopedEmployees = filterEmployeesByScope(currentUser, employees);
 
   return (
-    <LiveTrackingProvider currentUser={currentUser} isClockedIn={currentUser.isCheckedIn}>
-      <div id="app-root-shell" className="min-h-screen bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900">
+    <div id="app-root-shell" className="min-h-screen bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900">
         <OfflineIndicator />
         <PwaInstallPrompt />
         
@@ -343,6 +329,5 @@ export default function App() {
         />
 
       </div>
-    </LiveTrackingProvider>
   );
 }

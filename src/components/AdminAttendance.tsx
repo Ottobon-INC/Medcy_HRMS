@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, UserCheck, AlertCircle, ArrowLeft, Users, Check, Moon, HelpCircle, MapPin, Clock, FileWarning, CheckCircle, XCircle } from 'lucide-react';
-import { Language, Employee, AttendanceStatus, MissedPunchRequest, Branch } from '../types';
+import { Language, Employee, AttendanceStatus, Branch } from '../types';
 import { translations } from '../translations';
 import { generateMonthOptions, formatMonth } from '../lib/utils';
 import LocationPinTimeline from './LocationPinTimeline';

@@ -4,7 +4,6 @@ import type { AttendanceRecord, CheckInLog } from './attendance.types';
 import type { Payslip } from './payroll.types';
 import type { AdvanceRequest } from './advance.types';
 import type { LocationPin } from './location.types';
-import type { DutyRosterShift } from './roster.types';
 
 export interface BankDetails {
   accountNumber: string;
@@ -40,6 +39,5 @@ export interface Employee {
   experience?: number;
   monthlyQuota?: MonthlyLeaveQuota;
   locationPins?: LocationPin[];
-  shifts?: DutyRosterShift[];
   bankDetails?: BankDetails;
 }

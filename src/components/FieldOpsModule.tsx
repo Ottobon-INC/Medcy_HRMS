@@ -4,7 +4,7 @@ import AssignVisitModal from './AssignVisitModal';
 import * as fieldVisitService from '../lib/services/field-visit-service';
 import { getTodayCheckInLocations, EmployeeCheckInLocation } from '../lib/services/attendance-service';
 import { supabase } from '../lib/supabase-client';
-import { Navigation2, UserCheck, Calendar, MapPin, LocateFixed, Users, Phone, Clock, CheckCircle2, ChevronRight, PhoneIncoming, Radio, Camera, ZoomIn, Maximize2 } from 'lucide-react';
+import { Navigation2, UserCheck, Calendar, MapPin, LocateFixed, Users, Phone, Clock, CheckCircle2, ChevronRight, PhoneIncoming, Radio, Camera, ZoomIn, Maximize2, FileText } from 'lucide-react';
 // Live tracking has been removed in favor of task-based workflow
 import { ImageDraggableLightboxModal, ImageLightboxData } from './fieldops/ImageDraggableLightboxModal';
 import { EmployeeLocationModal, EmployeeLocationData } from './fieldops/EmployeeLocationModal';

@@ -2,7 +2,6 @@
 // Reads from Vite environment variables with sensible defaults
 
 export interface FieldOpsConfig {
-  liveTrackingEnabled: boolean;
   tileUrl: string;
   tileAttribution: string;
   tileSubdomains: string[];
@@ -15,8 +14,6 @@ export interface FieldOpsConfig {
 }
 
 export const fieldOpsConfig: FieldOpsConfig = {
-  // Feature flag gate - defaults to true (enabled)
-  liveTrackingEnabled: (import.meta as any).env.VITE_FEATURE_LIVE_TRACKING !== 'false',
 
   // OpenStreetMap standard clean tiles (No watermark, No API key required)
   tileUrl: (import.meta as any).env.VITE_MAP_TILE_URL ||

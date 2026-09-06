@@ -3,7 +3,6 @@ import { ArrowRight, Users, CheckCircle, Clock, AlertCircle, MapPin, ChevronRigh
 import { Language, Employee, LeaveRequest } from '../types';
 import { translations } from '../translations';
 import TickerAlert from './TickerAlert';
-import { countPendingMissedPunches } from '../lib/services/missed-punch-service';
 
 interface AdminDashboardProps {
   language: Language;
@@ -14,19 +13,10 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ language, employees, setActiveTab }: AdminDashboardProps) {
   const t = translations[language];
   const [tick, setTick] = useState(0);
-  const [pendingMissedCount, setPendingMissedCount] = useState(0);
 
   useEffect(() => {
-    const fetchMissed = async () => {
-      const count = await countPendingMissedPunches();
-      setPendingMissedCount(count);
-    };
-    
-    fetchMissed(); // Initial fetch
-    
     const timer = setInterval(() => {
       setTick(t => t + 1);
-      fetchMissed(); // Refresh count every minute
     }, 60000); 
     
     return () => clearInterval(timer);
@@ -136,7 +126,7 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
       </div>
 
       {/* 2. Numeric Snapshot Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
         
         {/* Card 1: Total Employees */}
         <div 
@@ -202,30 +192,6 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
           </div>
           <p className="text-[10px] text-slate-400 mt-4 border-t border-slate-50 pt-3">
             {language === 'te' ? 'ఆమోదం కొరకు వెయిటింగ్' : 'Requires quick manager attention'}
-          </p>
-        </div>
-
-        {/* Card 4: Pending Missed Punches */}
-        <div 
-          onClick={() => setActiveTab('adminMissedPunches')}
-          className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 cursor-pointer hover:-translate-y-1"
-        >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                {language === 'te' ? 'మిస్ అయిన పంచ్ అవుట్స్' : 'Missed Punches'}
-              </span>
-              <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
-                <AlertCircle className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-3xl sm:text-4xl font-black font-mono text-slate-800">{pendingMissedCount.toString().padStart(2, '0')}</span>
-              <span className="text-xs text-slate-400 font-medium">{language === 'te' ? 'అభ్యర్థనలు' : 'requests'}</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-4 border-t border-slate-50 pt-3 text-rose-500 font-medium">
-            {language === 'te' ? 'పెండింగ్ అప్రూవల్స్' : 'Action required in Attendance'}
           </p>
         </div>
 

@@ -10,6 +10,5 @@ export * from './leave.types';
 export * from './payroll.types';
 export * from './advance.types';
 export * from './location.types';
-export * from './roster.types';
 export * from './field-force.types';
 export * from './work-assignment.types';

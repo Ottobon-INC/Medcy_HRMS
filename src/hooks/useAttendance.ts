@@ -71,27 +71,6 @@ export function useAttendance(isLocalMode: boolean, loadData: () => Promise<void
         await loadData();
         return { success: true };
       } else {
-        // 1. Run auto-expire for missed punch-outs older than 24 hours
-        await attendanceService.autoExpireMissedPunches(empId);
-
-        // 2. Check for missed punch-out from previous days before allowing punch in
-        const missedDate = await attendanceService.checkMissedPunchOut(empId);
-        if (missedDate) {
-          // Check if a PENDING request already exists for this date
-          const { data: existing } = await supabase
-            .from('HRMS_missed_punch_requests')
-            .select('id')
-            .eq('employee_id', empId)
-            .eq('missed_date', missedDate)
-            .eq('status', 'pending')
-            .maybeSingle();
-            
-          if (!existing) {
-            // No request yet — prompt employee to submit one
-            return { success: false, error: `missed_punchout:${missedDate}` };
-          }
-          // If existing pending request found, allow punch in for today while admin reviews
-        }
         await attendanceService.clockInEmployee(empId, locationStr, latLngStr, photoData, punchType, punchNote);
       }
       

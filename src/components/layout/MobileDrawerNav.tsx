@@ -212,18 +212,6 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
               </button>
 
               <button
-                onClick={() => handleTabClick('adminMissedPunches')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
-                  activeTab === 'adminMissedPunches'
-                    ? 'bg-teal-50 text-teal-700 font-bold border border-teal-100'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <Clock className={`w-4 h-4 shrink-0 ${activeTab === 'adminMissedPunches' ? 'text-teal-600' : 'text-slate-400'}`} />
-                <span>Missed Punches</span>
-              </button>
-
-              <button
                 onClick={() => handleTabClick('leaveApprovals')}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
                   activeTab === 'leaveApprovals'
@@ -233,18 +221,6 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
               >
                 <Moon className={`w-4 h-4 shrink-0 ${activeTab === 'leaveApprovals' ? 'text-teal-600' : 'text-slate-400'}`} />
                 <span>Leave Approvals</span>
-              </button>
-
-              <button
-                onClick={() => handleTabClick('dutyRoster')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
-                  activeTab === 'dutyRoster'
-                    ? 'bg-teal-50 text-teal-700 font-bold border border-teal-100'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <CalendarDays className={`w-4 h-4 shrink-0 ${activeTab === 'dutyRoster' ? 'text-teal-600' : 'text-slate-400'}`} />
-                <span>Duty Roster</span>
               </button>
 
               <button
@@ -361,18 +337,6 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
               </button>
 
               <button
-                onClick={() => handleTabClick('employeeMissedPunches')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
-                  activeTab === 'employeeMissedPunches'
-                    ? 'bg-teal-50 text-teal-700 font-bold border border-teal-100'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <Clock className={`w-4 h-4 shrink-0 ${activeTab === 'employeeMissedPunches' ? 'text-teal-600' : 'text-slate-400'}`} />
-                <span>Missed Punches</span>
-              </button>
-
-              <button
                 onClick={() => handleTabClick('leave')}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
                   activeTab === 'leave'
@@ -382,18 +346,6 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
               >
                 <Moon className={`w-4 h-4 shrink-0 ${activeTab === 'leave' ? 'text-teal-600' : 'text-slate-400'}`} />
                 <span>Leave Requests</span>
-              </button>
-
-              <button
-                onClick={() => handleTabClick('myRoster')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
-                  activeTab === 'myRoster'
-                    ? 'bg-teal-50 text-teal-700 font-bold border border-teal-100'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                }`}
-              >
-                <CalendarDays className={`w-4 h-4 shrink-0 ${activeTab === 'myRoster' ? 'text-teal-600' : 'text-slate-400'}`} />
-                <span>Duty Roster</span>
               </button>
 
               <button

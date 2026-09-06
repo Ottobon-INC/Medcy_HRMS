@@ -3,7 +3,7 @@ import { FieldVisitType, Language, Employee } from '../types';
 import * as fieldVisitService from '../lib/services/field-visit-service';
 import { EmployeeCheckInLocation } from '../lib/services/attendance-service';
 import { fieldOpsConfig } from '../lib/fieldOpsConfig';
-import { useNominatimSearch, searchNominatimDirect, NominatimPlace } from '../hooks/useNominatimSearch';
+import { useNominatimSearch, searchNominatimDirect, resolveGooglePlaceCoords, NominatimPlace } from '../hooks/useNominatimSearch';
 import { AddressSuggestionDropdown } from './fieldops/AddressSuggestionDropdown';
 import { ModalPreviewMap } from './fieldops/ModalPreviewMap';
 import { MapPin, User, FileText, Clock, UserCheck, Search, Navigation2, X, AlertCircle, Loader2 } from 'lucide-react';
@@ -59,12 +59,32 @@ export default function AssignVisitModal({
     setDropdownIndex(-1);
   }, [suggestions]);
 
-  const handleSelectSuggestion = (place: NominatimPlace) => {
+  const handleSelectSuggestion = async (place: NominatimPlace) => {
     setAddress(place.displayName);
-    setDestLat(place.lat);
-    setDestLng(place.lng);
     setIsDropdownOpen(false);
     clearSuggestions();
+
+    if (place.googlePlaceId) {
+      // Google result — resolve coords now (single geocode call ~300ms)
+      setIsDirectSearching(true);
+      try {
+        const coords = await resolveGooglePlaceCoords(place.googlePlaceId);
+        if (coords) {
+          setDestLat(coords.lat);
+          setDestLng(coords.lng);
+        } else {
+          setError('Could not get coordinates for this location. Please try another.');
+        }
+      } catch {
+        setError('Failed to resolve location coordinates.');
+      } finally {
+        setIsDirectSearching(false);
+      }
+    } else {
+      // Nominatim result — coords already included
+      setDestLat(place.lat);
+      setDestLng(place.lng);
+    }
   };
 
   const handleAddressKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {

@@ -3,8 +3,6 @@ import { Clock, ListCollapse, LogIn, LogOut, Camera, X, MapPin, Plus, AlertCircl
 import { Language, CheckInLog, PunchType, LocationPin, PinType } from '../types';
 import { translations } from '../translations';
 import LocationPinTimeline from './LocationPinTimeline';
-import { submitMissedPunchRequest } from '../lib/services/missed-punch-service';
-import { useLiveTracking } from '../contexts/LiveTrackingContext';
 import { getActiveBreak, startBreak, endBreak, getTodayBreaks, calculateCompletedBreakSeconds, BreakRecord } from '../lib/services/break-service';
 
 interface CheckInModuleProps {
@@ -33,32 +31,12 @@ export default function CheckInModule({
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showEndShiftConfirm, setShowEndShiftConfirm] = useState(false);
-  const [missedPunchDate, setMissedPunchDate] = useState<string | null>(null);
-  const [missedPunchReason, setMissedPunchReason] = useState('');
-  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
-  const [requestSubmitted, setRequestSubmitted] = useState(false);
-
   // Break tracking states
   const [isOnBreak, setIsOnBreak] = useState(false);
   const [activeBreak, setActiveBreak] = useState<BreakRecord | null>(null);
   const [breakElapsedSeconds, setBreakElapsedSeconds] = useState(0);
   const [todayBreaks, setTodayBreaks] = useState<BreakRecord[]>([]);
   const [isBreakLoading, setIsBreakLoading] = useState(false);
-
-  const liveTracking = useLiveTracking();
-  
-  const handleSubmitMissedPunchRequest = async () => {
-    if (!missedPunchDate) return;
-    setIsSubmittingRequest(true);
-    try {
-      await submitMissedPunchRequest(employeeId, missedPunchDate, 'out', missedPunchReason);
-      setRequestSubmitted(true);
-    } catch (err) {
-      alert('Failed to submit request. Please try again.');
-    } finally {
-      setIsSubmittingRequest(false);
-    }
-  };
   
   // Pin states
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
@@ -122,17 +100,10 @@ export default function CheckInModule({
           await endBreak(employeeId);
           setIsOnBreak(false);
           setActiveBreak(null);
-          liveTracking.resumeTracking();
         }
         const result = await onToggleCheckIn(undefined);
-        if (result && !result.success) {
-          if (result.error) {
-            if (result.error.startsWith('missed_punchout:')) {
-              setMissedPunchDate(result.error.split(':')[1]);
-            } else {
-              alert(result.error);
-            }
-          }
+        if (result && !result.success && result.error) {
+          alert(result.error);
         }
       }
     }
@@ -164,19 +135,12 @@ export default function CheckInModule({
           await endBreak(employeeId);
           setIsOnBreak(false);
           setActiveBreak(null);
-          liveTracking.resumeTracking();
         }
         const result = await onToggleCheckIn(photoData);
         setIsProcessing(false);
 
-        if (result && !result.success) {
-          if (result.error) {
-            if (result.error.startsWith('missed_punchout:')) {
-              setMissedPunchDate(result.error.split(':')[1]);
-            } else {
-              alert(result.error);
-            }
-          }
+        if (result && !result.success && result.error) {
+          alert(result.error);
         }
       }
     }
@@ -220,7 +184,6 @@ export default function CheckInModule({
           if (active) {
             setIsOnBreak(true);
             setActiveBreak(active);
-            liveTracking.pauseTracking();
           } else {
             setIsOnBreak(false);
             setActiveBreak(null);
@@ -263,7 +226,7 @@ export default function CheckInModule({
     return () => clearInterval(interval);
   }, [isOnBreak, activeBreak]);
 
-  // Start break handler: pauses tracking, creates break in DB
+  // Start break handler
   const handleTakeBreak = async () => {
     if (isBreakLoading || !isCheckedIn) return;
     setIsBreakLoading(true);
@@ -271,7 +234,6 @@ export default function CheckInModule({
       const record = await startBreak(employeeId);
       setActiveBreak(record);
       setIsOnBreak(true);
-      liveTracking.pauseTracking();
       const updated = await getTodayBreaks(employeeId);
       setTodayBreaks(updated);
     } catch (err) {
@@ -282,7 +244,7 @@ export default function CheckInModule({
     }
   };
 
-  // Resume duty handler: resumes tracking, closes break in DB
+  // Resume duty handler
   const handleResumeDuty = async () => {
     if (isBreakLoading) return;
     setIsBreakLoading(true);
@@ -290,7 +252,6 @@ export default function CheckInModule({
       await endBreak(employeeId);
       setIsOnBreak(false);
       setActiveBreak(null);
-      liveTracking.resumeTracking();
       const updated = await getTodayBreaks(employeeId);
       setTodayBreaks(updated);
     } catch (err) {
@@ -412,15 +373,15 @@ export default function CheckInModule({
             }`} />
             <h2 className="text-2xl font-black text-slate-800">
               {isOnBreak
-                ? (language === 'te' ? 'విరామంలో ఉన్నారు' : 'On Break (Tracking Paused)')
+                ? (language === 'te' ? 'విరామంలో ఉన్నారు' : 'On Break')
                 : isCheckedIn ? t.checkedIn : t.checkedOut}
             </h2>
           </div>
           <p className="text-xs text-slate-400">
             {isOnBreak
               ? (language === 'te'
-                  ? 'లైవ్ GPS లొకేషన్ ట్రాకింగ్ ఆపబడింది. పని పునఃప్రారంభించడానికి "Resume Duty" నొక్కండి.'
-                  : 'Live GPS location tracking is temporarily paused. Click "Resume Duty" when you return.')
+                  ? 'మీరు విరామంలో ఉన్నారు. పని ప్రారంభించడానికి "Resume Duty" నొక్కండి.'
+                  : 'You are on break. Click "Resume Duty" when you return.')
               : isCheckedIn
               ? (language === 'te' ? 'మీరు ఈరోజు పని ప్రారంభించారు. సమయం రికార్డ్ అవుతోంది.' : 'You have initiated your duty. Live clock is active.')
               : (language === 'te' ? 'పని ప్రారంభించడానికి క్రింది బటన్ నొక్కండి.' : 'Verify punch-in to initiate logging.')
@@ -468,7 +429,7 @@ export default function CheckInModule({
           </h3>
           <p className="text-xs text-slate-400 mt-2 leading-relaxed">
             {isOnBreak
-              ? (language === 'te' ? 'లైవ్ ట్రాకింగ్ ఆపబడింది. పని ప్రారంభించేందుకు Resume నొక్కండి.' : 'Live tracking is paused. Resume duty when you are ready to restart tracking.')
+              ? (language === 'te' ? 'విరామం ముగిసిన తర్వాత పనిని ప్రారంభించడానికి Resume నొక్కండి.' : 'Resume duty when you are ready to restart your shift.')
               : isCheckedIn
               ? (language === 'te' ? "పని పూర్తయిన తర్వాత పంచ్ అవుట్ క్లిక్ చేయండి." : "Click below to complete your current shift and log total hours.")
               : (language === 'te' ? "మీ డ్యూటీ టైమ్ కౌంట్ ప్రారంభించడానికి పంచ్ ఇన్ క్లిక్ చేయండి." : "This records your entry time precisely on the cloud server.")
@@ -539,7 +500,7 @@ export default function CheckInModule({
                       </h4>
                       <span className="text-[11px] font-bold text-amber-700 flex items-center gap-1.5 mt-0.5">
                         <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                        {language === 'te' ? 'లైవ్ ట్రాకింగ్ ఆపబడింది' : '📍 Live Tracking Paused'}
+                        {language === 'te' ? 'విరామం నడుస్తోంది' : '☕ Paused on Break'}
                       </span>
                     </div>
                   </div>
@@ -563,16 +524,10 @@ export default function CheckInModule({
                   >
                     <Play className="w-5 h-5 fill-current" />
                     <span className="text-sm uppercase tracking-wider">
-                      {isBreakLoading ? 'Resuming...' : (language === 'te' ? 'పనిని పునఃప్రారంభించండి' : 'Resume Duty & Tracking')}
+                      {isBreakLoading ? 'Resuming...' : (language === 'te' ? 'పనిని పునఃప్రారంభించండి' : 'Resume Duty')}
                     </span>
                   </button>
                 </div>
-                
-                <p className="text-[10px] text-amber-700/80 text-center font-medium">
-                  {language === 'te' 
-                    ? 'మీరు తిరిగి పని ప్రారంభించినప్పుడు లైవ్ ట్రాకింగ్ ఆటోమేటిక్‌గా పునఃప్రారంభమవుతుంది.'
-                    : 'Live GPS location publishing will automatically restart when you resume.'}
-                </p>
               </div>
             ) : (
               /* Take Break & Pin Location Buttons */
@@ -881,90 +836,6 @@ export default function CheckInModule({
                 {language === 'te' ? "ఫోటో తీయండి" : "Capture & Pin"}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Missed Punch Out Error Modal */}
-      {missedPunchDate && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center space-y-4 animate-scaleUp">
-
-            {!requestSubmitted ? (
-              <>
-                <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto">
-                  <AlertCircle className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-bold text-slate-800">
-                  {language === 'te' ? 'పంచ్ అవుట్ మిస్ అయింది' : 'Missed Punch-Out Detected'}
-                </h3>
-                <p className="text-sm text-slate-500 text-left bg-amber-50 rounded-xl p-3 border border-amber-100">
-                  {language === 'te'
-                    ? `మీరు ${missedPunchDate} న పంచ్ అవుట్ చేయలేదు. అడ్మిన్ అనుమతి వచ్చిన తర్వాత మాత్రమే పంచ్ ఇన్ చేయవచ్చు.`
-                    : `You did not punch out on ${missedPunchDate}. To punch in today, please submit a request to Admin to close that session.`
-                  }
-                </p>
-
-                <div className="text-left">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    {language === 'te' ? 'కారణం (ఐచ్ఛికం)' : 'Reason (Optional)'}
-                  </label>
-                  <textarea
-                    value={missedPunchReason}
-                    onChange={(e) => setMissedPunchReason(e.target.value)}
-                    placeholder={language === 'te' ? 'ఉదా: అత్యవసర పరిస్థితి కారణంగా వెళ్ళిపోయాను' : 'e.g. Had an emergency and forgot to punch out'}
-                    rows={3}
-                    className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400/30"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    onClick={() => { setMissedPunchDate(null); setMissedPunchReason(''); }}
-                    className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition-colors text-xs uppercase tracking-wider"
-                  >
-                    {language === 'te' ? 'రద్దు' : 'Cancel'}
-                  </button>
-                  <button
-                    onClick={handleSubmitMissedPunchRequest}
-                    disabled={isSubmittingRequest}
-                    className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors text-xs uppercase tracking-wider shadow-md disabled:opacity-60"
-                  >
-                    {isSubmittingRequest
-                      ? (language === 'te' ? 'పంపుతున్నారు...' : 'Submitting...')
-                      : (language === 'te' ? 'అడ్మిన్‌కు అభ్యర్థించు' : 'Request Admin Access')
-                    }
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="w-16 h-16 bg-teal-50 text-teal-500 rounded-full flex items-center justify-center mx-auto">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <h3 className="text-xl font-bold text-slate-800">
-                  {language === 'te' ? 'అభ్యర్థన పంపబడింది' : 'Request Submitted!'}
-                </h3>
-                <p className="text-sm text-slate-500">
-                  {language === 'te'
-                    ? 'మీ అభ్యర్థన అడ్మిన్‌కు పంపబడింది. అప్రూవ్ అయిన తర్వాత మీరు పంచ్ ఇన్ చేయవచ్చు.'
-                    : 'Your request has been sent to Admin. Once approved, you can punch in normally.'
-                  }
-                </p>
-                <button
-                  onClick={() => {
-                    setMissedPunchDate(null);
-                    setMissedPunchReason('');
-                    setRequestSubmitted(false);
-                  }}
-                  className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl transition-colors text-xs uppercase tracking-wider shadow-md"
-                >
-                  {language === 'te' ? 'సరే' : 'Got It'}
-                </button>
-              </>
-            )}
           </div>
         </div>
       )}
