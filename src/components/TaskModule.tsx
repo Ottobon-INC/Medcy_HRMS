@@ -65,7 +65,7 @@ export default function TaskModule({
       const taskDate = task.taskDate || (task.createdAt ? task.createdAt.split('T')[0] : todayStr);
 
       // Time filter (Today's Work vs History/All dates)
-      if (timeFilter === 'today' && taskDate !== todayStr) {
+      if (timeFilter === 'today' && taskDate !== todayStr && task.status !== 'in_progress') {
         return false;
       }
       if (timeFilter === 'history' && selectedDate && taskDate !== selectedDate) {
@@ -268,7 +268,7 @@ export default function TaskModule({
         {/* Quick action buttons for task assignee */}
         {isAssignedToMe && (
           <div className="pt-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            {task.status !== 'completed' && (
+            {task.status !== 'completed' && (taskDate <= todayStr) && (
               <button
                 onClick={() => handleStatusChange(task.id, 'completed')}
                 disabled={isUpdating}
@@ -277,6 +277,12 @@ export default function TaskModule({
                 <Check className="w-3.5 h-3.5" />
                 {t.markComplete || 'Complete'}
               </button>
+            )}
+
+            {task.status !== 'completed' && taskDate > todayStr && (
+              <div className="w-full bg-slate-50 text-slate-400 py-1.5 px-2.5 rounded-lg text-[10px] font-bold text-center border border-slate-100">
+                Scheduled for {taskDate}
+              </div>
             )}
 
             {task.status === 'in_progress' && (
@@ -646,7 +652,7 @@ export default function TaskModule({
                   </div>
 
                   {/* Quick toggle if mine */}
-                  {isAssignedToMe && task.status !== 'completed' && (
+                  {isAssignedToMe && task.status !== 'completed' && (taskDate <= todayStr) && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -657,6 +663,12 @@ export default function TaskModule({
                       <Check className="w-3 h-3" />
                       {t.markComplete || 'Done'}
                     </button>
+                  )}
+
+                  {isAssignedToMe && task.status !== 'completed' && (taskDate > todayStr) && (
+                    <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold border border-slate-200">
+                      Upcoming
+                    </span>
                   )}
 
                   <ChevronRight className="w-4 h-4 text-slate-400" />

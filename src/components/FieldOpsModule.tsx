@@ -3,6 +3,7 @@ import { Language, Employee, FieldVisit } from '../types';
 import AssignVisitModal from './AssignVisitModal';
 import * as fieldVisitService from '../lib/services/field-visit-service';
 import { getTodayCheckInLocations, EmployeeCheckInLocation } from '../lib/services/attendance-service';
+import { supabase } from '../lib/supabase-client';
 import { Navigation2, UserCheck, Calendar, MapPin, LocateFixed, Users, Phone, Clock, CheckCircle2, ChevronRight, PhoneIncoming, Radio, Camera, ZoomIn, Maximize2 } from 'lucide-react';
 // Live tracking has been removed in favor of task-based workflow
 import { ImageDraggableLightboxModal, ImageLightboxData } from './fieldops/ImageDraggableLightboxModal';
@@ -49,17 +50,70 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
 
   // Live tracking hooks removed
 
+  const [selectedDate, setSelectedDate] = useState<string>('all'); // 'all' or 'YYYY-MM-DD'
+  const todayStr = new Date().toISOString().split('T')[0];
+
   const loadData = async () => {
     if (isLocalMode) {
       setLoading(false);
       return;
     }
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const [allVisits, todayCheckIns] = await Promise.all([
-        fieldVisitService.getAllVisitsForDate(today),
-        getTodayCheckInLocations(today)
-      ]);
+      setLoading(true);
+      let allVisits: FieldVisit[] = [];
+      let todayCheckIns: EmployeeCheckInLocation[] = [];
+
+      if (selectedDate === 'all') {
+        const { data, error } = await supabase
+          .from('HRMS_field_visits')
+          .select('*')
+          .order('scheduled_date', { ascending: false })
+          .order('scheduled_start', { ascending: true });
+        
+        if (!error && data) {
+          allVisits = data.map((d: any) => ({
+            id: d.id,
+            sessionId: d.session_id,
+            employeeId: d.employee_id,
+            assignedBy: d.assigned_by,
+            visitType: d.visit_type,
+            title: d.title,
+            description: d.description,
+            scheduledDate: d.scheduled_date,
+            scheduledStart: d.scheduled_start,
+            scheduledEnd: d.scheduled_end,
+            assignedLatitude: d.assigned_latitude,
+            assignedLongitude: d.assigned_longitude,
+            assignedAddress: d.assigned_address,
+            allowedRadiusMeters: d.allowed_radius_meters,
+            priority: d.priority,
+            status: d.status,
+            startedAt: d.started_at,
+            arrivedAt: d.arrived_at,
+            completedAt: d.completed_at,
+            actualLatitude: d.actual_latitude,
+            actualLongitude: d.actual_longitude,
+            actualAddress: d.actual_address,
+            arrivalDistanceM: d.arrival_distance_m,
+            durationMinutes: d.duration_minutes,
+            startPhotoUrl: d.start_photo_url,
+            proofPhotoUrl: d.proof_photo_url,
+            completionNotes: d.completion_notes,
+            patientName: d.patient_name,
+            clientReference: d.client_reference,
+            locationException: d.location_exception
+          }));
+        }
+        todayCheckIns = await getTodayCheckInLocations(todayStr);
+      } else {
+        const [v, c] = await Promise.all([
+          fieldVisitService.getAllVisitsForDate(selectedDate),
+          getTodayCheckInLocations(selectedDate)
+        ]);
+        allVisits = v;
+        todayCheckIns = c;
+      }
+
       setVisits(allVisits);
       setCheckIns(todayCheckIns);
     } catch (err) {
@@ -71,7 +125,21 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
 
   useEffect(() => {
     loadData();
-  }, [isLocalMode]);
+  }, [selectedDate, isLocalMode]);
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('field-ops-visits-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'HRMS_field_visits' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedDate]);
 
   // OSRM route calculation removed
 
@@ -128,62 +196,98 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
               </p>
             </div>
 
-            <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold gap-1 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => setActiveListTab('employees')}
-                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeListTab === 'employees'
-                    ? 'bg-white text-teal-800 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Users className="w-3.5 h-3.5 text-teal-600" />
-                <span>Visit Register ({fieldEmployees.length})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveListTab('visits')}
-                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeListTab === 'visits'
-                    ? 'bg-white text-slate-800 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Calendar className="w-3.5 h-3.5" />
-                <span>Visits ({visits.length})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveListTab('checkIns')}
-                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeListTab === 'checkIns'
-                    ? 'bg-white text-slate-800 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Check-Ins ({checkIns.length})</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveListTab('approvals')}
-                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  activeListTab === 'approvals'
-                    ? 'bg-white text-slate-800 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                <span className="flex items-center gap-1.5">
-                  Approvals
-                  {visits.filter(v => v.status === 'RESCHEDULE_REQUESTED').length > 0 && (
-                    <span className="flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold animate-pulse">
-                      {visits.filter(v => v.status === 'RESCHEDULE_REQUESTED').length}
-                    </span>
-                  )}
-                </span>
-              </button>
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+              {/* Today vs All Dates Toggle */}
+              <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold gap-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate('all')}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    selectedDate === 'all'
+                      ? 'bg-white text-teal-800 shadow-sm font-bold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  All Visits
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(todayStr)}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    selectedDate === todayStr
+                      ? 'bg-white text-teal-800 shadow-sm font-bold'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Today
+                </button>
+              </div>
+
+              <input
+                type="date"
+                value={selectedDate === 'all' ? '' : selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value || 'all')}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-700 focus:outline-none"
+                title="Select specific date to inspect visits"
+              />
+
+              <div className="flex bg-slate-100 p-1 rounded-xl text-xs font-bold gap-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveListTab('employees')}
+                  className={`px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    activeListTab === 'employees'
+                      ? 'bg-white text-teal-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Visit Register ({fieldEmployees.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveListTab('visits')}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    activeListTab === 'visits'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Visits ({visits.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveListTab('checkIns')}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    activeListTab === 'checkIns'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Check-Ins ({checkIns.length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveListTab('approvals')}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    activeListTab === 'approvals'
+                      ? 'bg-white text-slate-800 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span className="flex items-center gap-1.5">
+                    Approvals
+                    {visits.filter(v => v.status === 'RESCHEDULE_REQUESTED').length > 0 && (
+                      <span className="flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold animate-pulse">
+                        {visits.filter(v => v.status === 'RESCHEDULE_REQUESTED').length}
+                      </span>
+                    )}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -486,6 +590,19 @@ export default function FieldOpsModule({ language, isLocalMode, employees, admin
                           <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <span className="truncate">{visit.assignedAddress}</span>
                         </p>
+                      )}
+
+                      {/* Prominent Visit Summary Notes from Employee Departure */}
+                      {visit.completionNotes && (
+                        <div className="bg-teal-50/70 border border-teal-100 rounded-xl p-2.5 space-y-1">
+                          <div className="flex items-center gap-1 text-[10px] font-black text-teal-800 uppercase tracking-wider">
+                            <FileText className="w-3 h-3 text-teal-600" />
+                            <span>Departure Summary Notes</span>
+                          </div>
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium whitespace-pre-wrap pl-4 border-l-2 border-teal-500">
+                            {visit.completionNotes}
+                          </p>
+                        </div>
                       )}
 
                       <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-100 font-mono">

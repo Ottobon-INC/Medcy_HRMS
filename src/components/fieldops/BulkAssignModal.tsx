@@ -40,21 +40,51 @@ export default function BulkAssignModal({ onClose, employees, adminId }: BulkAss
         const ws = wb.Sheets[wsname];
         const data = xlsx.utils.sheet_to_json(ws) as any[];
 
+        const formatExcelDate = (val: any): string => {
+          if (!val) return new Date().toISOString().split('T')[0];
+          // Handle numeric Excel date serial (e.g. 46271)
+          if (typeof val === 'number') {
+            const dateObj = xlsx.SSF.parse_date_code(val);
+            if (dateObj) {
+              const y = dateObj.y;
+              const m = String(dateObj.m).padStart(2, '0');
+              const d = String(dateObj.d).padStart(2, '0');
+              return `${y}-${m}-${d}`;
+            }
+          }
+          if (typeof val === 'string') {
+            const trimmed = val.trim();
+            // If already YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+            // If DD-MM-YYYY or DD/MM/YYYY
+            const parts = trimmed.split(/[-/]/);
+            if (parts.length === 3) {
+              if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+              if (parts[2].length === 4) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+            const parsed = new Date(trimmed);
+            if (!isNaN(parsed.getTime())) {
+              return parsed.toISOString().split('T')[0];
+            }
+          }
+          return new Date().toISOString().split('T')[0];
+        };
+
         const mappedData: ParsedRow[] = data.map(row => ({
-          employeeId: row['employee id'] || row['Employee ID'] || '',
-          name: row['name'] || row['Name'] || '',
-          doctorName: row['doctor name'] || row['Doctor Name'] || '',
-          hospitalAddress: row['hospital address'] || row['Hospital Address'] || '',
-          workDesc: row['work desc'] || row['Work Desc'] || row['Work Description'] || '',
-          date: row['date'] || row['Date'] || new Date().toISOString().split('T')[0],
-          timeSlot: row['time slot'] || row['Time Slot'] || '09:00',
+          employeeId: String(row['employee id'] || row['Employee ID'] || row['employeeId'] || row['EmployeeId'] || '').trim(),
+          name: String(row['name'] || row['Name'] || '').trim(),
+          doctorName: String(row['doctor name'] || row['Doctor Name'] || row['doctorName'] || '').trim(),
+          hospitalAddress: String(row['hospital address'] || row['Hospital Address'] || row['hospitalAddress'] || '').trim(),
+          workDesc: String(row['work desc'] || row['Work Desc'] || row['Work Description'] || row['Description'] || '').trim(),
+          date: formatExcelDate(row['date'] || row['Date']),
+          timeSlot: String(row['time slot'] || row['Time Slot'] || '09:00').trim(),
         })).filter(r => r.employeeId && r.doctorName); // basic validation
 
         setParsedData(mappedData);
         setError('');
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
-        setError('Failed to parse Excel file. Please ensure it has the correct columns.');
+        setError(`Failed to parse Excel file: ${err?.message || 'Invalid format'}`);
       }
     };
     reader.readAsBinaryString(file);
@@ -71,7 +101,7 @@ export default function BulkAssignModal({ onClose, employees, adminId }: BulkAss
       await fieldVisitService.bulkCreateVisits(
         parsedData.map(row => ({
           employeeId: row.employeeId,
-          assignedBy: adminId,
+          assignedBy: adminId || 'admin',
           title: `Visit: ${row.doctorName}`,
           description: row.workDesc,
           assignedAddress: row.hospitalAddress,
@@ -80,9 +110,9 @@ export default function BulkAssignModal({ onClose, employees, adminId }: BulkAss
         }))
       );
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setError('Failed to assign visits in bulk. Please try again.');
+      setError(err?.message ? `Failed to assign visits: ${err.message}` : 'Failed to assign visits in bulk. Please check database permissions.');
     } finally {
       setIsUploading(false);
     }

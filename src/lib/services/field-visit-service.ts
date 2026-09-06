@@ -110,6 +110,23 @@ export async function bulkCreateVisits(visits: Partial<FieldVisit>[]): Promise<v
     .insert(payload);
 
   if (error) throw error;
+
+  // Also mirror into HRMS_tasks so it displays in the Work Assignment panel
+  try {
+    const taskPayload = visits.map(v => ({
+      title: v.title || 'Doctor Field Visit',
+      description: `${v.title || 'Field Visit'} at ${v.assignedAddress || 'Hospital'}. ${v.description || ''}`.trim(),
+      priority: 'medium',
+      status: 'in_progress',
+      due_date: v.scheduledDate,
+      assigned_to: v.employeeId,
+      created_by: v.assignedBy
+    }));
+
+    await supabase.from('HRMS_tasks').insert(taskPayload);
+  } catch (tErr) {
+    console.warn('Could not mirror bulk visits to HRMS_tasks:', tErr);
+  }
 }
 
 export async function updateVisitStatus(

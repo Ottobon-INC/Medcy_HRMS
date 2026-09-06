@@ -18,6 +18,7 @@ import {
 import { FieldVisit, Language } from '../../types';
 import * as fieldVisitService from '../../lib/services/field-visit-service';
 import { getCurrentLocationSafe } from '../../lib/utils/location-utils';
+import { supabase } from '../../lib/supabase-client';
 
 interface CallPhotoCaptureViewProps {
   language: Language;
@@ -62,7 +63,52 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
     try {
       setLoading(true);
       const today = new Date().toISOString().split('T')[0];
-      const data = await fieldVisitService.getVisitsForDate(employeeId, today);
+      let data = await fieldVisitService.getVisitsForDate(employeeId, today);
+      if (data.length === 0) {
+        const { data: upcoming, error } = await supabase
+          .from('HRMS_field_visits')
+          .select('*')
+          .eq('employee_id', employeeId)
+          .neq('status', 'COMPLETED')
+          .neq('status', 'CANCELLED')
+          .order('scheduled_date', { ascending: true })
+          .order('scheduled_start', { ascending: true });
+        
+        if (!error && upcoming) {
+          data = upcoming.map((d: any) => ({
+            id: d.id,
+            sessionId: d.session_id,
+            employeeId: d.employee_id,
+            assignedBy: d.assigned_by,
+            visitType: d.visit_type,
+            title: d.title,
+            description: d.description,
+            scheduledDate: d.scheduled_date,
+            scheduledStart: d.scheduled_start,
+            scheduledEnd: d.scheduled_end,
+            assignedLatitude: d.assigned_latitude,
+            assignedLongitude: d.assigned_longitude,
+            assignedAddress: d.assigned_address,
+            allowedRadiusMeters: d.allowed_radius_meters,
+            priority: d.priority,
+            status: d.status,
+            startedAt: d.started_at,
+            arrivedAt: d.arrived_at,
+            completedAt: d.completed_at,
+            actualLatitude: d.actual_latitude,
+            actualLongitude: d.actual_longitude,
+            actualAddress: d.actual_address,
+            arrivalDistanceM: d.arrival_distance_m,
+            durationMinutes: d.duration_minutes,
+            startPhotoUrl: d.start_photo_url,
+            proofPhotoUrl: d.proof_photo_url,
+            completionNotes: d.completion_notes,
+            patientName: d.patient_name,
+            clientReference: d.client_reference,
+            locationException: d.location_exception
+          }));
+        }
+      }
       setVisits(data);
 
       // Check if there is already an in-progress call
@@ -512,9 +558,14 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
               <div className="w-full space-y-4">
                 {/* Notes Input Field */}
                 <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1.5 flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5 text-teal-400" />
-                    {captureStage === 'start_preview' ? 'Visit Arrival Notes (Optional)' : 'Visit Departure Summary'}
+                  <label className="text-xs font-bold text-slate-300 block mb-1.5 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5 text-teal-400" />
+                      {captureStage === 'start_preview' ? 'Visit Arrival Notes (Optional)' : 'Visit Departure Summary *'}
+                    </span>
+                    {captureStage === 'end_preview' && (
+                      <span className="text-[10px] text-rose-400 font-bold">Mandatory to close visit</span>
+                    )}
                   </label>
                   <textarea
                     rows={2}
@@ -523,9 +574,9 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
                     placeholder={
                       captureStage === 'start_preview'
                         ? 'e.g., Met with Dr. Rao at OPD reception...'
-                        : 'e.g., Prescribed product samples handed over, discussion concluded...'
+                        : 'e.g., Prescribed product samples handed over, discussion concluded (Required)...'
                     }
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-teal-500"
+                    className="w-full bg-slate-800 border border-slate-700 focus:border-teal-400 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-400/40"
                   />
                 </div>
 
@@ -543,9 +594,9 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
 
                   <button
                     type="button"
-                    disabled={submitting}
+                    disabled={submitting || (captureStage === 'end_preview' && !notes.trim())}
                     onClick={captureStage === 'start_preview' ? handleConfirmStartCall : handleConfirmEndCall}
-                    className="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-teal-600/30 transition-all cursor-pointer"
+                    className="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-xs flex items-center gap-2 shadow-lg shadow-teal-600/30 transition-all cursor-pointer"
                   >
                     {submitting ? (
                       <span>Uploading Proof...</span>
@@ -555,7 +606,7 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="w-4 h-4" /> Confirm Departure & Close Visit
+                        <CheckCircle2 className="w-4 h-4" /> Confirm Departure &amp; Close Visit
                       </>
                     )}
                   </button>

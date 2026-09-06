@@ -200,17 +200,12 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
           )}
         </div>
 
-        {!isActive ? (
-          <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-100/50">
-            <Map className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">Start your field duty to manage visits.</p>
-          </div>
-        ) : visitsLoading && visits.length === 0 ? (
-          <div className="text-center py-10">Loading visits...</div>
+        {visitsLoading && visits.length === 0 ? (
+          <div className="text-center py-10 text-slate-400 font-bold">Loading visits...</div>
         ) : visits.length === 0 ? (
           <div className="text-center py-10 bg-slate-50 rounded-2xl border border-slate-100/50">
             <MapPin className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No visits scheduled for today.</p>
+            <p className="text-slate-500 font-medium">No visits scheduled.</p>
           </div>
         ) : (
           <>
