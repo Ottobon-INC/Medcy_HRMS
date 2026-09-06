@@ -6,7 +6,6 @@ const DashboardSnapshot = React.lazy(() => import('../DashboardSnapshot'));
 const AttendanceModule = React.lazy(() => import('../AttendanceModule'));
 const EmployeeMissedPunches = React.lazy(() => import('../EmployeeMissedPunches'));
 const FieldDutyModule = React.lazy(() => import('../FieldDutyModule'));
-const EmployeeMapDashboard = React.lazy(() => import('../EmployeeMapDashboard'));
 const EmployeeRoster = React.lazy(() => import('../EmployeeRoster'));
 const LeaveModule = React.lazy(() => import('../LeaveModule'));
 const AdminDashboard = React.lazy(() => import('../AdminDashboard'));
@@ -24,7 +23,6 @@ const AdminTaskManager = React.lazy(() => import('../AdminTaskManager'));
 const ExecutiveOverview = React.lazy(() => import('../ExecutiveOverview'));
 const OrgHierarchyView = React.lazy(() => import('../OrgHierarchyView'));
 const CallPhotoCaptureView = React.lazy(() => import('../fieldops/CallPhotoCaptureView').then(m => ({ default: m.CallPhotoCaptureView })));
-const AdminLiveMapDashboard = React.lazy(() => import('../AdminLiveMapDashboard'));
 
 
 interface AppRouterProps {
@@ -130,14 +128,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           isLocalMode={isLocalMode}
         />
       );
-    case 'liveMap':
-      return (
-        <EmployeeMapDashboard
-          currentUser={currentUser}
-          employees={employees}
-          isLocalMode={isLocalMode}
-        />
-      );
+
     case 'myRoster':
       return (
         <EmployeeRoster 
@@ -212,13 +203,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
           adminId={currentUser.id}
         />
       );
-    case 'adminLiveMap':
-      return (
-        <AdminLiveMapDashboard
-          employees={employees}
-          isLocalMode={isLocalMode}
-        />
-      );
+
     case 'leaveApprovals':
       return (
         <AdminLeaveApprovals

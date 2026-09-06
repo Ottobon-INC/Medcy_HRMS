@@ -1,7 +1,7 @@
 export type FieldVisitStatus =
   | 'ASSIGNED' | 'EN_ROUTE' | 'ARRIVED'
   | 'IN_PROGRESS' | 'COMPLETED' | 'MISSED'
-  | 'CANCELLED' | 'FAILED';
+  | 'CANCELLED' | 'FAILED' | 'RESCHEDULE_REQUESTED';
 
 export type FieldVisitType =
   | 'PATIENT_VISIT' | 'MEDICAL_CAMP' | 'PHARMACY_VISIT'
@@ -64,6 +64,7 @@ export interface FieldVisit {
   patientName?: string;
   clientReference?: string;
   locationException: boolean;
+  rescheduleReason?: string;
 }
 
 export interface FieldVisitEvent {

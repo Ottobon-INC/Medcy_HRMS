@@ -284,6 +284,10 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
 
   const handleConfirmEndCall = async () => {
     if (!activeVisit || !capturedPhoto) return;
+    if (!notes.trim()) {
+      alert('A Visit Departure Summary is required. Please provide a brief summary of the visit.');
+      return;
+    }
     setSubmitting(true);
     try {
       await fieldVisitService.completeCallWithPhoto(
@@ -684,13 +688,29 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
                         <Square className="w-3 h-3 fill-white" /> Depart & Close Visit
                       </button>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleInitiateStartCall(visit)}
-                        className="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
-                      >
-                        <Play className="w-3 h-3 fill-white" /> Arrive & Snap Proof
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const reason = prompt('Please provide a reason or proposed date for rescheduling:');
+                            if (reason) {
+                              fieldVisitService.updateVisitStatus(visit.id, employeeId, 'RESCHEDULE_REQUESTED' as any, undefined, undefined, undefined, undefined, undefined, undefined, reason)
+                                .then(() => loadVisits())
+                                .catch(err => alert('Failed to request reschedule: ' + err.message));
+                            }
+                          }}
+                          className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs flex items-center gap-1 cursor-pointer"
+                        >
+                          Request Reschedule
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleInitiateStartCall(visit)}
+                          className="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
+                        >
+                          <Play className="w-3 h-3 fill-white" /> Arrive & Snap Proof
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

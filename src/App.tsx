@@ -158,10 +158,10 @@ export default function App() {
     const adminTabs = [
       'adminDashboard', 'directory', 'attendanceOverview', 'leaveApprovals',
       'officeLocations', 'messages', 'adminSettings', 'dutyRoster', 'adminMissedPunches', 'fieldOps', 'adminTasks',
-      'executiveOverview', 'orgChart', 'adminLiveMap'
+      'executiveOverview', 'orgChart'
     ];
     const employeeTabs = [
-      'dashboard', 'attendance', 'leave', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'callCapture', 'tasks', 'liveMap'
+      'dashboard', 'attendance', 'leave', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'callCapture', 'tasks'
     ];
 
     if (isAdminLevel && !adminTabs.includes(activeTab)) {

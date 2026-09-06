@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { Language, Task, TaskPriority, TaskStatus, Employee } from '../types';
 import { translations } from '../translations';
+import BulkAssignModal from './fieldops/BulkAssignModal';
+import { Navigation2 } from 'lucide-react';
 
 interface AdminTaskManagerProps {
   language: Language;
@@ -58,6 +60,17 @@ export default function AdminTaskManager({
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   // Modal States
+  const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const fieldEmployees = employees.filter(
+    e =>
+      e.hierarchyLevel !== 'executive' &&
+      e.id !== 'EMP-EXEC-001' &&
+      e.id !== 'EMP-EXEC-002' &&
+      !e.designation?.toLowerCase().includes('executive director') &&
+      !e.name?.toLowerCase().includes('anoopama') &&
+      !e.name?.toLowerCase().includes('indra')
+  );
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
@@ -344,14 +357,24 @@ export default function AdminTaskManager({
           </div>
 
           {/* Create Assignment Button */}
-          <button
-            id="admin-btn-create-task"
-            onClick={handleOpenCreateModal}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowBulkAssignModal(true)}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer border border-slate-200"
+            >
+              <Navigation2 className="w-4 h-4" />
+              <span>Bulk Assign</span>
+            </button>
+            <button
+              id="admin-btn-create-task"
+              onClick={handleOpenCreateModal}
             className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm shadow-teal-600/10 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>{t.createTask || 'Assign New Work'}</span>
           </button>
+          </div>
+
 
         </div>
       </div>
@@ -941,6 +964,16 @@ export default function AdminTaskManager({
         </div>
       )}
 
+      {/* Bulk Assign Modal */}
+      {showBulkAssignModal && (
+        <BulkAssignModal
+          onClose={() => {
+            setShowBulkAssignModal(false);
+          }}
+          employees={fieldEmployees}
+          adminId={currentUser.id}
+        />
+      )}
     </div>
   );
 }

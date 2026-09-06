@@ -5,10 +5,8 @@ import { Language, FieldVisitStatus, FieldVisit, PinCategory } from '../types';
 import { MapPin, Navigation2, CheckCircle2, Plus, Map, Radio, Compass } from 'lucide-react';
 import RequestVisitModal from './RequestVisitModal';
 import VisitDetailSheet from './VisitDetailSheet';
-import FieldOpsMap from './FieldOpsMap';
 import { useLiveTracking } from '../contexts/LiveTrackingContext';
 import { fieldOpsConfig } from '../lib/fieldOpsConfig';
-import { AgentNavigationView } from './fieldops/AgentNavigationView';
 import { DropPinModal } from './fieldops/DropPinModal';
 import { useFieldPins } from '../hooks/useFieldPins';
 import * as fieldPinService from '../lib/services/field-pin-service';
@@ -29,12 +27,10 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
   const [routes, setRoutes] = useState<Record<string, OsrmRoute>>({});
 
-  // Phase 2 Navigation & Pin Dropping state
-  const [navVisit, setNavVisit] = useState<FieldVisit | null>(null);
   const [dropPinVisit, setDropPinVisit] = useState<FieldVisit | null>(null);
 
   // Hook for pins for the current active/navigating visit
-  const activeVisitForPins = navVisit?.id || selectedVisitId || (visits.find(v => v.status === 'EN_ROUTE')?.id);
+  const activeVisitForPins = selectedVisitId || (visits.find(v => v.status === 'EN_ROUTE')?.id);
   const { pins: currentVisitPins, refreshPins } = useFieldPins(activeVisitForPins);
 
   const isActive = session?.status === 'active';
@@ -82,12 +78,8 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
 
     if (result.success) {
       if (status === 'EN_ROUTE') {
-        // Start tracking with the new visit ID and open navigation
+        // Start tracking with the new visit ID
         startTracking(visitId);
-        const targetVisit = visits.find(v => v.id === visitId);
-        if (targetVisit) {
-          setNavVisit({ ...targetVisit, status: 'EN_ROUTE' });
-        }
       } else if (['ARRIVED', 'COMPLETED', 'CANCELLED', 'MISSED'].includes(status)) {
         // Just clear the visit ID from tracking, but keep tracking on duty
         if (activeVisitId === visitId) {
@@ -111,7 +103,7 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
     label?: string,
     note?: string
   ): Promise<boolean> => {
-    const visitTarget = dropPinVisit || navVisit || visits.find(v => v.id === selectedVisitId);
+    const visitTarget = dropPinVisit || visits.find(v => v.id === selectedVisitId);
     if (!visitTarget) return false;
 
     const lat = lastPosition?.lat ?? visitTarget.actualLatitude ?? visitTarget.assignedLatitude;
@@ -223,27 +215,7 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
         ) : (
           <>
             <div className="h-72 mb-6 rounded-2xl overflow-hidden border border-slate-200">
-              <FieldOpsMap
-                visits={visits}
-                employees={[]}
-                livePositions={
-                  lastPosition
-                    ? {
-                        [employeeId]: {
-                          employeeId,
-                          lat: lastPosition.lat,
-                          lng: lastPosition.lng,
-                          heading: heading || 0,
-                          speedKmh: speedKmh || 0,
-                          accuracyM,
-                          timestamp: new Date().toISOString()
-                        }
-                      }
-                    : {}
-                }
-                routes={routes}
-                pins={currentVisitPins}
-              />
+              
             </div>
             <div className="grid gap-4">
               {visits.map(visit => {
@@ -291,29 +263,8 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
                         </span>
                       </div>
                     </div>
-
                     {/* Action Buttons (Navigate / Drop Pin / Details) */}
-                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                      {/* Live Navigation HUD Button (Uber/Rapido style) */}
-                      {(isCurrentEnRoute || visit.status === 'ASSIGNED') && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setNavVisit(visit);
-                          }}
-                          className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer ${
-                            isCurrentEnRoute
-                              ? 'bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white shadow-blue-600/20'
-                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200'
-                          }`}
-                        >
-                          <Compass className="w-3.5 h-3.5" />
-                          <span>{isCurrentEnRoute ? 'Live Directions & Route' : 'Preview Route'}</span>
-                        </button>
-                      )}
-
-                      {/* Drop Location Pin Button */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-100">                      {/* Drop Location Pin Button */}
                       {canDropPin && (
                         <button
                           type="button"
@@ -357,23 +308,9 @@ export default function FieldDutyModule({ language, employeeId, isLocalMode }: F
           visit={visits.find(v => v.id === selectedVisitId)!}
           onClose={() => setSelectedVisitId(null)}
           onUpdateStatus={handleUpdateStatus}
-          onStartNavigation={(v) => setNavVisit(v)}
         />
       )}
 
-      {/* Full-Screen Agent Navigation View (Rapido/Uber HUD) */}
-      {navVisit && (
-        <AgentNavigationView
-          visit={navVisit}
-          pins={currentVisitPins}
-          onClose={() => setNavVisit(null)}
-          onArrived={async () => {
-            await handleUpdateStatus(navVisit.id, 'ARRIVED');
-            setNavVisit(null);
-          }}
-          onSavePin={handleSavePin}
-        />
-      )}
 
       {/* Standalone Drop Pin Modal */}
       {dropPinVisit && (

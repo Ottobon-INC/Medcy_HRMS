@@ -90,6 +90,28 @@ export async function createVisit(visit: Partial<FieldVisit>): Promise<FieldVisi
   return mapVisit(data);
 }
 
+export async function bulkCreateVisits(visits: Partial<FieldVisit>[]): Promise<void> {
+  const payload = visits.map(visit => ({
+    employee_id: visit.employeeId,
+    assigned_by: visit.assignedBy,
+    visit_type: visit.visitType || 'DOCTOR_VISIT',
+    title: visit.title,
+    description: visit.description,
+    scheduled_date: visit.scheduledDate,
+    scheduled_start: visit.scheduledStart,
+    assigned_address: visit.assignedAddress,
+    status: 'ASSIGNED',
+    priority: 'normal',
+    allowed_radius_meters: 500
+  }));
+
+  const { error } = await supabase
+    .from('HRMS_field_visits')
+    .insert(payload);
+
+  if (error) throw error;
+}
+
 export async function updateVisitStatus(
   visitId: string,
   employeeId: string,
