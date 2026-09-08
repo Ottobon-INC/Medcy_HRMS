@@ -153,7 +153,7 @@ export default function UserProfileModal({ currentUser, onClose, onUpdatePasswor
        <h2 className="text-2xl font-black text-slate-800 tracking-tight">{currentUser.name}</h2>
        <p className="text-slate-500 text-xs font-semibold mt-1">{currentUser.designation}</p>
        <div className="inline-flex items-center gap-1.5 mt-2.5 px-3 py-1 bg-slate-100 text-slate-600 text-[11px] font-bold rounded-full font-mono">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#f3edfb]0"/>
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"/>
         {currentUser.id}
        </div>
       </div>
