@@ -23,7 +23,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   const isExecutive = currentUser.hierarchyLevel === 'executive';
   const isManager = currentUser.hierarchyLevel === 'manager';
-  
+
   let roleText = 'Employee';
   if (currentUser.role === 'admin') roleText = 'Clinic Administrator';
   if (isExecutive) roleText = 'Executive';
@@ -32,7 +32,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   return (
     <header id="global-portal-header" className="sticky top-0 z-40 no-print pt-6 pb-2">
       <div className="w-full max-w-[1600px] mx-auto px-6 flex items-center justify-between">
-        
+
         {/* Brand / Logo Area */}
         <div className="flex items-center gap-4">
           {/* Mobile Hamburger */}
@@ -44,23 +44,22 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           </button>
 
           {/* HRMSPortal Logo */}
-          <div 
-            className="flex items-center cursor-pointer select-none" 
+          <div
+            className="flex items-center cursor-pointer select-none"
             onClick={onLogoClick}
           >
-            <span className="font-bold text-xl text-[#8a42db] tracking-tight">HRMS</span>
-            <span className="font-bold text-xl text-slate-800 tracking-tight">Portal</span>
+            <img src="/logo.png" alt="HRMS Portal" className="h-15 w-auto max-w-[150px] object-contain" />
           </div>
         </div>
 
         {/* Right Controls */}
         <div className="flex items-center gap-4">
-          
+
           <button className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors relative cursor-pointer">
             <Bell size={18} />
             <div className="absolute top-2 right-2 w-2 h-2 bg-rose-500 rounded-full border-2 border-slate-100"></div>
           </button>
-          
+
           <button className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer hidden sm:flex">
             <Search size={18} />
           </button>

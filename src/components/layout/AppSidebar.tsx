@@ -38,9 +38,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const getBtnClass = (tabId: string) => {
     const isActive = activeTab === tabId;
     if (isActive) {
-      return "w-full flex items-center px-6 py-3.5 border-l-[4px] border-[#8a42db] bg-purple-50 text-[#8a42db] font-semibold transition-colors cursor-pointer group/btn relative";
+      return "w-full flex items-center px-6 py-3.5 bg-purple-50 text-[#8a42db] font-semibold transition-colors cursor-pointer group/btn relative before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-[#8a42db]";
     }
-    return "w-full flex items-center px-6 py-3.5 border-l-[4px] border-transparent text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors font-medium cursor-pointer group/btn relative";
+    return "w-full flex items-center px-6 py-3.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors font-medium cursor-pointer group/btn relative";
   };
 
   const getIconClass = (tabId: string) => {
@@ -62,7 +62,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </div>
 
       {/* Nav Items */}
-      <div className="flex-1 py-4 flex flex-col gap-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+      <div className="flex-1 py-4 flex flex-col gap-1 overflow-hidden">
         {isAdmin ? (
           <>
             {isExecutive && (
