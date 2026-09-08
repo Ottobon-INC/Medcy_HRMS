@@ -276,6 +276,7 @@ export default function App() {
             activeTab={activeTab}
             onSelectTab={setActiveTab}
             onOpenProfile={() => setShowProfileModal(true)}
+            onLogout={handleLogout}
           />
 
           {/* Primary Content Router */}
