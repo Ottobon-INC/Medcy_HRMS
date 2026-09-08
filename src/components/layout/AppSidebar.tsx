@@ -38,9 +38,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   const getBtnClass = (tabId: string) => {
     const isActive = activeTab === tabId;
     if (isActive) {
-      return "w-full flex items-center px-6 py-3.5 bg-purple-50 text-[#8a42db] font-semibold transition-colors cursor-pointer group/btn relative before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-[#8a42db]";
+      return "w-full flex items-center px-6 py-2.5 bg-purple-50 text-[#8a42db] font-semibold transition-colors cursor-pointer group/btn relative before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-[#8a42db]";
     }
-    return "w-full flex items-center px-6 py-3.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors font-medium cursor-pointer group/btn relative";
+    return "w-full flex items-center px-6 py-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors font-medium cursor-pointer group/btn relative";
   };
 
   const getIconClass = (tabId: string) => {
@@ -52,7 +52,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
     <aside id="desktop-sidebar" className="hidden lg:flex flex-col bg-white border-r border-slate-100 h-full no-print w-[80px] hover:w-64 transition-all duration-300 overflow-hidden group z-50 shrink-0">
       
       {/* Top Toggle Area */}
-      <div className="h-20 flex items-center px-6 shrink-0">
+      <div className="h-16 flex items-center px-6 shrink-0">
         <div className="w-6 flex justify-center">
           <Menu className="w-6 h-6 text-slate-800 shrink-0 cursor-pointer" />
         </div>
@@ -62,7 +62,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </div>
 
       {/* Nav Items */}
-      <div className="flex-1 py-4 flex flex-col gap-1 overflow-hidden">
+      <div className="flex-1 py-2 flex flex-col gap-0.5 overflow-hidden">
         {isAdmin ? (
           <>
             {isExecutive && (
@@ -199,8 +199,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </div>
 
       {/* Footer / Power */}
-      <div className="pb-8">
-        <button onClick={onLogout} className="w-full flex items-center px-6 py-3 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer group/btn">
+      <div className="pb-4">
+        <button onClick={onLogout} className="w-full flex items-center px-6 py-2.5 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer group/btn">
           <div className="w-6 flex justify-center shrink-0">
             <Power size={22} />
           </div>
