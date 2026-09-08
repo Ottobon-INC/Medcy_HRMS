@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Users, CheckCircle, Clock, AlertCircle, MapPin, ChevronRight } from 'lucide-react';
+import { ArrowRight, Users, CheckCircle, Clock, AlertCircle, MapPin, ChevronRight, Calendar, Sun, Moon } from 'lucide-react';
 import { Language, Employee, LeaveRequest } from '../types';
 import { translations } from '../translations';
 import TickerAlert from './TickerAlert';
@@ -92,328 +92,209 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
     .filter(item => item.log && item.log.checkInTime)
     .sort((a, b) => (b.log!.checkInTime > a.log!.checkInTime ? 1 : -1));
 
+  const currentHour = new Date().getHours();
+  let greeting = 'Good Evening';
+  let GreetingIcon = Moon;
+  let iconColor = 'text-indigo-500';
+
+  if (currentHour < 12) {
+    greeting = 'Good Morning';
+    GreetingIcon = Sun;
+    iconColor = 'text-yellow-500';
+  } else if (currentHour < 17) {
+    greeting = 'Good Afternoon';
+    GreetingIcon = Sun;
+    iconColor = 'text-orange-500';
+  }
+
   return (
-    <div id="admin-dashboard-container" className="space-y-6 animate-fadeIn">
+    <div id="admin-dashboard-container" className="space-y-8 animate-fadeIn pt-4">
       
       {/* Ticker Alerts */}
       <TickerAlert employees={employees} />
 
-      {/* 1. Header Hero Panel */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-        <div className="space-y-2 text-center md:text-left z-10">
-          <span className="px-3 py-1 rounded-full text-[10px] bg-purple-100 text-purple-700 font-bold uppercase tracking-wider">
-            Administrator Control Panel
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-800 leading-tight">
-            {localizedText.title}
-          </h2>
-          <p className="text-xs text-slate-400">
-            {localizedText.subtitle}
-          </p>
+      {/* 1. Header: Greeting & Quick Stats */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-8 pb-2">
+        {/* Greeting */}
+        <div>
+          <p className="text-[14px] text-slate-500 font-medium">Hello, Admin</p>
+          <div className="flex items-center gap-3">
+            <h2 className="text-3xl sm:text-4xl font-display font-light text-slate-800 tracking-tight">{greeting}</h2>
+            <GreetingIcon className={`${iconColor} w-7 h-7 sm:w-8 sm:h-8`} fill="currentColor" />
+          </div>
         </div>
 
-        <div className="flex gap-3 shrink-0 z-10">
-          <button
-            onClick={() => setActiveTab('directory')}
-            className="px-5 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold transition-all uppercase tracking-wide cursor-pointer active:scale-95 shadow-md shadow-teal-600/10"
-          >
-            {localizedText.actionDirectory}
-          </button>
-        </div>
+        {/* Quick Stats Pills */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto mt-6 lg:mt-0">
+           {/* Employees Pill */}
+           <div className="flex items-center gap-4 bg-white px-5 py-3 rounded-2xl sm:rounded-full border border-slate-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('directory')}>
+             <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center shrink-0">
+               <Users className="w-5 h-5 text-slate-600" />
+             </div>
+             <div>
+               <p className="text-[11px] text-slate-500 font-medium leading-tight">Total Staff</p>
+               <p className="text-lg font-bold text-slate-800 leading-tight">
+                 {totalEmployees} <span className="text-[10px] font-normal text-slate-400">active</span>
+               </p>
+             </div>
+           </div>
+           
+           {/* Attendance Pill */}
+           <div className="flex items-center gap-4 bg-white px-5 py-3 rounded-2xl sm:rounded-full border border-slate-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('attendanceOverview')}>
+             <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center shrink-0">
+               <CheckCircle className="w-5 h-5 text-slate-600" />
+             </div>
+             <div>
+               <p className="text-[11px] text-slate-500 font-medium leading-tight">Punched In</p>
+               <p className="text-lg font-bold text-slate-800 leading-tight">
+                 {checkedInToday} <span className="text-[10px] font-normal text-slate-400">/ {totalEmployees}</span>
+               </p>
+             </div>
+           </div>
 
-        {/* Decorative background circle */}
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-teal-50/25 rounded-full blur-3xl pointer-events-none" />
+           {/* Leaves Pill */}
+           <div className="flex items-center gap-4 bg-white px-5 py-3 rounded-2xl sm:rounded-full border border-slate-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer" onClick={() => setActiveTab('leaveApprovals')}>
+             <div className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center shrink-0">
+               <Clock className="w-5 h-5 text-slate-600" />
+             </div>
+             <div>
+               <p className="text-[11px] text-slate-500 font-medium leading-tight">Pending Leaves</p>
+               <p className="text-lg font-bold text-slate-800 leading-tight">
+                 {pendingCount} <span className="text-[10px] font-normal text-slate-400">requests</span>
+               </p>
+             </div>
+           </div>
+        </div>
       </div>
 
-      {/* 2. Numeric Snapshot Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-        
-        {/* Card 1: Total Employees */}
-        <div 
-          onClick={() => setActiveTab('directory')}
-          className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 cursor-pointer hover:-translate-y-1"
-        >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t.totalEmployees}</span>
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <Users className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-3xl sm:text-4xl font-black font-mono text-slate-800">{totalEmployees.toString().padStart(2, '0')}</span>
-              <span className="text-xs text-slate-400 font-medium">{language === 'te' ? 'మంది' : 'active'}</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-4 border-t border-slate-50 pt-3">
-            {language === 'te' ? 'కంపెనీలో మొత్తం స్టాఫ్' : 'Total staff onboarded'}
-          </p>
-        </div>
-
-        {/* Card 2: Punched In Today */}
-        <div 
-          onClick={() => setActiveTab('attendanceOverview')}
-          className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 cursor-pointer hover:-translate-y-1"
-        >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t.checkedInToday}</span>
-              <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                <CheckCircle className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-3xl sm:text-4xl font-black font-mono text-slate-800">{checkedInToday.toString().padStart(2, '0')}</span>
-              <span className="text-xs text-slate-400 font-medium">/ {totalEmployees}</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-4 border-t border-slate-50 pt-3 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            {localizedText.allCheckedIn}
-          </p>
-        </div>
-
-        {/* Card 3: Pending Leaves */}
-        <div 
-          onClick={() => setActiveTab('leaveApprovals')}
-          className="bg-white rounded-2xl p-5 sm:p-6 border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 cursor-pointer hover:-translate-y-1"
-        >
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t.pendingLeaves}</span>
-              <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
-                <Clock className="w-4 h-4" />
-              </div>
-            </div>
-            <div className="mt-4 flex items-baseline gap-1">
-              <span className="text-3xl sm:text-4xl font-black font-mono text-slate-800">{pendingCount.toString().padStart(2, '0')}</span>
-              <span className="text-xs text-slate-400 font-medium">{language === 'te' ? 'అభ్యర్థనలు' : 'pending'}</span>
-            </div>
-          </div>
-          <p className="text-[10px] text-slate-400 mt-4 border-t border-slate-50 pt-3">
-            {language === 'te' ? 'ఆమోదం కొరకు వెయిటింగ్' : 'Requires quick manager attention'}
-          </p>
-        </div>
-
+      {/* 2. Check-in Banner */}
+      <div className="bg-white rounded-[24px] sm:rounded-[32px] p-5 sm:p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5 sm:gap-6">
+         <div className="flex items-center gap-4 md:pl-2 w-full md:w-auto">
+           <div className="w-12 h-12 rounded-full border border-slate-300 flex items-center justify-center bg-white shrink-0">
+             <Clock className="w-6 h-6 text-slate-600" />
+           </div>
+           <div className="text-left">
+             <h4 className="font-bold text-slate-800 text-[15px]">Ready for today?</h4>
+             <p className="text-[13px] text-slate-500 font-medium mt-0.5">Today - {new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}</p>
+           </div>
+         </div>
+         <div className="flex items-center gap-4 md:gap-6 md:pr-2 w-full md:w-auto">
+           <span className="text-slate-600 font-medium text-[15px] hidden md:inline">Live Feed</span>
+           <button onClick={() => setActiveTab('directory')} className="w-full md:w-auto bg-[#8a42db] hover:bg-[#7e3acb] text-white px-8 py-3.5 rounded-full text-sm font-semibold transition-colors cursor-pointer shadow-sm">
+             View Directory
+           </button>
+         </div>
       </div>
 
-      {/* 3. Bottom Columns: Quick Action Panels and Recent Pending Leaves */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* 3. Masonry Grid Style Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        {/* LEFT COLUMN (lg:col-span-4): Quick Action Panel */}
-        <div className="lg:col-span-4 bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-6">
-              {localizedText.quickActionTitle}
+        {/* Column 1: Today's Feed */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm">
+            <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center gap-2">
+               <MapPin className="text-[#8a42db] w-5 h-5" /> Today's Punch-Ins
             </h3>
-
-            <div className="space-y-3">
-              {/* Directory */}
-              <button 
-                onClick={() => setActiveTab('directory')}
-                className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-teal-50 hover:text-teal-700 transition-colors text-left border border-slate-100 cursor-pointer text-xs font-bold text-slate-700"
-              >
-                <span>{localizedText.actionDirectory}</span>
-                <ArrowRight className="w-4 h-4 text-slate-400" />
-              </button>
-              
-              {/* Attendance */}
-              <button 
-                onClick={() => setActiveTab('attendanceOverview')}
-                className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-teal-50 hover:text-teal-700 transition-colors text-left border border-slate-100 cursor-pointer text-xs font-bold text-slate-700"
-              >
-                <span>{localizedText.actionAttendance}</span>
-                <ArrowRight className="w-4 h-4 text-slate-400" />
-              </button>
-
-              {/* Leave Approvals */}
-              <button 
-                onClick={() => setActiveTab('leaveApprovals')}
-                className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-teal-50 hover:text-teal-700 transition-colors text-left border border-slate-100 cursor-pointer text-xs font-bold text-slate-700"
-              >
-                <span>{localizedText.actionApprove}</span>
-                <ArrowRight className="w-4 h-4 text-slate-400" />
-              </button>
-
-              {/* Field Operations */}
-              <button 
-                onClick={() => setActiveTab('fieldOps')}
-                className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-teal-50 hover:text-teal-700 transition-colors text-left border border-slate-100 cursor-pointer text-xs font-bold text-slate-700"
-              >
-                <span>{localizedText.actionFieldOps}</span>
-                <ArrowRight className="w-4 h-4 text-slate-400" />
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-8 bg-amber-50 border border-amber-100 rounded-2xl p-4 flex gap-3 text-amber-900 leading-normal text-xs font-medium">
-            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-            <p>
-              {language === 'te'
-                ? "అడ్మిన్ పనులన్నీ నేరుగా ఉద్యోగుల వ్యూ లో అప్డేట్ అవుతాయి."
-                : "All administrator updates instantly sync and reflect on employee mobile and desktop portals."
-              }
-            </p>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN (lg:col-span-8): Recent Pending Leaves List */}
-        <div className="lg:col-span-8 bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-6 pb-2 border-b border-slate-50">
-            <h3 className="text-base font-bold text-slate-800">
-              {localizedText.recentLeavesTitle}
-            </h3>
-            <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-50 text-amber-700 rounded-full">
-              {pendingCount} {language === 'te' ? 'పెండింగ్' : 'Pending'}
-            </span>
-          </div>
-
-          {pendingCount === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-xs font-medium">
-              {language === 'te' 
-                ? 'ఆమోదం కొరకు ఎలాంటి లీవ్ రిక్వెస్ట్లు లేవు.' 
-                : 'Excellent! No pending leave requests to process.'
-              }
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {pendingRequests.slice(0, 3).map(({ req, empName, empId }) => {
-                const empObj = employees.find(e => e.id === empId);
-                const empBranch = empObj?.branch || 'visakhapatnam';
-                return (
-                <div key={req.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold text-slate-800">{empName}</span>
-                      <span className="text-[10px] text-slate-400 font-medium">({empId})</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                        empBranch === 'visakhapatnam' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                      }`}>
-                        {empBranch === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}
-                      </span>
-                    </div>
-                    <p className="text-[11px] font-bold text-teal-700">
-                      {req.type.toUpperCase()} LEAVE • {req.fromDate} to {req.toDate}
-                    </p>
-                    <p className="text-xs text-slate-500 italic">
-                      "{req.reason}"
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setActiveTab('leaveApprovals')}
-                    className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-[10px] font-bold uppercase tracking-wide cursor-pointer flex items-center gap-1.5"
-                  >
-                    <span>{language === 'te' ? 'నిర్ణయం తీసుకోండి' : 'Process Request'}</span>
-                    <ArrowRight className="w-3 h-3" />
+            {todaysCheckIns.length === 0 ? (
+              <div className="py-12 flex flex-col items-center justify-center bg-slate-50 rounded-2xl border border-slate-100/50 border-dashed">
+                <p className="text-slate-400 text-xs font-medium mb-4">No punch-ins recorded yet today.</p>
+                <div className="flex gap-3">
+                  <button onClick={() => setActiveTab('attendanceOverview')} className="px-5 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-[11px] font-bold shadow-sm hover:shadow-md transition-all cursor-pointer">
+                    View Attendance
+                  </button>
+                  <button onClick={() => setActiveTab('leaveApprovals')} className="px-5 py-2 bg-[#8a42db]/10 text-[#8a42db] rounded-full text-[11px] font-bold shadow-sm hover:bg-[#8a42db]/20 transition-all cursor-pointer">
+                    Check Leaves
                   </button>
                 </div>
-                );
-              })}
-              
-              {pendingCount > 3 && (
-                <button
-                  onClick={() => setActiveTab('leaveApprovals')}
-                  className="w-full text-center py-2.5 border border-dashed border-slate-200 hover:border-teal-500 rounded-xl text-xs font-bold text-slate-500 hover:text-teal-600 transition-all"
-                >
-                  {language === 'te' ? `మిగిలిన ${pendingCount - 3} రిక్వెస్ట్లను చూడండి` : `View Remaining ${pendingCount - 3} Requests`}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-      </div>
-
-      {/* 4. Today's Check-In Feed (Locations) */}
-      <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-100 shadow-sm">
-        <div className="flex items-center gap-2 mb-6 pb-2 border-b border-slate-50">
-          <MapPin className="w-5 h-5 text-teal-600" />
-          <h3 className="text-base font-bold text-slate-800">
-            {language === 'te' ? 'ఈ రోజు పంచ్ ఇన్ ఫీడ్ (స్థానాలు)' : "Today's Punch-In Feed & Locations"}
-
-          </h3>
-        </div>
-
-        {todaysCheckIns.length === 0 ? (
-          <div className="py-8 text-center text-slate-400 text-xs font-medium bg-slate-50 rounded-2xl border border-slate-100/50 border-dashed">
-            {language === 'te' ? 'ఈ రోజు ఇంకా ఎవరూ పంచ్ ఇన్ చేయలేదు.' : 'No punch-ins recorded yet today.'}
-
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {todaysCheckIns.map(({ emp, log }) => (
-              <div key={emp.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-teal-100 text-teal-700 w-8 h-8 rounded-full flex items-center justify-center font-black text-xs shrink-0">
-                      {emp.name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h4 className="text-sm font-bold text-slate-800">{emp.name}</h4>
-                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                          (emp.branch || 'visakhapatnam') === 'visakhapatnam' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                        }`}>
-                          {(emp.branch || 'visakhapatnam') === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 font-mono">{emp.id}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 shadow-sm">
-                      {log!.checkInTime.substring(0, 5)}
-                    </span>
-                    {!log!.checkOutTime && (
-                      <span className="px-2 py-1 bg-teal-50 border border-teal-100 rounded-lg text-[10px] font-bold text-teal-700 shadow-sm flex items-center gap-1">
-                        <Clock className="w-3 h-3 animate-pulse" />
-                        {(() => {
-                          const [h, m, s] = log!.checkInTime.split(':').map(Number);
-                          const checkInDate = new Date();
-                          checkInDate.setHours(h, m, s, 0);
-                          let diffMs = new Date().getTime() - checkInDate.getTime();
-                          if (diffMs < 0) diffMs = 0;
-                          const totalSecs = Math.floor(diffMs / 1000);
-                          const hrs = Math.floor(totalSecs / 3600);
-                          const mins = Math.floor((totalSecs % 3600) / 60);
-                          return `${hrs}h ${mins}m`;
-                        })()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex flex-col gap-2 pt-3 border-t border-slate-100/80">
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                      {log!.checkInLocation || (language === 'te' ? 'లొకేషన్ అందుబాటులో లేదు' : 'Location unavailable')}
-                    </p>
-                  </div>
-                  {log!.punchNote && (
-                    <div className="mt-1 ml-5 p-2 bg-amber-50 border border-amber-100 rounded-lg">
-                      <p className="text-[10px] text-amber-800 font-medium italic">
-                        <span className="font-bold mr-1">Note:</span>
-                        {log!.punchNote}
-                      </p>
-                    </div>
-                  )}
-                  {log!.checkInLatLng && (
-                    <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${log!.checkInLatLng}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-[10px] text-teal-600 hover:text-teal-700 font-bold ml-5"
-                    >
-                      {language === 'te' ? 'మ్యాప్‌లో చూడండి' : 'View on map'} →
-                    </a>
-                  )}
-                </div>
               </div>
-            ))}
+            ) : (
+              <div className="space-y-4">
+                {todaysCheckIns.map(({ emp, log }) => (
+                  <div key={emp.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-teal-100 text-teal-700 w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shrink-0">
+                        {emp.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-800">{emp.name}</h4>
+                        <p className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5"><Clock className="w-3 h-3"/> {log!.checkInTime.substring(0, 5)}</p>
+                      </div>
+                    </div>
+                    <div className="text-right max-w-[120px]">
+                      <p className="text-[10px] text-slate-400 truncate">{log!.checkInLocation || 'Location unavailable'}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
+
+        {/* Column 2: Announcements & Approvals */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Hero Widget (Purple) */}
+          <div className="bg-[#f3edfb] rounded-3xl p-6 sm:p-8 shadow-sm overflow-hidden relative group">
+            <div className="absolute right-[-20px] bottom-[-20px] w-32 h-32 bg-[#e6d8f8] rounded-full blur-2xl group-hover:scale-110 transition-transform"></div>
+            <div className="relative z-10">
+              <h4 className="text-xs font-bold text-[#8a42db] uppercase tracking-wider mb-2">Important Notice</h4>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2 leading-tight">Team<br/>Meeting</h2>
+              <p className="text-[11px] text-slate-600 mb-6">Check the latest updates.</p>
+              <button onClick={() => setActiveTab('messages')} className="bg-white text-slate-800 px-5 py-2 rounded-full text-[11px] font-bold shadow-sm cursor-pointer hover:bg-slate-50 transition-colors">View details</button>
+            </div>
+          </div>
+
+          {/* Pending Leaves List Widget */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-base font-bold text-slate-800">Leave Requests</h3>
+              <button onClick={() => setActiveTab('leaveApprovals')} className="text-[#8a42db] text-xs font-bold cursor-pointer hover:underline">View all</button>
+            </div>
+            {pendingCount === 0 ? (
+               <div className="py-8 text-center text-slate-400 text-xs font-medium">No pending requests</div>
+            ) : (
+               <div className="space-y-4">
+                 {pendingRequests.slice(0, 3).map(({ req, empName }) => (
+                   <div key={req.id} className="flex items-center gap-4 group cursor-pointer" onClick={() => setActiveTab('leaveApprovals')}>
+                     <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center shrink-0">
+                       <Clock className="w-4 h-4" />
+                     </div>
+                     <div className="flex-1">
+                       <p className="text-sm font-bold text-slate-800 group-hover:text-[#8a42db] transition-colors">{empName}</p>
+                       <p className="text-[11px] text-slate-500">{req.fromDate}</p>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Column 3: Quick Actions (Time Log Style) */}
+        <div className="lg:col-span-3 space-y-6">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm h-full flex flex-col">
+            <h3 className="text-base font-bold text-slate-800 mb-6">Quick Links</h3>
+            
+            <div className="flex-1 space-y-3">
+               <button onClick={() => setActiveTab('directory')} className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors text-left border border-transparent cursor-pointer">
+                  <span className="text-[13px] font-bold text-slate-700">Employees</span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+               </button>
+               <button onClick={() => setActiveTab('attendanceOverview')} className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors text-left border border-transparent cursor-pointer">
+                  <span className="text-[13px] font-bold text-slate-700">Attendance</span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+               </button>
+               <button onClick={() => setActiveTab('adminTasks')} className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors text-left border border-transparent cursor-pointer">
+                  <span className="text-[13px] font-bold text-slate-700">Tasks</span>
+                  <ChevronRight className="w-4 h-4 text-slate-400" />
+               </button>
+            </div>
+            
+            <button onClick={() => setActiveTab('adminSettings')} className="w-full mt-6 py-3 border border-dashed border-slate-300 rounded-2xl text-[13px] font-bold text-slate-500 hover:text-slate-700 hover:border-slate-400 transition-colors cursor-pointer">
+              Settings
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );

@@ -18,6 +18,7 @@ import UserProfileModal from './components/UserProfileModal';
 import { AppHeader } from './components/layout/AppHeader';
 import { AppSidebar } from './components/layout/AppSidebar';
 import { MobileDrawerNav } from './components/layout/MobileDrawerNav';
+import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { AppRouter } from './components/layout/AppRouter';
 import { PwaInstallPrompt } from './components/shared/PwaInstallPrompt';
 import { OfflineIndicator } from './components/shared/OfflineIndicator';
@@ -237,7 +238,7 @@ export default function App() {
   const scopedEmployees = filterEmployeesByScope(currentUser, employees);
 
   return (
-    <div id="app-root-shell" className="min-h-screen bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900">
+    <div id="app-root-shell" className="h-screen overflow-hidden bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900">
         <OfflineIndicator />
         <PwaInstallPrompt />
         
@@ -267,7 +268,7 @@ export default function App() {
         )}
 
         {/* 2. Body Grid / Sidebar Layout */}
-        <div id="portal-body-wrapper" className="flex-1 w-full mx-auto px-4 sm:px-6 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 print:p-0 print:m-0">
+        <div id="portal-body-wrapper" className="flex-1 w-full flex overflow-hidden">
           
           {/* Desktop Sidebar Navigation */}
           <AppSidebar
@@ -278,7 +279,7 @@ export default function App() {
           />
 
           {/* Primary Content Router */}
-          <main id="portal-primary-content" className="lg:col-span-9 print:col-span-12">
+          <main id="portal-primary-content" className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 md:py-8 pb-24 lg:pb-8 min-w-0 print:col-span-12 print:overflow-visible print:p-0 print:m-0">
             <React.Suspense fallback={
               <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
                 <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
@@ -326,6 +327,15 @@ export default function App() {
           activeTab={activeTab}
           onSelectTab={setActiveTab}
           onOpenProfile={() => setShowProfileModal(true)}
+        />
+
+        {/* 4. Mobile Bottom Navigation Bar */}
+        <MobileBottomNav
+          currentUser={currentUser}
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          onOpenMenu={() => setMobileNavOpen(true)}
+          onLogout={handleLogout}
         />
 
       </div>
