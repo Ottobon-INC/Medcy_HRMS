@@ -13,7 +13,7 @@ export default defineConfig(() => {
       basicSsl(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['logo.png', 'watermark.jpeg', 'apple-touch-icon.png', 'pwa-192.png', 'pwa-512.png'],
+        includeAssets: ['logo.png', 'watermark.jpeg', 'apple-touch-icon.png', 'pwa-192.png', 'pwa-512.png', 'pwa-maskable-512.png'],
         manifest: {
           name: 'Medcy Health Tech — HRMS',
           short_name: 'MedcyHRMS',

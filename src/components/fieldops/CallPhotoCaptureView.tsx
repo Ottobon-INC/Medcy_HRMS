@@ -549,7 +549,7 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
          type="button"
          onClick={snapPhoto}
          disabled={!isCameraActive}
-         className="px-8 py-3.5 rounded-2xl bg-[#f3edfb]0 hover:bg-teal-400 disabled:opacity-50 text-slate-950 font-black text-sm flex items-center gap-2.5 shadow-sm shadow-teal-500/20 transition-all cursor-pointer hover:scale-105"
+         className="px-8 py-3.5 rounded-2xl bg-[#8a42db] hover:bg-[#7e3acb] disabled:opacity-50 text-white font-black text-sm flex items-center gap-2.5 shadow-sm shadow-purple-500/20 transition-all cursor-pointer hover:scale-105"
         >
          <Camera className="w-5 h-5"/> Capture Proof Photo
         </button>
@@ -596,7 +596,7 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
           type="button"
           disabled={submitting || (captureStage === 'end_preview' && !notes.trim())}
           onClick={captureStage === 'start_preview' ? handleConfirmStartCall : handleConfirmEndCall}
-          className="px-6 py-2.5 rounded-xl bg-[#8a42db] hover:bg-[#f3edfb]0 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-xs flex items-center gap-2 shadow-sm shadow-teal-600/30 transition-all cursor-pointer"
+          className="px-6 py-2.5 rounded-xl bg-[#8a42db] hover:bg-[#7e3acb] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-xs flex items-center gap-2 shadow-sm shadow-purple-600/30 transition-all cursor-pointer"
          >
           {submitting ? (
            <span>Uploading Proof...</span>

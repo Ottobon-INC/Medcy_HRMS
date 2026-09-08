@@ -369,7 +369,7 @@ export default function CheckInModule({
      </span>
      <div className="flex items-center justify-center md:justify-start gap-2.5 mt-2">
       <span className={`inline-block w-3 h-3 rounded-full ${
-       isOnBreak ? 'bg-amber-500 animate-ping' : isCheckedIn ? 'bg-[#f3edfb]0 animate-pulse' : 'bg-amber-500'
+       isOnBreak ? 'bg-amber-500 animate-ping' : isCheckedIn ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
       }`} />
       <h2 className="text-2xl font-black text-slate-800">
        {isOnBreak

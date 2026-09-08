@@ -97,7 +97,7 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
   <div className="space-y-6 animate-fadeIn pb-12">
    {/* Top Banner with Executive Credentials */}
    <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-md relative overflow-hidden">
-    <div className="absolute right-0 top-0 translate-x-1/4 -translate-y-1/4 w-80 h-80 bg-[#f3edfb]0/10 rounded-full blur-3xl pointer-events-none"/>
+    <div className="absolute right-0 top-0 translate-x-1/4 -translate-y-1/4 w-80 h-80 bg-[#8a42db]/10 rounded-full blur-3xl pointer-events-none"/>
     
     <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
      <div className="space-y-2">
@@ -105,8 +105,8 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
        <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full">
         Executive Leadership Console
        </span>
-       <span className="bg-[#f3edfb]0/20 text-teal-300 border border-[#8a42db]/30 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full flex items-center gap-1">
-        <Radio className="w-2.5 h-2.5 animate-pulse text-teal-300"/>
+       <span className="bg-[#8a42db]/20 text-purple-200 border border-[#8a42db]/30 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full flex items-center gap-1">
+        <Radio className="w-2.5 h-2.5 animate-pulse text-purple-300"/>
         Live Multi-Branch Sync
        </span>
       </div>
@@ -129,7 +129,7 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
       </button>
       <button
        onClick={() => setActiveTab('leaveApprovals')}
-       className="px-4 py-2.5 bg-[#f3edfb]0 hover:bg-[#8a42db] rounded-xl text-xs font-bold text-white transition-all flex items-center gap-2 cursor-pointer shadow-sm shadow-teal-500/25"
+       className="px-4 py-2.5 bg-[#8a42db] hover:bg-[#7e3acb] rounded-xl text-xs font-bold text-white transition-all flex items-center gap-2 cursor-pointer shadow-sm shadow-purple-500/25"
       >
        <CalendarCheck className="w-3.5 h-3.5"/>
        <span>Review Leaves ({totalPendingLeaves})</span>
