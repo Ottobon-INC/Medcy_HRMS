@@ -21,9 +21,11 @@ export interface Employee {
   basicSalary: number;
   role: 'employee' | 'admin';
   password?: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'pending';
   phone?: string;
+  hospital?: import('./common.types').Hospital;
   branch?: Branch;
+  teamId?: string;
   hierarchyLevel?: HierarchyLevel;
   managedBranches?: Branch[];
   reportingTo?: string;

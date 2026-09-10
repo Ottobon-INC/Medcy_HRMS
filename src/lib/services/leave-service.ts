@@ -16,7 +16,7 @@ export async function submitLeaveRequest(empId: string, leave: Omit<LeaveRequest
   if (error) throw error;
 }
 
-export async function updateLeaveRequestStatus(requestId: string, status: 'Approved' | 'Rejected', adminNote?: string): Promise<void> {
+export async function updateLeaveRequestStatus(requestId: string, approverId: string, status: 'Approved' | 'Rejected', adminNote?: string): Promise<void> {
   const { data: request, error: fetchErr } = await supabase
     .from('HRMS_leave_requests')
     .select('*')
@@ -27,7 +27,7 @@ export async function updateLeaveRequestStatus(requestId: string, status: 'Appro
 
   const { error } = await supabase
     .from('HRMS_leave_requests')
-    .update({ status: status, admin_note: adminNote || '' })
+    .update({ status: status, admin_note: adminNote || '', approved_by: approverId })
     .eq('id', requestId);
 
   if (error) throw error;

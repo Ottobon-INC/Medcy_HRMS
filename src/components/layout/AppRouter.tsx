@@ -19,6 +19,7 @@ const AdminTaskManager = React.lazy(() => import('../AdminTaskManager'));
 const ExecutiveOverview = React.lazy(() => import('../ExecutiveOverview'));
 const OrgHierarchyView = React.lazy(() => import('../OrgHierarchyView'));
 const CallPhotoCaptureView = React.lazy(() => import('../fieldops/CallPhotoCaptureView').then(m => ({ default: m.CallPhotoCaptureView })));
+const DoctorVisitPlanner = React.lazy(() => import('../DoctorVisitPlanner'));
 
 
 interface AppRouterProps {
@@ -26,6 +27,7 @@ interface AppRouterProps {
  language: Language;
  currentUser: Employee;
  employees: Employee[];
+ allEmployees?: Employee[];
  isLocalMode: boolean;
  tasks: Task[];
  noDataText: string;
@@ -54,6 +56,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
  language,
  currentUser,
  employees,
+ allEmployees,
  isLocalMode,
  tasks,
  noDataText,
@@ -129,8 +132,8 @@ export const AppRouter: React.FC<AppRouterProps> = ({
      onApplyLeave={(type, fromDate, toDate, reason) =>
       onApplyLeave(currentUser.id, { type, fromDate, toDate, reason, status: 'pending', submittedAt: new Date().toISOString() })
      }
-     onApproveLeave={onApproveLeave}
-     onRejectLeave={onRejectLeave}
+     onApproveLeave={(reqId) => onApproveLeave(reqId, currentUser.id)}
+     onRejectLeave={(reqId) => onRejectLeave(reqId, currentUser.id)}
     />
    );
 
@@ -151,8 +154,8 @@ export const AppRouter: React.FC<AppRouterProps> = ({
      onAddEmployee={onAddEmployee}
      onUpdateEmployee={onUpdateEmployee}
      onDeleteEmployee={onDeleteEmployee}
-     onApproveEmployeeLeave={(_empId, reqId) => onApproveLeave(reqId)}
-     onRejectEmployeeLeave={(_empId, reqId) => onRejectLeave(reqId)}
+     onApproveEmployeeLeave={(_empId, reqId) => onApproveLeave(reqId, currentUser.id)}
+     onRejectEmployeeLeave={(_empId, reqId) => onRejectLeave(reqId, currentUser.id)}
      onApplyEmployeeLeave={(empId, type, fromDate, toDate, reason) =>
       onApplyLeave(empId, { type, fromDate, toDate, reason, status: 'pending', submittedAt: new Date().toISOString() })
      }
@@ -182,9 +185,18 @@ export const AppRouter: React.FC<AppRouterProps> = ({
    return (
     <AdminLeaveApprovals
      language={language}
+     currentUser={currentUser}
      employees={employees}
-     onApproveLeave={(_empId, reqId, note) => onApproveLeave(reqId, note)}
-     onRejectLeave={(_empId, reqId, note) => onRejectLeave(reqId, note)}
+     onApproveLeave={(_empId, reqId, _approverId, note) => onApproveLeave(reqId, note)}
+     onRejectLeave={(_empId, reqId, _approverId, note) => onRejectLeave(reqId, note)}
+    />
+   );
+  case 'doctorPlanner':
+   return (
+    <DoctorVisitPlanner
+     language={language}
+     currentUser={currentUser}
+     employees={employees}
     />
    );
   case 'officeLocations':
@@ -227,7 +239,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
     <ExecutiveOverview
      language={language}
      currentUser={currentUser}
-     employees={employees}
+     employees={allEmployees || employees}
      tasks={tasks}
      setActiveTab={setActiveTab}
     />
@@ -237,7 +249,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
     <OrgHierarchyView
      language={language}
      currentUser={currentUser}
-     employees={employees}
+     employees={allEmployees || employees}
     />
    );
 

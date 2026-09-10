@@ -5,13 +5,15 @@ import { translations } from '../translations';
 
 interface AdminLeaveApprovalsProps {
  language: Language;
+ currentUser: Employee;
  employees: Employee[];
- onApproveLeave: (empId: string, reqId: string, note?: string) => void;
- onRejectLeave: (empId: string, reqId: string, note?: string) => void;
+ onApproveLeave: (empId: string, reqId: string, approverId: string, note?: string) => void;
+ onRejectLeave: (empId: string, reqId: string, approverId: string, note?: string) => void;
 }
 
 export default function AdminLeaveApprovals({
  language,
+ currentUser,
  employees,
  onApproveLeave,
  onRejectLeave,
@@ -22,11 +24,24 @@ export default function AdminLeaveApprovals({
  const [decisionNotes, setDecisionNotes] = useState<Record<string, string>>({});
  const [leaveBranchFilter, setLeaveBranchFilter] = useState<Branch | 'all'>('all');
 
- // Compile leave requests across all employees, filtered by selected branch
+ // Determine scoped employees based on current user's hierarchy
+ let scopedEmployees = employees;
+ if (currentUser.hierarchyLevel === 'team_lead') {
+   scopedEmployees = employees.filter(emp => emp.reportingTo === currentUser.id);
+ } else if (currentUser.hierarchyLevel === 'senior_manager') {
+   scopedEmployees = employees.filter(emp => emp.hospital === currentUser.hospital);
+ } else if (currentUser.hierarchyLevel === 'manager') {
+    const branches = currentUser.managedBranches && currentUser.managedBranches.length > 0
+      ? currentUser.managedBranches
+      : (currentUser.branch ? [currentUser.branch] : ['visakhapatnam', 'vizianagaram']);
+    scopedEmployees = employees.filter(emp => emp.hospital === currentUser.hospital && branches.includes(emp.branch || 'visakhapatnam'));
+ }
+
+ // Compile leave requests across scoped employees, filtered by selected branch
  const pendingRequests: { emp: Employee; req: LeaveRequest }[] = [];
  const processedRequests: { emp: Employee; req: LeaveRequest }[] = [];
 
- employees.forEach(emp => {
+ scopedEmployees.forEach(emp => {
   if (leaveBranchFilter !== 'all' && (emp.branch || 'visakhapatnam') !== leaveBranchFilter) {
    return;
   }
@@ -185,7 +200,10 @@ export default function AdminLeaveApprovals({
               {empBranch === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}
              </span>
             </div>
-            <p className="text-[10px] text-slate-400">{emp.designation} • ID: {emp.id} • Reports to: Ravi Kumar</p>
+            <p className="text-[10px] text-slate-400">
+               {emp.designation} • ID: {emp.id} 
+               {emp.reportingTo ? ` • Reports to: ${employees.find(e => e.id === emp.reportingTo)?.name || 'Unknown'}` : ''}
+            </p>
            </div>
           </div>
 
@@ -234,7 +252,7 @@ export default function AdminLeaveApprovals({
          {/* Approve / Reject buttons */}
          <div className="flex flex-row lg:flex-col justify-end gap-3 lg:w-44 shrink-0 pt-4 lg:pt-0 border-t lg:border-t-0 lg:border-l border-slate-200/60 lg:pl-6">
           <button
-           onClick={() => onApproveLeave(emp.id, req.id, noteText)}
+           onClick={() => onApproveLeave(emp.id, req.id, currentUser.id, noteText)}
            className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-[#8a42db] hover:bg-[#7e3acb] text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all uppercase cursor-pointer shadow-md shadow-teal-600/10"
           >
            <Check className="w-4 h-4"/>
@@ -242,7 +260,7 @@ export default function AdminLeaveApprovals({
           </button>
           
           <button
-           onClick={() => onRejectLeave(emp.id, req.id, noteText)}
+           onClick={() => onRejectLeave(emp.id, req.id, currentUser.id, noteText)}
            className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 px-4 py-2.5 rounded-xl text-xs font-bold transition-all uppercase cursor-pointer"
           >
            <X className="w-4 h-4"/>
@@ -296,13 +314,34 @@ export default function AdminLeaveApprovals({
           </td>
           <td className="p-4 text-xs text-slate-500 font-mono">{req.submittedAt}</td>
           <td className="p-4 text-right">
-           <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-            req.status === 'approved' 
-             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
-             : 'bg-rose-50 text-rose-700 border border-rose-100'
-           }`}>
-            {req.status}
-           </span>
+           <div className="flex flex-col items-end gap-1">
+             <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
+              req.status === 'approved' 
+               ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+               : 'bg-rose-50 text-rose-700 border border-rose-100'
+             }`}>
+              {req.status}
+             </span>
+             {req.approvedBy && (
+               <span className="text-[9px] text-slate-400">By {employees.find(e => e.id === req.approvedBy)?.name || req.approvedBy}</span>
+             )}
+             {currentUser.hierarchyLevel === 'senior_manager' && (
+                <div className="flex gap-2 mt-2">
+                  {req.status !== 'approved' && (
+                     <button
+                        onClick={() => onApproveLeave(emp.id, req.id, currentUser.id, 'Overridden by Senior Manager')}
+                        className="text-[9px] font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer uppercase underline"
+                     >Override & Approve</button>
+                  )}
+                  {req.status !== 'rejected' && (
+                     <button
+                        onClick={() => onRejectLeave(emp.id, req.id, currentUser.id, 'Overridden by Senior Manager')}
+                        className="text-[9px] font-bold text-rose-600 hover:text-rose-700 cursor-pointer uppercase underline"
+                     >Override & Reject</button>
+                  )}
+                </div>
+             )}
+           </div>
           </td>
          </tr>
         ))}

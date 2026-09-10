@@ -32,7 +32,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 }) => {
   const isExecutive = currentUser.hierarchyLevel === 'executive';
   const isManager = currentUser.hierarchyLevel === 'manager';
-  const isAdmin = currentUser.role === 'admin' || isExecutive || isManager;
+  const isSeniorManager = currentUser.hierarchyLevel === 'senior_manager';
+  const isTeamLead = currentUser.hierarchyLevel === 'team_lead';
+  const isAdmin = currentUser.role === 'admin' || isExecutive || isManager || isSeniorManager || isTeamLead;
 
   // Common button class generator
   const getBtnClass = (tabId: string) => {
@@ -88,19 +90,23 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Org Hierarchy</span>
             </button>
 
-            <button onClick={() => onSelectTab('directory')} className={getBtnClass('directory')}>
-              <div className={getIconClass('directory')}>
-                <Users size={22} />
-              </div>
-              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Directory</span>
-            </button>
+            {(!isTeamLead && !isSeniorManager) && (
+              <>
+                <button onClick={() => onSelectTab('directory')} className={getBtnClass('directory')}>
+                  <div className={getIconClass('directory')}>
+                    <Users size={22} />
+                  </div>
+                  <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Directory</span>
+                </button>
 
-            <button onClick={() => onSelectTab('attendanceOverview')} className={getBtnClass('attendanceOverview')}>
-              <div className={getIconClass('attendanceOverview')}>
-                <Calendar size={22} />
-              </div>
-              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Attendance</span>
-            </button>
+                <button onClick={() => onSelectTab('attendanceOverview')} className={getBtnClass('attendanceOverview')}>
+                  <div className={getIconClass('attendanceOverview')}>
+                    <Calendar size={22} />
+                  </div>
+                  <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Attendance</span>
+                </button>
+              </>
+            )}
 
             <button onClick={() => onSelectTab('leaveApprovals')} className={getBtnClass('leaveApprovals')}>
               <div className={getIconClass('leaveApprovals')}>
@@ -109,12 +115,21 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Leaves</span>
             </button>
 
-            <button onClick={() => onSelectTab('officeLocations')} className={getBtnClass('officeLocations')}>
-              <div className={getIconClass('officeLocations')}>
-                <MapPin size={22} />
+            <button onClick={() => onSelectTab('doctorPlanner')} className={getBtnClass('doctorPlanner')}>
+              <div className={getIconClass('doctorPlanner')}>
+                <Calendar size={22} />
               </div>
-              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Locations</span>
+              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Doctor Plans</span>
             </button>
+
+            {(!isTeamLead && !isSeniorManager) && (
+              <button onClick={() => onSelectTab('officeLocations')} className={getBtnClass('officeLocations')}>
+                <div className={getIconClass('officeLocations')}>
+                  <MapPin size={22} />
+                </div>
+                <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Locations</span>
+              </button>
+            )}
 
             <button onClick={() => onSelectTab('messages')} className={getBtnClass('messages')}>
               <div className={getIconClass('messages')}>
@@ -123,12 +138,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Messages</span>
             </button>
 
-            <button onClick={() => onSelectTab('fieldOps')} className={getBtnClass('fieldOps')}>
-              <div className={getIconClass('fieldOps')}>
-                <MapPin size={22} />
-              </div>
-              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Field Register</span>
-            </button>
+            {(!isTeamLead && !isSeniorManager) && (
+              <button onClick={() => onSelectTab('fieldOps')} className={getBtnClass('fieldOps')}>
+                <div className={getIconClass('fieldOps')}>
+                  <MapPin size={22} />
+                </div>
+                <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Field Register</span>
+              </button>
+            )}
 
             <button onClick={() => onSelectTab('adminTasks')} className={getBtnClass('adminTasks')}>
               <div className={getIconClass('adminTasks')}>
@@ -137,12 +154,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Assignments</span>
             </button>
 
-            <button onClick={() => onSelectTab('adminSettings')} className={getBtnClass('adminSettings')}>
-              <div className={getIconClass('adminSettings')}>
-                <Settings size={22} />
-              </div>
-              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Settings</span>
-            </button>
+            {(!isTeamLead && !isSeniorManager) && (
+              <button onClick={() => onSelectTab('adminSettings')} className={getBtnClass('adminSettings')}>
+                <div className={getIconClass('adminSettings')}>
+                  <Settings size={22} />
+                </div>
+                <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Settings</span>
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -165,6 +184,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 <Camera size={22} />
               </div>
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Visit Log</span>
+            </button>
+
+            <button onClick={() => onSelectTab('doctorPlanner')} className={getBtnClass('doctorPlanner')}>
+              <div className={getIconClass('doctorPlanner')}>
+                <Calendar size={22} />
+              </div>
+              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Visit Planner</span>
             </button>
 
             <button onClick={() => onSelectTab('attendance')} className={getBtnClass('attendance')}>

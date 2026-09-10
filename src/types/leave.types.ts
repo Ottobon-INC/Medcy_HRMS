@@ -9,6 +9,7 @@ export interface LeaveRequest {
   reason: string;
   status: LeaveStatus;
   submittedAt: string;
+  approvedBy?: string;
 }
 
 export interface LeaveBalance {

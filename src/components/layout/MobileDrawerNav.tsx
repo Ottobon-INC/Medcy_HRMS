@@ -38,7 +38,9 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
 }) => {
  const isExecutive = currentUser.hierarchyLevel === 'executive';
  const isManager = currentUser.hierarchyLevel === 'manager';
- const isAdmin = currentUser.role === 'admin' || isExecutive || isManager;
+ const isSeniorManager = currentUser.hierarchyLevel === 'senior_manager';
+ const isTeamLead = currentUser.hierarchyLevel === 'team_lead';
+ const isAdmin = currentUser.role === 'admin' || isExecutive || isManager || isSeniorManager || isTeamLead;
 
  let roleSubtitle = currentUser.designation || 'Staff';
  if (isExecutive) {
@@ -187,29 +189,33 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
         <span>Org Hierarchy</span>
        </button>
 
-       <button
-        onClick={() => handleTabClick('directory')}
-        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
-         activeTab === 'directory'
-          ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
-          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-        }`}
-       >
-        <Users className={`w-4 h-4 shrink-0 ${activeTab === 'directory' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
-        <span>Employee Directory</span>
-       </button>
+       {(!isTeamLead && !isSeniorManager) && (
+         <>
+           <button
+           onClick={() => handleTabClick('directory')}
+           className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+             activeTab === 'directory'
+             ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
+             : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+           }`}
+           >
+           <Users className={`w-4 h-4 shrink-0 ${activeTab === 'directory' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
+           <span>Employee Directory</span>
+           </button>
 
-       <button
-        onClick={() => handleTabClick('attendanceOverview')}
-        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
-         activeTab === 'attendanceOverview'
-          ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
-          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-        }`}
-       >
-        <Calendar className={`w-4 h-4 shrink-0 ${activeTab === 'attendanceOverview' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
-        <span>Team Attendance</span>
-       </button>
+           <button
+           onClick={() => handleTabClick('attendanceOverview')}
+           className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+             activeTab === 'attendanceOverview'
+             ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
+             : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+           }`}
+           >
+           <Calendar className={`w-4 h-4 shrink-0 ${activeTab === 'attendanceOverview' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
+           <span>Team Attendance</span>
+           </button>
+         </>
+       )}
 
        <button
         onClick={() => handleTabClick('leaveApprovals')}
@@ -224,29 +230,44 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
        </button>
 
        <button
-        onClick={() => handleTabClick('officeLocations')}
+        onClick={() => handleTabClick('doctorPlanner')}
         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
-         activeTab === 'officeLocations'
+         activeTab === 'doctorPlanner'
           ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
         }`}
        >
-        <MapPin className={`w-4 h-4 shrink-0 ${activeTab === 'officeLocations' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
-        <span>Office Locations</span>
+        <Calendar className={`w-4 h-4 shrink-0 ${activeTab === 'doctorPlanner' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
+        <span>Doctor Plans</span>
        </button>
 
-       <button
-        onClick={() => handleTabClick('fieldOps')}
-        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
-         activeTab === 'fieldOps'
-          ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
-          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-        }`}
-       >
-        <MapPin className={`w-4 h-4 shrink-0 ${activeTab === 'fieldOps' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
-        <span>Field Visit Register</span>
-       </button>
+       {(!isTeamLead && !isSeniorManager) && (
+         <button
+         onClick={() => handleTabClick('officeLocations')}
+         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+           activeTab === 'officeLocations'
+           ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
+           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+         }`}
+         >
+         <MapPin className={`w-4 h-4 shrink-0 ${activeTab === 'officeLocations' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
+         <span>Office Locations</span>
+         </button>
+       )}
 
+       {(!isTeamLead && !isSeniorManager) && (
+         <button
+         onClick={() => handleTabClick('fieldOps')}
+         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+           activeTab === 'fieldOps'
+           ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
+           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+         }`}
+         >
+         <MapPin className={`w-4 h-4 shrink-0 ${activeTab === 'fieldOps' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
+         <span>Field Visit Register</span>
+         </button>
+       )}
 
        <button
         onClick={() => handleTabClick('adminTasks')}
@@ -272,17 +293,19 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
         <span>Messages</span>
        </button>
 
-       <button
-        onClick={() => handleTabClick('adminSettings')}
-        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
-         activeTab === 'adminSettings'
-          ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
-          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-        }`}
-       >
-        <Settings className={`w-4 h-4 shrink-0 ${activeTab === 'adminSettings' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
-        <span>Admin Settings</span>
-       </button>
+       {(!isTeamLead && !isSeniorManager) && (
+         <button
+         onClick={() => handleTabClick('adminSettings')}
+         className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+           activeTab === 'adminSettings'
+           ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
+           : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+         }`}
+         >
+         <Settings className={`w-4 h-4 shrink-0 ${activeTab === 'adminSettings' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
+         <span>Admin Settings</span>
+         </button>
+       )}
       </>
      ) : (
       /* --- EMPLOYEE NAV BUTTONS --- */
@@ -323,6 +346,17 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
         <span>Visit Log</span>
        </button>
 
+       <button
+        onClick={() => handleTabClick('doctorPlanner')}
+        className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+         activeTab === 'doctorPlanner'
+          ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
+          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+        }`}
+       >
+        <Calendar className={`w-4 h-4 shrink-0 ${activeTab === 'doctorPlanner' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
+        <span>Visit Planner</span>
+       </button>
 
        <button
         onClick={() => handleTabClick('attendance')}

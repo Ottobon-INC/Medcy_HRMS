@@ -48,7 +48,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             className="flex items-center cursor-pointer select-none"
             onClick={onLogoClick}
           >
-            <img src="/logo.png" alt="HRMS Portal" className="h-15 w-auto max-w-[150px] object-contain" />
+            {currentUser.hospital === 'medcy_hospitals' ? (
+               <img src="/medcy-Logo.jpeg" alt="Medcy Hospitals" className="h-10 w-auto max-w-[150px] object-contain mix-blend-multiply" />
+            ) : (
+               <img src="/logo.png" alt="Vizag IVF" className="h-15 w-auto max-w-[150px] object-contain" />
+            )}
           </div>
         </div>
 

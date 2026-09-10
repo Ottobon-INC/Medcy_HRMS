@@ -44,7 +44,7 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
   const localizedText = {
     en: {
       title: "Admin Management Dashboard",
-      subtitle: "Medcy Health Tech Clinic Overview",
+      subtitle: employees.some(e => e.hospital === 'medcy_hospitals') ? "Multi-Entity HR Overview" : "Medcy Health Tech Clinic Overview",
       summaryCardTitle: "Admin Quick Snapshot",
       quickActionTitle: "Quick Management Actions",
       recentLeavesTitle: "Recent Pending Leaves Requiring Decision",
@@ -59,7 +59,7 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
     },
     te: {
       title: "Admin Management Dashboard",
-      subtitle: "Medcy Health Tech Clinic Overview",
+      subtitle: employees.some(e => e.hospital === 'medcy_hospitals') ? "Multi-Entity HR Overview" : "Medcy Health Tech Clinic Overview",
       summaryCardTitle: "Admin Quick Snapshot",
       quickActionTitle: "Quick Management Actions",
       recentLeavesTitle: "Recent Pending Leaves Requiring Decision",

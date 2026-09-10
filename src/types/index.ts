@@ -12,3 +12,5 @@ export * from './advance.types';
 export * from './location.types';
 export * from './field-force.types';
 export * from './work-assignment.types';
+export * from './team.types';
+export * from './doctor-visit.types';

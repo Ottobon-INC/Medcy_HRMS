@@ -4,5 +4,5 @@ export type PinType = 'field_visit' | 'medical_camp' | 'client_site' | 'delivery
 export type RepaymentTimeline = 2 | 3 | 5;
 
 export type Branch = 'visakhapatnam' | 'vizianagaram';
-export type HierarchyLevel = 'employee' | 'manager' | 'executive';
-
+export type Hospital = 'vizag_ivf' | 'medcy_hospitals' | 'both';
+export type HierarchyLevel = 'employee' | 'team_lead' | 'manager' | 'senior_manager' | 'executive';

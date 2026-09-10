@@ -141,15 +141,17 @@ export default function App() {
     
     const isExecutive = currentUser.hierarchyLevel === 'executive';
     const isManager = currentUser.hierarchyLevel === 'manager';
-    const isAdminLevel = currentUser.role === 'admin' || isExecutive || isManager;
+    const isSeniorManager = currentUser.hierarchyLevel === 'senior_manager';
+    const isTeamLead = currentUser.hierarchyLevel === 'team_lead';
+    const isAdminLevel = currentUser.role === 'admin' || isExecutive || isManager || isSeniorManager || isTeamLead;
 
     const adminTabs = [
       'adminDashboard', 'directory', 'attendanceOverview', 'leaveApprovals',
       'officeLocations', 'messages', 'adminSettings', 'fieldOps', 'adminTasks',
-      'executiveOverview', 'orgChart'
+      'executiveOverview', 'orgChart', 'doctorPlanner'
     ];
     const employeeTabs = [
-      'dashboard', 'attendance', 'leave', 'messages', 'fieldDuty', 'callCapture', 'tasks'
+      'dashboard', 'attendance', 'leave', 'messages', 'fieldDuty', 'callCapture', 'tasks', 'doctorPlanner'
     ];
 
     if (isAdminLevel && !adminTabs.includes(activeTab)) {
@@ -280,7 +282,7 @@ export default function App() {
           />
 
           {/* Primary Content Router */}
-          <main id="portal-primary-content" className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 md:py-8 pb-24 lg:pb-8 min-w-0 print:col-span-12 print:overflow-visible print:p-0 print:m-0">
+        <main id="portal-primary-content" className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 md:py-8 pb-24 lg:pb-8 min-w-0 print:col-span-12 print:overflow-visible print:p-0 print:m-0">
             <React.Suspense fallback={
               <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
                 <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
@@ -292,6 +294,7 @@ export default function App() {
                 language={language}
                 currentUser={currentUser}
                 employees={scopedEmployees}
+                allEmployees={employees}
                 isLocalMode={isLocalMode}
                 tasks={tasks}
                 noDataText={t.noData}

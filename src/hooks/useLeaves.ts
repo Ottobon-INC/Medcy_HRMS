@@ -11,21 +11,21 @@ export function useLeaves(isLocalMode: boolean, loadData: () => Promise<void>) {
     await loadData();
   };
 
-  const approveLeave = async (id: string, note?: string) => {
+  const approveLeave = async (id: string, approverId: string, note?: string) => {
     if (isLocalMode) {
       alert("Leaves can only be approved in online mode.");
       return;
     }
-    await leaveService.updateLeaveRequestStatus(id, 'Approved', note);
+    await leaveService.updateLeaveRequestStatus(id, approverId, 'Approved', note);
     await loadData();
   };
 
-  const rejectLeave = async (id: string, note?: string) => {
+  const rejectLeave = async (id: string, approverId: string, note?: string) => {
     if (isLocalMode) {
       alert("Leaves can only be rejected in online mode.");
       return;
     }
-    await leaveService.updateLeaveRequestStatus(id, 'Rejected', note);
+    await leaveService.updateLeaveRequestStatus(id, approverId, 'Rejected', note);
     await loadData();
   };
 

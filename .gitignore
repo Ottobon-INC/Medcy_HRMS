@@ -49,6 +49,13 @@ coverage/
 .DS_Store
 Thumbs.db
 
+# Certificates and Keys
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

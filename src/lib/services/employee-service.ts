@@ -1,6 +1,129 @@
 import { supabase } from '../supabase-client';
 import { Employee, LeaveBalance, LeaveType, LeaveStatus, AttendanceRecord, AttendanceStatus, CheckInLog, Payslip, MonthlyLeaveQuota, Branch, HierarchyLevel } from '../../types';
 
+// Known deterministic hierarchy mapping configuration
+export const KNOWN_EMPLOYEE_HIERARCHY: Record<string, {
+  hospital: 'vizag_ivf' | 'medcy_hospitals' | 'both';
+  hierarchyLevel: HierarchyLevel;
+  reportingTo?: string;
+  role?: 'admin' | 'employee';
+  designation?: string;
+  branch?: Branch;
+}> = {
+  // Master Executives
+  'EMP-EXEC-001': { hospital: 'both', hierarchyLevel: 'executive', role: 'admin', designation: 'Executive Director' },
+  'EMP-EXEC-002': { hospital: 'both', hierarchyLevel: 'executive', role: 'admin', designation: 'Executive Director' },
+
+  // Medcy Hospitals: Senior Manager
+  'EMP-MEDCY-001': { hospital: 'medcy_hospitals', hierarchyLevel: 'senior_manager', role: 'admin', designation: 'Senior Manager', branch: 'visakhapatnam' },
+
+  // Medcy Team 1: Rambabu
+  'EMP-2026-004': { hospital: 'medcy_hospitals', hierarchyLevel: 'team_lead', reportingTo: 'EMP-MEDCY-001', role: 'admin', designation: 'Team Lead', branch: 'visakhapatnam' },
+  'EMP-2026-005': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-004', designation: 'Employee', branch: 'visakhapatnam' }, // Manoj
+  'EMP-2026-006': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-004', designation: 'Employee', branch: 'visakhapatnam' }, // AppalNaidu
+
+  // Medcy Team 2: Satish
+  'EMP-MEDCY-002': { hospital: 'medcy_hospitals', hierarchyLevel: 'team_lead', reportingTo: 'EMP-MEDCY-001', role: 'admin', designation: 'Team Lead', branch: 'visakhapatnam' },
+  'EMP-2026-002': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-002', designation: 'Employee', branch: 'visakhapatnam' }, // Rajesh
+  'EMP-MEDCY-003': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-002', designation: 'Employee', branch: 'visakhapatnam' }, // Santosh
+  'EMP-2026-007': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-002', designation: 'Employee', branch: 'visakhapatnam' }, // Hari Krishna
+  'EMP-MEDCY-004': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-002', designation: 'Employee', branch: 'visakhapatnam' }, // Uday Kumar
+
+  // Medcy Team 3: Prudhvi
+  'EMP-MEDCY-005': { hospital: 'medcy_hospitals', hierarchyLevel: 'team_lead', reportingTo: 'EMP-MEDCY-001', role: 'admin', designation: 'Team Lead', branch: 'visakhapatnam' },
+  'EMP-2026-003': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-005', designation: 'Employee', branch: 'visakhapatnam' }, // Mahesh Babu
+  'EMP-2026-001': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-005', designation: 'Employee', branch: 'visakhapatnam' }, // Karan Kumar
+
+  // Vizag IVF Manager & Staff
+  'EMP-2026-011': { hospital: 'vizag_ivf', hierarchyLevel: 'manager', role: 'admin', designation: 'Branch Operations Manager', branch: 'visakhapatnam' }, // R. Ravi Kumar
+  'EMP-2026-008': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', branch: 'visakhapatnam' }, // Shiva Kumar
+  'EMP-2026-009': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', branch: 'visakhapatnam' }, // Gondu Srinivasa Rao
+  'EMP-2026-010': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', branch: 'vizianagaram' }, // Dhanusha Dadi
+  'EMP-2026-012': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', branch: 'visakhapatnam' }, // Gonti Shyam
+  'EMP-2026-013': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', branch: 'vizianagaram' }, // U. Jayavani
+  'EMP-2026-014': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', branch: 'visakhapatnam' }, // S. Kishore Reddy
+};
+
+export const MEDCY_GHOST_EMPLOYEES: Array<{
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'employee';
+  designation: string;
+  joiningDate: string;
+  status: 'pending';
+  hospital: 'medcy_hospitals';
+  hierarchyLevel: HierarchyLevel;
+  reportingTo?: string;
+  branch: Branch;
+}> = [
+  {
+    id: 'EMP-MEDCY-001',
+    name: 'Dr. Bhramhaji',
+    email: 'bhramhaji.ghost@medcy.com',
+    role: 'admin',
+    designation: 'Senior Manager',
+    joiningDate: '2026-09-01',
+    status: 'pending',
+    hospital: 'medcy_hospitals',
+    hierarchyLevel: 'senior_manager',
+    reportingTo: undefined,
+    branch: 'visakhapatnam'
+  },
+  {
+    id: 'EMP-MEDCY-002',
+    name: 'Satish',
+    email: 'satish.ghost@medcy.com',
+    role: 'admin',
+    designation: 'Team Lead',
+    joiningDate: '2026-09-01',
+    status: 'pending',
+    hospital: 'medcy_hospitals',
+    hierarchyLevel: 'team_lead',
+    reportingTo: 'EMP-MEDCY-001',
+    branch: 'visakhapatnam'
+  },
+  {
+    id: 'EMP-MEDCY-003',
+    name: 'Santosh',
+    email: 'santosh.ghost@medcy.com',
+    role: 'employee',
+    designation: 'Employee',
+    joiningDate: '2026-09-01',
+    status: 'pending',
+    hospital: 'medcy_hospitals',
+    hierarchyLevel: 'employee',
+    reportingTo: 'EMP-MEDCY-002',
+    branch: 'visakhapatnam'
+  },
+  {
+    id: 'EMP-MEDCY-004',
+    name: 'Uday Kumar',
+    email: 'uday.ghost@medcy.com',
+    role: 'employee',
+    designation: 'Employee',
+    joiningDate: '2026-09-01',
+    status: 'pending',
+    hospital: 'medcy_hospitals',
+    hierarchyLevel: 'employee',
+    reportingTo: 'EMP-MEDCY-002',
+    branch: 'visakhapatnam'
+  },
+  {
+    id: 'EMP-MEDCY-005',
+    name: 'Prudhvi',
+    email: 'prudhvi.ghost@medcy.com',
+    role: 'admin',
+    designation: 'Team Lead',
+    joiningDate: '2026-09-01',
+    status: 'pending',
+    hospital: 'medcy_hospitals',
+    hierarchyLevel: 'team_lead',
+    reportingTo: 'EMP-MEDCY-001',
+    branch: 'visakhapatnam'
+  }
+];
+
 export async function fetchAllEmployeesData(): Promise<Employee[]> {
   const { data: emps, error: empError } = await supabase
     .from('HRMS_employees')
@@ -168,9 +291,12 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
       };
     }
 
+    // Known hierarchy mapping fallback
+    const knownConfig = KNOWN_EMPLOYEE_HIERARCHY[emp.id];
+
     // Branch & Hierarchy Resolution with robust backward compatibility
-    const branch: Branch = (emp.branch as Branch) || 'visakhapatnam';
-    let hierarchyLevel: HierarchyLevel = emp.hierarchy_level as HierarchyLevel;
+    const branch: Branch = (emp.branch as Branch) || knownConfig?.branch || 'visakhapatnam';
+    let hierarchyLevel: HierarchyLevel = (emp.hierarchy_level as HierarchyLevel) || knownConfig?.hierarchyLevel;
     if (!hierarchyLevel) {
       if (emp.id === 'EMP-2026-011' || (emp.name && emp.name.toLowerCase().includes('ravi kumar'))) {
         hierarchyLevel = 'manager';
@@ -180,28 +306,40 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
         hierarchyLevel = emp.role === 'admin' ? 'manager' : 'employee';
       }
     }
-    const isExecOrManager = hierarchyLevel === 'executive' || hierarchyLevel === 'manager';
+    const isExecOrManager = hierarchyLevel === 'executive' || hierarchyLevel === 'manager' || hierarchyLevel === 'senior_manager';
     const managedBranches: Branch[] = Array.isArray(emp.managed_branches)
       ? emp.managed_branches
       : (isExecOrManager ? ['visakhapatnam', 'vizianagaram'] : [branch]);
-    const reportingTo: string | undefined = emp.reporting_to || (hierarchyLevel === 'employee' ? 'EMP-2026-011' : undefined);
-    const resolvedRole = (isExecOrManager || emp.role === 'admin') ? 'admin' : 'employee';
+
+    // Determine reportingTo: prioritize explicit DB field, then known config, then default for Vizag IVF
+    let reportingTo: string | undefined = emp.reporting_to;
+    if (!reportingTo && knownConfig?.reportingTo) {
+      reportingTo = knownConfig.reportingTo;
+    } else if (!reportingTo && hierarchyLevel === 'employee' && (emp.hospital || knownConfig?.hospital) !== 'medcy_hospitals') {
+      reportingTo = 'EMP-2026-011';
+    }
+
+    const resolvedRole = (isExecOrManager || emp.role === 'admin' || knownConfig?.role === 'admin') ? 'admin' : 'employee';
+    const hospital = (emp.hospital as import('../../types').Hospital) || knownConfig?.hospital || 'vizag_ivf';
+    const designation = emp.designation || knownConfig?.designation || (hierarchyLevel === 'team_lead' ? 'Team Lead' : hierarchyLevel === 'senior_manager' ? 'Senior Manager' : 'Employee');
 
     return {
       id: emp.id,
       name: emp.name,
       email: emp.email,
-      designation: emp.designation,
+      designation,
       joiningDate: emp.joining_date,
       basicSalary: Number(emp.basic_pay),
       role: resolvedRole as 'employee' | 'admin',
       password: emp.password,
-      status: (emp.status || 'active') as 'active' | 'inactive',
+      status: (emp.status || 'active') as 'active' | 'inactive' | 'pending',
       phone: emp.phone,
       gender: emp.gender as 'male' | 'female' | 'other' | undefined,
       experience: Number(emp.experience) || 0,
       bankDetails: emp.bank_details as any,
+      hospital,
       branch,
+      teamId: emp.team_id || undefined,
       hierarchyLevel,
       managedBranches,
       reportingTo,
@@ -249,6 +387,7 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
       phone: '9999999901',
       gender: 'female',
       experience: 10,
+      hospital: 'both',
       branch: 'visakhapatnam',
       hierarchyLevel: 'executive',
       managedBranches: ['visakhapatnam', 'vizianagaram'],
@@ -277,6 +416,7 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
       phone: '9999999902',
       gender: 'female',
       experience: 10,
+      hospital: 'both',
       branch: 'visakhapatnam',
       hierarchyLevel: 'executive',
       managedBranches: ['visakhapatnam', 'vizianagaram'],
@@ -291,13 +431,48 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
     });
   }
 
+  // Ensure Medcy Ghost employees exist for visualization and pending staff tracking
+  MEDCY_GHOST_EMPLOYEES.forEach(ghost => {
+    if (!mappedEmployees.some(e => e.id === ghost.id)) {
+      mappedEmployees.push({
+        id: ghost.id,
+        name: ghost.name,
+        email: ghost.email,
+        password: 'password',
+        role: ghost.role,
+        designation: ghost.designation,
+        joiningDate: ghost.joiningDate,
+        basicSalary: 0,
+        status: ghost.status,
+        phone: '0000000000',
+        gender: 'male',
+        experience: 0,
+        hospital: ghost.hospital,
+        branch: ghost.branch,
+        hierarchyLevel: ghost.hierarchyLevel,
+        managedBranches: [ghost.branch],
+        reportingTo: ghost.reportingTo,
+        isCheckedIn: false,
+        leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 } },
+        monthlyQuota: { id: `ghost-${ghost.id}`, month: currentMonth, allotted: 3, used: 0, remaining: 3 },
+        leaveRequests: [],
+        attendanceRecords: [],
+        checkInLogs: [],
+        payslips: [],
+        advanceRequests: []
+      });
+    }
+  });
+
   return mappedEmployees;
 }
 
 /**
  * Scopes the visible list of employees based on the current user's hierarchy level and branch responsibilities.
  * - Executive (Indra mam, Anoopama mam): Full cross-org visibility (all branches)
- * - Manager (Ravi Kumar): Full access across assigned branches (both Visakhapatnam and Vizianagaram)
+ * - Senior Manager (Bhramhaji): All Medcy Hospitals employees
+ * - Manager (Ravi Kumar): Full access across assigned branches (both Visakhapatnam and Vizianagaram) for Vizag IVF
+ * - Team Lead: Restricted to their direct team members (reportingTo)
  * - Employee: Restricted to self only
  */
 export function filterEmployeesByScope(
@@ -310,8 +485,18 @@ export function filterEmployeesByScope(
   if (currentUser.hierarchyLevel === 'executive') {
     return allEmployees;
   }
+  
+  // Senior Manager: Complete visibility across their hospital
+  if (currentUser.hierarchyLevel === 'senior_manager') {
+    return allEmployees.filter(emp => emp.hospital === currentUser.hospital || emp.hierarchyLevel === 'executive');
+  }
+  
+  // Team Lead: Access to their team members
+  if (currentUser.hierarchyLevel === 'team_lead') {
+    return allEmployees.filter(emp => emp.reportingTo === currentUser.id || emp.id === currentUser.id || emp.hierarchyLevel === 'executive' || emp.hierarchyLevel === 'senior_manager');
+  }
 
-  // Manager tier: Access to all employees within their managed branches
+  // Manager tier: Access to all employees within their managed branches and hospital
   if (currentUser.hierarchyLevel === 'manager' || currentUser.role === 'admin') {
     const branches = currentUser.managedBranches && currentUser.managedBranches.length > 0
       ? currentUser.managedBranches
@@ -320,6 +505,7 @@ export function filterEmployeesByScope(
     return allEmployees.filter(emp => {
       // Always include executives or other managers for org structure/reporting views
       if (emp.hierarchyLevel === 'executive' || emp.id === currentUser.id) return true;
+      if (emp.hospital !== currentUser.hospital && currentUser.hospital !== 'both') return false;
       const empBranch = emp.branch || 'visakhapatnam';
       return branches.includes(empBranch);
     });
@@ -739,5 +925,40 @@ export async function seedInitialDatabase() {
     });
     await supabase.from('HRMS_leave_balances').insert(leaveBalancesToSeed);
   }
+
+  // Attempt to sync Medcy hierarchy to Supabase if columns and table exist
+  try {
+    const medcyDbRows = MEDCY_GHOST_EMPLOYEES.map(g => ({
+      id: g.id,
+      name: g.name,
+      email: g.email,
+      password: 'password',
+      role: g.role,
+      designation: g.designation,
+      joining_date: g.joiningDate,
+      basic_pay: 0.00,
+      status: g.status,
+      hospital: g.hospital,
+      hierarchy_level: g.hierarchyLevel,
+      reporting_to: g.reportingTo || null,
+      branch: g.branch
+    }));
+
+    await supabase.from('HRMS_employees').upsert(medcyDbRows, { onConflict: 'id' });
+
+    // Update known Medcy team leads & members in Supabase
+    for (const [empId, config] of Object.entries(KNOWN_EMPLOYEE_HIERARCHY)) {
+      if (empId.startsWith('EMP-MEDCY') || empId.startsWith('EMP-EXEC')) continue;
+      await supabase.from('HRMS_employees').update({
+        hospital: config.hospital,
+        hierarchy_level: config.hierarchyLevel,
+        reporting_to: config.reportingTo || null,
+        ...(config.role ? { role: config.role } : {})
+      }).eq('id', empId);
+    }
+  } catch (syncErr) {
+    console.warn('Supabase Medcy hierarchy auto-sync skipped (offline or pending migration):', syncErr);
+  }
 }
+
 
