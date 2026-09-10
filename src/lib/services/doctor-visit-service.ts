@@ -3,7 +3,7 @@ import { DoctorVisit } from '../../types';
 
 export async function fetchDoctorVisits(employeeId: string): Promise<DoctorVisit[]> {
   const { data, error } = await supabase
-    .from('HRMS_doctor_visits')
+    .from('HRMS_field_visits')
     .select('*')
     .eq('employee_id', employeeId)
     .order('visit_date', { ascending: true })
@@ -18,7 +18,7 @@ export async function fetchDoctorVisits(employeeId: string): Promise<DoctorVisit
 export async function fetchTeamDoctorVisits(teamMemberIds: string[]): Promise<DoctorVisit[]> {
   if (!teamMemberIds.length) return [];
   const { data, error } = await supabase
-    .from('HRMS_doctor_visits')
+    .from('HRMS_field_visits')
     .select('*')
     .in('employee_id', teamMemberIds)
     .order('visit_date', { ascending: true })
@@ -32,7 +32,7 @@ export async function fetchTeamDoctorVisits(teamMemberIds: string[]): Promise<Do
 
 export async function createDoctorVisit(visit: Omit<DoctorVisit, 'id'>): Promise<DoctorVisit> {
   const { data, error } = await supabase
-    .from('HRMS_doctor_visits')
+    .from('HRMS_field_visits')
     .insert([
       {
         employee_id: visit.employeeId,
@@ -66,7 +66,7 @@ export async function updateDoctorVisit(id: string, updates: Partial<DoctorVisit
   dbUpdates.updated_at = new Date().toISOString();
 
   const { error } = await supabase
-    .from('HRMS_doctor_visits')
+    .from('HRMS_field_visits')
     .update(dbUpdates)
     .eq('id', id);
 
@@ -75,7 +75,7 @@ export async function updateDoctorVisit(id: string, updates: Partial<DoctorVisit
 
 export async function deleteDoctorVisit(id: string): Promise<void> {
   const { error } = await supabase
-    .from('HRMS_doctor_visits')
+    .from('HRMS_field_visits')
     .delete()
     .eq('id', id);
 
@@ -84,7 +84,7 @@ export async function deleteDoctorVisit(id: string): Promise<void> {
 
 export async function copyVisitsFromDate(employeeId: string, fromDate: string, toDate: string): Promise<DoctorVisit[]> {
   const { data: sourceVisits, error: fetchError } = await supabase
-    .from('HRMS_doctor_visits')
+    .from('HRMS_field_visits')
     .select('*')
     .eq('employee_id', employeeId)
     .eq('visit_date', fromDate);
@@ -104,7 +104,7 @@ export async function copyVisitsFromDate(employeeId: string, fromDate: string, t
   }));
 
   const { data: insertedData, error: insertError } = await supabase
-    .from('HRMS_doctor_visits')
+    .from('HRMS_field_visits')
     .insert(newVisits)
     .select();
 

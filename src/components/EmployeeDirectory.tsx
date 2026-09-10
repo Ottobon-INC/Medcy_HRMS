@@ -320,7 +320,7 @@ export default function EmployeeDirectory({
   return (
    <div id="directory-inspect-view"className="space-y-6 animate-fadeIn">
     {/* Inspection Header */}
-    <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div className="bg-white rounded-[32px] p-4 sm:p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
      <div className="flex items-center gap-4">
       <button
        onClick={() => setInspectingEmpId(null)}
@@ -336,33 +336,36 @@ export default function EmployeeDirectory({
       </div>
      </div>
 
-     <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 w-full md:w-auto">
+     <div className="flex w-full md:w-auto bg-slate-50 p-1 rounded-xl border border-slate-100 gap-1">
       <button
        onClick={() => setInspectSubTab('attendance')}
-       className={`flex-1 md:flex-none flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all uppercase cursor-pointer ${
+       className={`flex-1 md:flex-none flex justify-center items-center gap-1.5 md:gap-2 px-2 md:px-4 py-2.5 rounded-lg text-[10px] md:text-xs font-bold transition-all uppercase cursor-pointer ${
         inspectSubTab === 'attendance' ? 'bg-white text-[#7e3acb] shadow-sm' : 'text-slate-400 hover:text-slate-600'
        }`}
       >
-       <Calendar className="w-3.5 h-3.5"/>
-       <span>{dirText.tabAttend}</span>
+       <Calendar className="w-3.5 h-3.5 shrink-0"/>
+       <span className="hidden sm:inline">{dirText.tabAttend}</span>
+       <span className="sm:hidden">Attendance</span>
       </button>
       <button
        onClick={() => setInspectSubTab('leave')}
-       className={`flex-1 md:flex-none flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all uppercase cursor-pointer ${
+       className={`flex-1 md:flex-none flex justify-center items-center gap-1.5 md:gap-2 px-2 md:px-4 py-2.5 rounded-lg text-[10px] md:text-xs font-bold transition-all uppercase cursor-pointer ${
         inspectSubTab === 'leave' ? 'bg-white text-[#7e3acb] shadow-sm' : 'text-slate-400 hover:text-slate-600'
        }`}
       >
-       <Moon className="w-3.5 h-3.5"/>
-       <span>{dirText.tabLeave}</span>
+       <Moon className="w-3.5 h-3.5 shrink-0"/>
+       <span className="hidden sm:inline">{dirText.tabLeave}</span>
+       <span className="sm:hidden">Leaves</span>
       </button>
       <button
        onClick={() => setInspectSubTab('docs')}
-       className={`flex-1 md:flex-none flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all uppercase cursor-pointer ${
+       className={`flex-1 md:flex-none flex justify-center items-center gap-1.5 md:gap-2 px-2 md:px-4 py-2.5 rounded-lg text-[10px] md:text-xs font-bold transition-all uppercase cursor-pointer ${
         inspectSubTab === 'docs' ? 'bg-white text-[#7e3acb] shadow-sm' : 'text-slate-400 hover:text-slate-600'
        }`}
       >
-       <FileText className="w-3.5 h-3.5"/>
-       <span>{language === 'te' ? 'పత్రాలు' : 'Documents'}</span>
+       <FileText className="w-3.5 h-3.5 shrink-0"/>
+       <span className="hidden sm:inline">{language === 'te' ? 'పత్రాలు' : 'Documents'}</span>
+       <span className="sm:hidden">Docs</span>
       </button>
      </div>
     </div>
@@ -505,7 +508,7 @@ export default function EmployeeDirectory({
          className={`hover:bg-slate-50/50 cursor-pointer transition-all group ${emp.status === 'inactive' ? 'opacity-50 grayscale' : ''}`}
         >
          {/* Name and ID */}
-         <td className="p-5">
+         <td className="p-4 sm:p-5 max-w-[200px] sm:max-w-none">
           <div className="flex items-center gap-3">
            <div className={`min-w-[36px] w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs group-hover:scale-105 transition-all shrink-0 ${
             isExec ? 'bg-amber-100 text-amber-800' : isMgr ? 'bg-blue-100 text-blue-800' : emp.status === 'inactive' ? 'bg-slate-200 text-slate-500' : 'bg-[#f3edfb] text-[#7e3acb]'
@@ -517,26 +520,26 @@ export default function EmployeeDirectory({
              <p className="text-xs font-bold text-slate-800 group-hover:text-[#7e3acb] transition-colors truncate">
               {emp.name}
              </p>
-             <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+             <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider shrink-0 ${
               empBranch === 'visakhapatnam' ? 'bg-[#f3edfb] text-[#7e3acb] border border-purple-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
              }`}>
               {empBranch === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}
              </span>
              {isExec && (
-              <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
-               Executive
+              <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 shrink-0">
+               Exec
               </span>
              )}
              {isMgr && (
-              <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200">
-               Manager
+              <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200 shrink-0">
+               Mgr
               </span>
              )}
-             {emp.status === 'inactive' && <span className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[8px] rounded uppercase font-bold">Inactive</span>}
+             {emp.status === 'inactive' && <span className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[8px] rounded uppercase font-bold shrink-0">Inactive</span>}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 flex flex-col sm:flex-row sm:items-center sm:gap-1.5">
+            <div className="text-[10px] text-slate-400 mt-0.5 flex flex-col sm:flex-row sm:items-center sm:gap-1.5 overflow-hidden">
              <span className="truncate block max-w-full">{emp.id} • {emp.email}</span>
-             {!isExec && !isMgr && <span className="text-slate-400 font-medium whitespace-nowrap">↳ Direct report: Ravi Kumar</span>}
+             {!isExec && !isMgr && <span className="text-slate-400 font-medium truncate">↳ Direct report: Ravi Kumar</span>}
             </div>
            </div>
           </div>

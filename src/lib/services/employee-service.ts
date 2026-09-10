@@ -926,39 +926,9 @@ export async function seedInitialDatabase() {
     await supabase.from('HRMS_leave_balances').insert(leaveBalancesToSeed);
   }
 
-  // Attempt to sync Medcy hierarchy to Supabase if columns and table exist
-  try {
-    const medcyDbRows = MEDCY_GHOST_EMPLOYEES.map(g => ({
-      id: g.id,
-      name: g.name,
-      email: g.email,
-      password: 'password',
-      role: g.role,
-      designation: g.designation,
-      joining_date: g.joiningDate,
-      basic_pay: 0.00,
-      status: g.status,
-      hospital: g.hospital,
-      hierarchy_level: g.hierarchyLevel,
-      reporting_to: g.reportingTo || null,
-      branch: g.branch
-    }));
-
-    await supabase.from('HRMS_employees').upsert(medcyDbRows, { onConflict: 'id' });
-
-    // Update known Medcy team leads & members in Supabase
-    for (const [empId, config] of Object.entries(KNOWN_EMPLOYEE_HIERARCHY)) {
-      if (empId.startsWith('EMP-MEDCY') || empId.startsWith('EMP-EXEC')) continue;
-      await supabase.from('HRMS_employees').update({
-        hospital: config.hospital,
-        hierarchy_level: config.hierarchyLevel,
-        reporting_to: config.reportingTo || null,
-        ...(config.role ? { role: config.role } : {})
-      }).eq('id', empId);
-    }
-  } catch (syncErr) {
-    console.warn('Supabase Medcy hierarchy auto-sync skipped (offline or pending migration):', syncErr);
-  }
+  // Supabase table does not yet have hospital, hierarchy_level, and reporting_to columns.
+  // The app merges these locally via KNOWN_EMPLOYEE_HIERARCHY on the client side.
+  // Attempting to patch them causes 400 Bad Request spam in the console.
 }
 
 

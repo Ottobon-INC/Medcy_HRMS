@@ -12,7 +12,8 @@ import {
   Network, 
   Power,
   Camera,
-  Menu
+  Menu,
+  GitBranch
 } from 'lucide-react';
 import { Employee } from '../../types';
 
@@ -85,9 +86,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
             <button onClick={() => onSelectTab('orgChart')} className={getBtnClass('orgChart')}>
               <div className={getIconClass('orgChart')}>
-                <Network size={22} />
+                <GitBranch size={22} />
               </div>
-              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Org Hierarchy</span>
+              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Team Hierarchy</span>
             </button>
 
             {(!isTeamLead && !isSeniorManager) && (

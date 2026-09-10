@@ -119,85 +119,85 @@ export default function AttendanceModule({ language, attendanceRecords }: Attend
  };
 
  return (
-  <div id="attendance-module"className="space-y-6">
-   {/* Month Switcher & Statistics Summary */}
-   <div id="attendance-summary-card"className="bg-white rounded-[32px] p-8 shadow-sm border border-slate-100">
-    
-    {/* Month Selector Controls */}
-    <div className="flex items-center justify-between border-b border-slate-100 pb-5 mb-5">
-     <div className="flex items-center gap-2">
-      <span className="w-1.5 h-1.5 bg-[#8a42db] rounded-full shrink-0"/>
-      <h2 className="text-xl font-bold font-display text-slate-800">
-       {language === 'te' ? monthNameTE : monthNameEN}
-      </h2>
-     </div>
+   <div id="attendance-module"className="space-y-6">
+    {/* Month Switcher & Statistics Summary */}
+    <div id="attendance-summary-card"className="bg-white rounded-[32px] p-4 sm:p-8 shadow-sm border border-slate-100">
      
-     <div className="flex items-center gap-2">
-      <button
-       id="prev-month-btn"
-       onClick={handlePrevMonth}
-       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all cursor-pointer"
-      >
-       <ChevronLeft className="w-3.5 h-3.5"/>
-       {t.prevMonth.split('|')[0].trim()}
-      </button>
-      <button
-       id="next-month-btn"
-       onClick={handleNextMonth}
-       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all cursor-pointer"
-      >
-       {t.nextMonth.split('|')[0].trim()}
-       <ChevronRight className="w-3.5 h-3.5"/>
-      </button>
+     {/* Month Selector Controls */}
+     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-5 mb-5 gap-4">
+      <div className="flex items-center gap-2">
+       <span className="w-1.5 h-1.5 bg-[#8a42db] rounded-full shrink-0"/>
+       <h2 className="text-lg sm:text-xl font-bold font-display text-slate-800">
+        {language === 'te' ? monthNameTE : monthNameEN}
+       </h2>
+      </div>
+      
+      <div className="flex items-center gap-2 w-full sm:w-auto">
+       <button
+        id="prev-month-btn"
+        onClick={handlePrevMonth}
+        className="flex-1 sm:flex-none flex justify-center items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all cursor-pointer"
+       >
+        <ChevronLeft className="w-3.5 h-3.5"/>
+        <span className="truncate">{t.prevMonth.split('|')[0].trim()}</span>
+       </button>
+       <button
+        id="next-month-btn"
+        onClick={handleNextMonth}
+        className="flex-1 sm:flex-none flex justify-center items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-bold border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:scale-95 transition-all cursor-pointer"
+       >
+        <span className="truncate">{t.nextMonth.split('|')[0].trim()}</span>
+        <ChevronRight className="w-3.5 h-3.5"/>
+       </button>
+      </div>
      </div>
-    </div>
 
     {/* 4 Summary Cards */}
-    <div id="stats-dashboard-grid"className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-     <div className="bg-emerald-50/40 border border-emerald-50 rounded-2xl p-4 flex items-center gap-3">
-      <div className="bg-emerald-100 text-emerald-700 p-2.5 rounded-xl">
-       <CheckCircle className="w-5 h-5"/>
+    <div id="stats-dashboard-grid"className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+     <div className="bg-emerald-50/40 border border-emerald-50 rounded-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+      <div className="bg-emerald-100 text-emerald-700 p-2 sm:p-2.5 rounded-xl shrink-0">
+       <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5"/>
       </div>
-      <div>
-       <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">{t.summaryPresent}</span>
-       <span className="text-2xl font-black font-mono text-emerald-800">{stats.present}</span>
-      </div>
-     </div>
-
-     <div className="bg-rose-50/40 border border-rose-50 rounded-2xl p-4 flex items-center gap-3">
-      <div className="bg-rose-100 text-rose-700 p-2.5 rounded-xl">
-       <XCircle className="w-5 h-5"/>
-      </div>
-      <div>
-       <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">{t.summaryAbsent}</span>
-       <span className="text-2xl font-black font-mono text-rose-800">{stats.absent}</span>
+      <div className="min-w-0">
+       <span className="text-[9px] sm:text-[10px] text-slate-400 block font-bold uppercase tracking-wider truncate">{t.summaryPresent}</span>
+       <span className="text-xl sm:text-2xl font-black font-mono text-emerald-800">{stats.present}</span>
       </div>
      </div>
 
-     <div className="bg-amber-50/40 border border-amber-50 rounded-2xl p-4 flex items-center gap-3">
-      <div className="bg-amber-100 text-amber-700 p-2.5 rounded-xl">
-       <AlertTriangle className="w-5 h-5"/>
+     <div className="bg-rose-50/40 border border-rose-50 rounded-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+      <div className="bg-rose-100 text-rose-700 p-2 sm:p-2.5 rounded-xl shrink-0">
+       <XCircle className="w-4 h-4 sm:w-5 sm:h-5"/>
       </div>
-      <div>
-       <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">{t.summaryHalf}</span>
-       <span className="text-2xl font-black font-mono text-amber-800">{stats.halfDay}</span>
+      <div className="min-w-0">
+       <span className="text-[9px] sm:text-[10px] text-slate-400 block font-bold uppercase tracking-wider truncate">{t.summaryAbsent}</span>
+       <span className="text-xl sm:text-2xl font-black font-mono text-rose-800">{stats.absent}</span>
       </div>
      </div>
 
-     <div className="bg-indigo-50/40 border border-indigo-50 rounded-2xl p-4 flex items-center gap-3">
-      <div className="bg-indigo-100 text-indigo-700 p-2.5 rounded-xl">
-       <Moon className="w-5 h-5"/>
+     <div className="bg-amber-50/40 border border-amber-50 rounded-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+      <div className="bg-amber-100 text-amber-700 p-2 sm:p-2.5 rounded-xl shrink-0">
+       <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5"/>
       </div>
-      <div>
-       <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">{t.summaryLeave}</span>
-       <span className="text-2xl font-black font-mono text-indigo-800">{stats.leave}</span>
+      <div className="min-w-0">
+       <span className="text-[9px] sm:text-[10px] text-slate-400 block font-bold uppercase tracking-wider truncate">{t.summaryHalf}</span>
+       <span className="text-xl sm:text-2xl font-black font-mono text-amber-800">{stats.halfDay}</span>
+      </div>
+     </div>
+
+     <div className="bg-indigo-50/40 border border-indigo-50 rounded-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+      <div className="bg-indigo-100 text-indigo-700 p-2 sm:p-2.5 rounded-xl shrink-0">
+       <Moon className="w-4 h-4 sm:w-5 sm:h-5"/>
+      </div>
+      <div className="min-w-0">
+       <span className="text-[9px] sm:text-[10px] text-slate-400 block font-bold uppercase tracking-wider truncate">{t.summaryLeave}</span>
+       <span className="text-xl sm:text-2xl font-black font-mono text-indigo-800">{stats.leave}</span>
       </div>
      </div>
     </div>
    </div>
 
    {/* Interactive Calendar Grid */}
-   <div id="attendance-calendar-grid"className="bg-white rounded-[32px] p-8 shadow-sm border border-slate-100">
+   <div id="attendance-calendar-grid"className="bg-white rounded-[32px] p-4 sm:p-8 shadow-sm border border-slate-100">
     <div className="flex items-center gap-2 mb-6 pb-2">
      <span className="w-1.5 h-1.5 bg-[#8a42db] rounded-full shrink-0"/>
      <h3 className="text-lg font-bold font-display text-slate-800">
