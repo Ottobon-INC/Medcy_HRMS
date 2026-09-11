@@ -282,7 +282,7 @@ export default function App() {
           />
 
           {/* Primary Content Router */}
-        <main id="portal-primary-content" className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 md:py-8 pb-24 lg:pb-8 min-w-0 print:col-span-12 print:overflow-visible print:p-0 print:m-0">
+        <main id="portal-primary-content" className={`flex-1 ${activeTab === 'orgChart' ? 'overflow-hidden p-2 sm:p-3' : 'overflow-y-auto px-4 sm:px-6 py-6 md:py-8 pb-24 lg:pb-8'} min-w-0 print:col-span-12 print:overflow-visible print:p-0 print:m-0`}>
             <React.Suspense fallback={
               <div className="min-h-[50vh] flex flex-col items-center justify-center space-y-4">
                 <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>

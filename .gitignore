@@ -45,6 +45,13 @@ coverage/
 .env.*
 !.env.example
 
+# Sensitive database exports & spreadsheets
+*.csv
+HRMS_employees_rows.csv
+*.xlsx
+*.xls
+!Bulk_Assign_Sample_Data.xlsx
+
 # OS files
 .DS_Store
 Thumbs.db

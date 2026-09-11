@@ -241,6 +241,33 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
         <span>Doctor Plans</span>
        </button>
 
+       {isTeamLead && (
+         <>
+           <button
+             onClick={() => handleTabClick('callCapture')}
+             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+               activeTab === 'callCapture'
+                 ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
+                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+             }`}
+           >
+             <Camera className={`w-4 h-4 shrink-0 ${activeTab === 'callCapture' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
+             <span>Visit Log</span>
+           </button>
+           <button
+             onClick={() => handleTabClick('fieldDuty')}
+             className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all cursor-pointer ${
+               activeTab === 'fieldDuty'
+                 ? 'bg-[#f3edfb] text-[#7e3acb] font-bold border border-teal-100'
+                 : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+             }`}
+           >
+             <MapPin className={`w-4 h-4 shrink-0 ${activeTab === 'fieldDuty' ? 'text-[#8a42db]' : 'text-slate-400'}`} />
+             <span>Navigation</span>
+           </button>
+         </>
+       )}
+
        {(!isTeamLead && !isSeniorManager) && (
          <button
          onClick={() => handleTabClick('officeLocations')}

@@ -123,6 +123,23 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Doctor Plans</span>
             </button>
 
+            {isTeamLead && (
+              <>
+                <button onClick={() => onSelectTab('callCapture')} className={getBtnClass('callCapture')}>
+                  <div className={getIconClass('callCapture')}>
+                    <Camera size={22} />
+                  </div>
+                  <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Visit Log</span>
+                </button>
+                <button onClick={() => onSelectTab('fieldDuty')} className={getBtnClass('fieldDuty')}>
+                  <div className={getIconClass('fieldDuty')}>
+                    <MapPin size={22} />
+                  </div>
+                  <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Navigation</span>
+                </button>
+              </>
+            )}
+
             {(!isTeamLead && !isSeniorManager) && (
               <button onClick={() => onSelectTab('officeLocations')} className={getBtnClass('officeLocations')}>
                 <div className={getIconClass('officeLocations')}>

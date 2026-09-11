@@ -13,26 +13,33 @@ import {
  FileText,
  Maximize2,
  Sparkles,
- Navigation
+ Navigation,
+ Plus
 } from 'lucide-react';
-import { FieldVisit, Language } from '../../types';
+import { FieldVisit, Language, Employee } from '../../types';
 import * as fieldVisitService from '../../lib/services/field-visit-service';
 import { getCurrentLocationSafe } from '../../lib/utils/location-utils';
 import { supabase } from '../../lib/supabase-client';
+import AssignVisitModal from '../AssignVisitModal';
 
 interface CallPhotoCaptureViewProps {
  language: Language;
  employeeId: string;
  isLocalMode: boolean;
+ currentUser?: Employee;
+ employees?: Employee[];
 }
 
 export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
  language,
  employeeId,
- isLocalMode
+ isLocalMode,
+ currentUser,
+ employees = []
 }) => {
  const [visits, setVisits] = useState<FieldVisit[]>([]);
  const [loading, setLoading] = useState(true);
+ const [isAddModalOpen, setIsAddModalOpen] = useState(false);
  const [activeVisit, setActiveVisit] = useState<FieldVisit | null>(null);
 
  // Camera & Stream State
@@ -105,7 +112,12 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
       completionNotes: d.completion_notes,
       patientName: d.patient_name,
       clientReference: d.client_reference,
-      locationException: d.location_exception
+      locationException: d.location_exception,
+      approvalStatus: d.approval_status || 'approved',
+      approvedBy: d.approved_by,
+      rejectionReason: d.rejection_reason,
+      doctorName: d.doctor_name,
+      clinicName: d.clinic_name
      }));
     }
    }
@@ -384,6 +396,14 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
      </div>
     </div>
 
+    <button
+     type="button"
+     onClick={() => setIsAddModalOpen(true)}
+     className="flex items-center gap-2 px-4 py-2 bg-[#8a42db] hover:bg-[#7e3acb] text-white rounded-xl text-xs font-bold transition-all shadow-sm shadow-purple-500/20 cursor-pointer shrink-0"
+    >
+     <Plus className="w-4 h-4" />
+     <span>Add Doctor Visit</span>
+    </button>
    </div>
 
    {/* Success Notification Alert */}
@@ -738,6 +758,14 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
            >
             <Square className="w-3 h-3 fill-white"/> Depart & Close Visit
            </button>
+          ) : visit.approvalStatus === 'pending' ? (
+           <span className="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-800 font-bold text-xs flex items-center gap-1 cursor-not-allowed" title="Your direct Team Lead must approve this visit before you can start">
+            ⏳ Awaiting Lead Approval
+           </span>
+          ) : visit.approvalStatus === 'rejected' ? (
+           <span className="px-3 py-1.5 rounded-lg bg-rose-100 text-rose-800 font-bold text-xs flex items-center gap-1" title={visit.rejectionReason || 'Rejected by Lead'}>
+            ✗ Rejected by Lead
+           </span>
           ) : (
            <div className="flex items-center gap-2">
             <button
@@ -771,6 +799,21 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
     )}
    </div>
 
+   {/* Modal to add/plan doctor call */}
+   {isAddModalOpen && (
+    <AssignVisitModal
+      language={language}
+      onClose={() => setIsAddModalOpen(false)}
+      employees={employees}
+      adminId={employeeId}
+      currentUser={currentUser}
+      targetEmployeeId={employeeId}
+      isSelfSchedule={true}
+      onVisitCreated={async () => {
+        await loadVisits();
+      }}
+    />
+   )}
 
   </div>
  );

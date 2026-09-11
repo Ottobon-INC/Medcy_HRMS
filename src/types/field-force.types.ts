@@ -65,6 +65,14 @@ export interface FieldVisit {
   clientReference?: string;
   locationException: boolean;
   rescheduleReason?: string;
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
+  rejectionReason?: string;
+  doctorName?: string;
+  clinicName?: string;
+  area?: string;
+  timeSlot?: string;
+  visitPurpose?: string;
 }
 
 export interface FieldVisitEvent {

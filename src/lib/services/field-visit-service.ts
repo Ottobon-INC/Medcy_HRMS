@@ -35,7 +35,15 @@ function mapVisit(data: any): FieldVisit {
     completionNotes: data.completion_notes,
     patientName: data.patient_name,
     clientReference: data.client_reference,
-    locationException: data.location_exception
+    locationException: data.location_exception,
+    approvalStatus: (data.approval_status || 'approved') as any,
+    approvedBy: data.approved_by || undefined,
+    rejectionReason: data.rejection_reason || undefined,
+    doctorName: data.doctor_name || undefined,
+    clinicName: data.clinic_name || undefined,
+    area: data.area || undefined,
+    timeSlot: data.time_slot || undefined,
+    visitPurpose: data.visit_purpose || undefined
   };
 }
 
@@ -68,7 +76,7 @@ export async function createVisit(visit: Partial<FieldVisit>): Promise<FieldVisi
       employee_id: visit.employeeId,
       session_id: visit.sessionId,
       assigned_by: visit.assignedBy,
-      visit_type: visit.visitType,
+      visit_type: visit.visitType || 'DOCTOR_VISIT',
       title: visit.title,
       description: visit.description,
       scheduled_date: visit.scheduledDate,
@@ -81,7 +89,15 @@ export async function createVisit(visit: Partial<FieldVisit>): Promise<FieldVisi
       priority: visit.priority || 'normal',
       patient_name: visit.patientName,
       client_reference: visit.clientReference,
-      status: visit.status || 'ASSIGNED'
+      status: visit.status || 'ASSIGNED',
+      approval_status: visit.approvalStatus || 'approved',
+      approved_by: visit.approvedBy || null,
+      rejection_reason: visit.rejectionReason || null,
+      doctor_name: visit.doctorName || null,
+      clinic_name: visit.clinicName || null,
+      area: visit.area || null,
+      time_slot: visit.timeSlot || null,
+      visit_purpose: visit.visitPurpose || null
     }])
     .select()
     .single();
@@ -378,3 +394,58 @@ export async function createAdHocCall(
 
   return mapVisit(data);
 }
+
+export async function approveFieldVisit(visitId: string, approverId: string): Promise<void> {
+  const { error } = await supabase
+    .from('HRMS_field_visits')
+    .update({
+      approval_status: 'approved',
+      approved_by: approverId,
+      rejection_reason: null
+    })
+    .eq('id', visitId);
+
+  if (error) throw error;
+}
+
+export async function rejectFieldVisit(visitId: string, approverId: string, reason?: string): Promise<void> {
+  const { error } = await supabase
+    .from('HRMS_field_visits')
+    .update({
+      approval_status: 'rejected',
+      approved_by: approverId,
+      rejection_reason: reason || null
+    })
+    .eq('id', visitId);
+
+  if (error) throw error;
+}
+
+export async function getTeamVisits(teamMemberIds: string[], date?: string): Promise<FieldVisit[]> {
+  if (!teamMemberIds.length) return [];
+  let query = supabase
+    .from('HRMS_field_visits')
+    .select('*')
+    .in('employee_id', teamMemberIds);
+
+  if (date) {
+    query = query.eq('scheduled_date', date);
+  }
+
+  const { data, error } = await query
+    .order('scheduled_date', { ascending: false })
+    .order('scheduled_start', { ascending: true, nullsFirst: true });
+
+  if (error) throw error;
+  return (data || []).map(mapVisit);
+}
+
+export async function deleteVisit(visitId: string): Promise<void> {
+  const { error } = await supabase
+    .from('HRMS_field_visits')
+    .delete()
+    .eq('id', visitId);
+
+  if (error) throw error;
+}
+

@@ -118,6 +118,8 @@ export const AppRouter: React.FC<AppRouterProps> = ({
      language={language}
      employeeId={currentUser.id}
      isLocalMode={isLocalMode}
+     currentUser={currentUser}
+     employees={employees}
     />
    );
 

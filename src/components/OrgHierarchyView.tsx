@@ -1,9 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { 
   Search, 
   Users,
   ChevronDown,
-  ChevronUp,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
+  RotateCcw
 } from 'lucide-react';
 import { Employee, Language } from '../types';
 
@@ -21,15 +24,15 @@ const Avatar = ({ employee, size = 'md' }: { employee: Employee, size?: 'sm' | '
   const isOnline = employee?.isCheckedIn;
 
   const sizeClasses = {
-    sm: 'w-8 h-8 text-xs',
-    md: 'w-10 h-10 text-xs',
-    lg: 'w-14 h-14 text-sm',
-    xl: 'w-20 h-20 text-lg'
+    sm: 'w-7 h-7 text-[10px]',
+    md: 'w-9 h-9 text-xs',
+    lg: 'w-12 h-12 text-sm',
+    xl: 'w-16 h-16 text-base'
   };
 
   return (
-    <div className="relative inline-block">
-      <div className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-bold overflow-hidden bg-slate-100 text-slate-700 shadow-sm ring-4 ring-white`}>
+    <div className="relative inline-block shrink-0">
+      <div className={`${sizeClasses[size]} rounded-full flex items-center justify-center font-bold overflow-hidden bg-slate-100 text-slate-700 shadow-sm ring-2 ring-white`}>
          {(employee as any).photo && !isGhost ? (
            <img src={(employee as any).photo} alt={name} className="w-full h-full object-cover" />
          ) : (
@@ -37,7 +40,7 @@ const Avatar = ({ employee, size = 'md' }: { employee: Employee, size?: 'sm' | '
          )}
       </div>
       {!isGhost && (
-        <span className={`absolute bottom-0 right-1 w-3 h-3 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+        <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
       )}
     </div>
   );
@@ -176,15 +179,11 @@ const useOrgHierarchy = (org: 'medcy_hospitals' | 'vizag_ivf', searchQuery: stri
 const OrgTree = ({ 
   org, 
   searchQuery, 
-  employees,
-  expandedNodes,
-  toggleExpand
+  employees
 }: { 
   org: 'medcy_hospitals' | 'vizag_ivf',
   searchQuery: string,
-  employees: Employee[],
-  expandedNodes: Record<string, boolean>,
-  toggleExpand: (id: string) => void
+  employees: Employee[]
 }) => {
   const { executives, midLevelLeaders, groupsByLead } = useOrgHierarchy(org, searchQuery, employees);
 
@@ -192,22 +191,22 @@ const OrgTree = ({
     <div className="flex flex-col items-center w-full">
       {/* Top Level: Executive */}
       {executives.length > 0 ? (
-        <div className="flex justify-center mb-8 relative z-10">
+        <div className="flex justify-center mb-3 relative z-10">
           {executives.map(ceo => {
             const reportCount = midLevelLeaders.length;
             
             return (
-              <div key={ceo.id} className="bg-white border border-slate-200 rounded-2xl w-72 shadow-md overflow-hidden flex flex-col z-10 transition-transform hover:-translate-y-1 duration-300">
+              <div key={ceo.id} className="bg-white border border-slate-200/90 rounded-xl w-60 shadow-sm overflow-hidden flex flex-col z-10 transition-all hover:shadow-md">
                 <div className="h-1.5 w-full bg-gradient-to-r from-[#8a42db] via-purple-500 to-pink-500"></div>
                 
-                <div className="p-6 flex flex-col items-center border-b border-slate-100">
-                  <Avatar employee={ceo} size="xl" />
-                  <h2 className="mt-4 text-xl font-bold text-slate-800 tracking-tight">{ceo.name}</h2>
-                  <p className="text-[10px] font-black text-[#8a42db] tracking-widest uppercase mt-1">HEAD</p>
+                <div className="p-3.5 flex flex-col items-center border-b border-slate-100">
+                  <Avatar employee={ceo} size="lg" />
+                  <h2 className="mt-2 text-base font-bold text-slate-800 tracking-tight text-center">{ceo.name}</h2>
+                  <p className="text-[9px] font-black text-[#8a42db] tracking-widest uppercase mt-0.5">HEAD</p>
                 </div>
 
-                <div className="px-4 py-3 bg-slate-50 flex justify-between items-center mt-auto">
-                  <span className="text-xs text-slate-500 font-medium">{reportCount} Direct Reports</span>
+                <div className="px-3.5 py-1.5 bg-slate-50 flex justify-between items-center mt-auto">
+                  <span className="text-[11px] text-slate-500 font-medium">{reportCount} Direct Reports</span>
                 </div>
               </div>
             );
@@ -217,7 +216,7 @@ const OrgTree = ({
 
       {/* Main Connector from CEO */}
       {executives.length > 0 && midLevelLeaders.length > 0 && (
-         <div className="w-px h-10 bg-slate-300 relative z-0"></div>
+         <div className="w-px h-5 bg-slate-300 relative z-0"></div>
       )}
 
       {/* Mid Level: Department Nodes */}
@@ -225,83 +224,95 @@ const OrgTree = ({
         <div className="relative w-full flex justify-center">
           {/* Horizontal line connecting departments */}
           {midLevelLeaders.length > 1 && (
-            <div className="absolute top-0 h-px bg-slate-300" style={{ left: '10%', right: '10%' }}></div>
+            <div 
+              className="absolute top-0 h-px bg-slate-300" 
+              style={{ 
+                left: midLevelLeaders.length === 2 ? '25%' : '14%', 
+                right: midLevelLeaders.length === 2 ? '25%' : '14%' 
+              }}
+            ></div>
           )}
 
-          <div className="flex justify-center gap-8 pt-6">
-            {midLevelLeaders.map((lead, index) => {
+          <div className="flex justify-center gap-5 pt-3.5">
+            {midLevelLeaders.map((lead) => {
               const { name: deptName, colorClass } = getDepartmentInfo(lead);
               const directReports = groupsByLead[lead.id] || [];
               const reportCount = directReports.length;
-              const isExpanded = true;
 
               return (
                 <div key={lead.id} className="flex flex-col items-center relative">
                   {midLevelLeaders.length > 1 && (
-                    <div className="absolute -top-6 w-px h-6 bg-slate-300"></div>
+                    <div className="absolute -top-3.5 w-px h-3.5 bg-slate-300"></div>
                   )}
 
                   {lead.name.toLowerCase().includes('ravi kumar') ? (
-                    <div className="bg-white border border-slate-200 rounded-2xl w-72 shadow-md overflow-hidden flex flex-col z-10 transition-transform hover:-translate-y-1 duration-300">
+                    <div className="bg-white border border-slate-200/90 rounded-xl w-60 shadow-sm overflow-hidden flex flex-col z-10 hover:shadow-md transition-all">
                       <div className={`h-1.5 w-full bg-gradient-to-r ${colorClass}`}></div>
                       
-                      <div className="p-6 flex flex-col items-center border-b border-slate-100">
-                        <Avatar employee={lead} size="xl" />
-                        <h2 className="mt-4 text-xl font-bold text-slate-800 tracking-tight">{lead.name}</h2>
-                        <p className="text-[10px] font-black text-blue-500 tracking-widest uppercase mt-1">CENTER HEAD</p>
+                      <div className="p-3.5 flex flex-col items-center border-b border-slate-100">
+                        <Avatar employee={lead} size="lg" />
+                        <h2 className="mt-2 text-base font-bold text-slate-800 tracking-tight text-center">{lead.name}</h2>
+                        <p className="text-[9px] font-black text-blue-500 tracking-widest uppercase mt-0.5">CENTER HEAD</p>
                       </div>
 
-                      <div className="px-4 py-3 bg-slate-50 flex justify-between items-center mt-auto">
-                        <span className="text-xs text-slate-500 font-medium">{reportCount} Direct Reports</span>
+                      <div className="px-3.5 py-1.5 bg-slate-50 flex justify-between items-center mt-auto">
+                        <span className="text-[11px] text-slate-500 font-medium">{reportCount} Direct Reports</span>
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-white border border-slate-200 rounded-xl w-64 shadow-md overflow-hidden flex flex-col z-10 transition-transform hover:-translate-y-1 duration-300">
+                    <div className="bg-white border border-slate-200/90 rounded-xl w-52 shadow-sm overflow-hidden flex flex-col z-10 hover:shadow-md transition-all">
                       <div className={`h-1.5 w-full bg-gradient-to-r ${colorClass}`}></div>
                       
-                      <div className="p-4 flex justify-between items-start border-b border-slate-100">
+                      <div className="p-3 flex justify-between items-start border-b border-slate-100">
                         <div>
-                          <h3 className="text-slate-800 font-bold text-lg">{deptName}</h3>
-                          <p className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Department</p>
+                          <h3 className="text-slate-800 font-bold text-sm leading-snug">{deptName}</h3>
+                          <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">Department</p>
                         </div>
-                        <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
-                          <Users className="w-4 h-4" />
-                        </div>
-                      </div>
-
-                      <div className="p-4 flex items-center gap-3">
-                        <Avatar employee={lead} size="md" />
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-black text-[#8a42db] tracking-widest uppercase mb-0.5">Team Lead</span>
-                          <span className="text-sm font-semibold text-slate-800 leading-tight">{lead.name}</span>
+                        <div className="w-6 h-6 rounded bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100">
+                          <Users className="w-3.5 h-3.5" />
                         </div>
                       </div>
 
-                      <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex justify-between items-center mt-auto">
-                        <span className="text-xs text-slate-500 font-medium">{reportCount} Direct Reports</span>
+                      <div className="p-3 flex items-center gap-2.5">
+                        <Avatar employee={lead} size="sm" />
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[8px] font-black text-[#8a42db] tracking-widest uppercase">Team Lead</span>
+                          <span className="text-xs font-semibold text-slate-800 truncate">{lead.name}</span>
+                        </div>
+                      </div>
+
+                      <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 flex justify-between items-center mt-auto">
+                        <span className="text-[10px] text-slate-500 font-medium">{reportCount} Direct Reports</span>
                       </div>
                     </div>
                   )}
 
-                  {isExpanded && reportCount > 0 && (
+                  {reportCount > 0 && (
                     <div className="flex flex-col items-center mt-0 w-full relative">
-                      <div className="w-px h-8 bg-slate-300"></div>
+                      <div className="w-px h-5 bg-slate-300"></div>
                       
                       {reportCount > 1 && (
-                        <div className="w-full h-px bg-slate-300 relative" style={{ width: `calc(100% - ${100/reportCount}%)` }}></div>
+                        <div 
+                          className="w-full h-px bg-slate-300 relative" 
+                          style={{ width: `calc(100% - ${100 / reportCount}%)` }}
+                        ></div>
                       )}
                       
-                      <div className="flex justify-center gap-4 pt-4 relative w-max">
-                        {directReports.map((emp, empIndex) => (
+                      <div className="flex justify-center gap-2 pt-2.5 relative w-max">
+                        {directReports.map((emp) => (
                           <div key={emp.id} className="flex flex-col items-center relative">
                             {reportCount > 1 && (
-                              <div className="absolute -top-4 w-px h-4 bg-slate-300"></div>
+                              <div className="absolute -top-2.5 w-px h-2.5 bg-slate-300"></div>
                             )}
                             
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col items-center w-36 shadow-sm hover:shadow-md hover:border-[#8a42db]/30 transition-all cursor-pointer group">
-                              <Avatar employee={emp} size="lg" />
-                              <h4 className="mt-3 text-sm font-bold text-slate-800 text-center group-hover:text-[#8a42db] transition-colors">{emp.name}</h4>
-                              <p className="text-[10px] text-slate-500 font-medium text-center uppercase tracking-wide mt-1 truncate w-full">{emp.designation}</p>
+                            <div className="bg-white border border-slate-200/90 rounded-lg p-2 flex flex-col items-center w-26 sm:w-28 shadow-xs hover:shadow-md hover:border-[#8a42db]/40 transition-all cursor-pointer group">
+                              <Avatar employee={emp} size="md" />
+                              <h4 className="mt-1.5 text-xs font-bold text-slate-800 text-center group-hover:text-[#8a42db] transition-colors line-clamp-1 w-full" title={emp.name}>
+                                {emp.name}
+                              </h4>
+                              <p className="text-[9px] text-slate-500 font-medium text-center uppercase tracking-wide truncate w-full" title={emp.designation}>
+                                {emp.designation}
+                              </p>
                             </div>
                           </div>
                         ))}
@@ -322,30 +333,26 @@ const OrgTree = ({
 const MobileOrgTree = ({ 
   org, 
   searchQuery, 
-  employees,
-  expandedNodes,
-  toggleExpand
+  employees
 }: { 
   org: 'medcy_hospitals' | 'vizag_ivf',
   searchQuery: string,
-  employees: Employee[],
-  expandedNodes: Record<string, boolean>,
-  toggleExpand: (id: string) => void
+  employees: Employee[]
 }) => {
   const { executives, midLevelLeaders, groupsByLead } = useOrgHierarchy(org, searchQuery, employees);
 
   return (
-    <div className="w-full flex flex-col gap-6 px-0 pb-8 max-w-md mx-auto">
+    <div className="w-full flex flex-col gap-5 px-1 pb-16 max-w-md mx-auto">
       {executives.length > 0 && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           {executives.map(ceo => (
-            <div key={ceo.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div key={ceo.id} className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
               <div className="h-1.5 w-full bg-gradient-to-r from-[#8a42db] via-purple-500 to-pink-500"></div>
-              <div className="p-4 flex items-center gap-4">
+              <div className="p-3.5 flex items-center gap-3">
                 <Avatar employee={ceo} size="lg" />
                 <div>
-                  <h2 className="text-lg font-bold text-slate-800 tracking-tight">{ceo.name}</h2>
-                  <p className="text-[10px] font-black text-[#8a42db] tracking-widest uppercase mt-1">HEAD</p>
+                  <h2 className="text-base font-bold text-slate-800 tracking-tight">{ceo.name}</h2>
+                  <p className="text-[9px] font-black text-[#8a42db] tracking-widest uppercase mt-0.5">HEAD</p>
                 </div>
               </div>
             </div>
@@ -354,36 +361,36 @@ const MobileOrgTree = ({
       )}
 
       {midLevelLeaders.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3.5">
           {midLevelLeaders.map(lead => {
             const { name: deptName, colorClass } = getDepartmentInfo(lead);
             const directReports = groupsByLead[lead.id] || [];
             const isCenterHead = lead.name.toLowerCase().includes('ravi kumar');
             
             return (
-              <div key={lead.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div key={lead.id} className="bg-white rounded-xl shadow-xs border border-slate-200 overflow-hidden">
                 <div className={`h-1.5 w-full bg-gradient-to-r ${colorClass}`}></div>
-                <div className="p-4 border-b border-slate-50 bg-white">
+                <div className="p-3 border-b border-slate-50 bg-white">
                   <div className="flex items-center gap-3">
-                    <Avatar employee={lead} size="lg" />
+                    <Avatar employee={lead} size="md" />
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-black text-[#8a42db] uppercase tracking-widest">{isCenterHead ? 'Center Head' : deptName}</span>
-                      <span className="font-bold text-slate-800 text-base">{lead.name}</span>
+                      <span className="text-[9px] font-black text-[#8a42db] uppercase tracking-widest">{isCenterHead ? 'Center Head' : deptName}</span>
+                      <span className="font-bold text-slate-800 text-sm">{lead.name}</span>
                     </div>
                   </div>
                 </div>
                 
                 {directReports.length > 0 && (
-                  <div className="bg-slate-50/80 p-4 pt-3">
-                    <div className="flex flex-col gap-3 relative">
-                      <div className="absolute left-5 top-2 bottom-5 w-px bg-slate-300"></div>
+                  <div className="bg-slate-50/80 p-3 pt-2">
+                    <div className="flex flex-col gap-2 relative">
+                      <div className="absolute left-4 top-2 bottom-4 w-px bg-slate-300"></div>
                       {directReports.map((emp) => (
-                        <div key={emp.id} className="flex items-center gap-3 relative pl-10">
-                          <div className="absolute left-5 top-1/2 w-4 h-px bg-slate-300"></div>
+                        <div key={emp.id} className="flex items-center gap-2.5 relative pl-8">
+                          <div className="absolute left-4 top-1/2 w-3 h-px bg-slate-300"></div>
                           <Avatar employee={emp} size="sm" />
-                          <div className="flex flex-col py-1 overflow-hidden w-full">
-                            <span className="text-sm font-semibold text-slate-800 leading-tight truncate">{emp.name}</span>
-                            <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wide truncate">{emp.designation}</span>
+                          <div className="flex flex-col py-0.5 overflow-hidden w-full">
+                            <span className="text-xs font-semibold text-slate-800 leading-tight truncate">{emp.name}</span>
+                            <span className="text-[9px] text-slate-500 font-medium uppercase tracking-wide truncate">{emp.designation}</span>
                           </div>
                         </div>
                       ))}
@@ -405,64 +412,210 @@ export const OrgHierarchyView: React.FC<OrgHierarchyViewProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrg, setSelectedOrg] = useState<'medcy_hospitals' | 'vizag_ivf'>('medcy_hospitals');
-  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
+  
+  // Interactive Viewport Scaling & Pan
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState<number>(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const isDraggingRef = useRef<boolean>(false);
+  const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const panStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const toggleExpand = (id: string) => {
-    setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));
+  // Intelligent Auto-Fit Calculation
+  const handleFitToScreen = useCallback(() => {
+    if (!viewportRef.current || !contentRef.current) return;
+    const vp = viewportRef.current.getBoundingClientRect();
+    
+    // Measure natural unscaled content size
+    const contentW = contentRef.current.scrollWidth || contentRef.current.offsetWidth;
+    const contentH = contentRef.current.scrollHeight || contentRef.current.offsetHeight;
+    
+    if (contentW <= 0 || contentH <= 0 || vp.width <= 0 || vp.height <= 0) return;
+    
+    const paddingX = 36;
+    const paddingY = 28;
+    const availableW = vp.width - paddingX;
+    const availableH = vp.height - paddingY;
+    
+    const scaleX = availableW / contentW;
+    const scaleY = availableH / contentH;
+    
+    // Find optimal scale so entire tree fits both width & height
+    const fitScale = Math.min(scaleX, scaleY);
+    const clampedScale = Math.max(0.38, Math.min(1.05, parseFloat(fitScale.toFixed(2))));
+    
+    setScale(clampedScale);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  // Recalculate auto-fit when org changes or window resizes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleFitToScreen();
+    }, 120);
+
+    const onResize = () => handleFitToScreen();
+    window.addEventListener('resize', onResize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [selectedOrg, handleFitToScreen, employees]);
+
+  // Mouse Pan Handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('input') || target.closest('select')) return;
+    
+    isDraggingRef.current = true;
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY };
+    panStart.current = { ...pan };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingRef.current) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    setPan({
+      x: panStart.current.x + dx,
+      y: panStart.current.y + dy
+    });
+  };
+
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.06 : 0.06;
+      setScale(s => Math.max(0.35, Math.min(1.5, parseFloat((s + delta).toFixed(2)))));
+    }
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/50 p-4 md:p-8 animate-fadeIn overflow-hidden rounded-2xl relative">
+    <div className="flex flex-col h-[calc(100vh-130px)] lg:h-[calc(100vh-100px)] bg-slate-50/50 p-2 sm:p-3 animate-fadeIn overflow-hidden rounded-2xl relative select-none">
       
-      {/* Top Bar */}
-      <div className="flex flex-col items-center mb-12 relative z-20">
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+      {/* Top Compact Control Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 mb-2 relative z-20 shrink-0 px-2 pt-1">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200/80 rounded-xl shadow-xs">
+            <Users className="w-4 h-4 text-[#8a42db]" />
+            <span className="text-xs font-bold text-slate-800 tracking-tight">Organization Hierarchy</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input 
               type="text"
-              placeholder="Search employee, lead, or department..."
+              placeholder="Search employee, lead, or dept..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-full bg-white border border-slate-200 text-slate-800 rounded-full py-3.5 pl-12 pr-6 focus:outline-none focus:ring-2 focus:ring-[#8a42db]/50 shadow-sm placeholder:text-slate-400 transition-all"
+              className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl py-1.5 pl-8 pr-3 focus:outline-none focus:ring-2 focus:ring-[#8a42db]/40 shadow-xs placeholder:text-slate-400 transition-all"
             />
           </div>
           
-          <div className="relative w-full sm:w-64 shrink-0">
+          <div className="relative shrink-0 w-44">
             <select 
               value={selectedOrg}
               onChange={(e) => setSelectedOrg(e.target.value as any)}
-              className="w-full bg-white border border-slate-200 text-slate-800 rounded-full px-6 py-3.5 focus:outline-none focus:ring-2 focus:ring-[#8a42db]/50 shadow-sm appearance-none cursor-pointer pr-10 font-medium"
+              className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#8a42db]/40 shadow-xs appearance-none cursor-pointer pr-7 font-semibold"
             >
               <option value="medcy_hospitals">Medcy Hospitals</option>
               <option value="vizag_ivf">Vizag IVF Centre</option>
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
           </div>
         </div>
       </div>
 
-      {/* Main Tree Canvas - Desktop */}
-      <div className="hidden lg:block flex-1 overflow-auto custom-scrollbar relative pb-32">
-        <div className="flex flex-col items-center min-w-max mx-auto px-10">
+      {/* Main Tree Canvas - Desktop with Auto-Fit & Drag-to-Pan */}
+      <div 
+        ref={viewportRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onWheel={handleWheel}
+        className={`hidden lg:flex flex-1 items-center justify-center overflow-hidden relative rounded-xl bg-gradient-to-b from-slate-50/70 to-slate-100/40 border border-slate-200/50 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+      >
+        <div 
+          ref={contentRef}
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+            transformOrigin: 'top center',
+            transition: isDragging ? 'none' : 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}
+          className="w-max mx-auto pt-2 pb-6"
+        >
           <OrgTree 
             org={selectedOrg} 
             employees={employees} 
-            searchQuery={searchQuery} 
-            expandedNodes={expandedNodes} 
-            toggleExpand={toggleExpand} 
+            searchQuery={searchQuery}
           />
+        </div>
+
+        {/* Floating Glassmorphic Zoom Controls */}
+        <div className="flex items-center gap-1 absolute bottom-3 right-4 z-30 bg-white/90 backdrop-blur-md border border-slate-200/90 shadow-md px-2 py-1 rounded-full text-slate-700 text-xs font-medium">
+          <button 
+            onClick={() => setScale(s => Math.max(0.35, parseFloat((s - 0.08).toFixed(2))))}
+            className="p-1 rounded-full hover:bg-slate-100 text-slate-600 transition-colors"
+            title="Zoom Out"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          
+          <button 
+            onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}
+            className="px-1.5 py-0.5 rounded hover:bg-slate-100 text-slate-700 font-bold text-[10px] min-w-[36px] text-center"
+            title="Reset to 100%"
+          >
+            {Math.round(scale * 100)}%
+          </button>
+          
+          <button 
+            onClick={() => setScale(s => Math.min(1.4, parseFloat((s + 0.08).toFixed(2))))}
+            className="p-1 rounded-full hover:bg-slate-100 text-slate-600 transition-colors"
+            title="Zoom In"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="w-px h-3.5 bg-slate-200 mx-0.5"></div>
+
+          <button 
+            onClick={handleFitToScreen}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#8a42db]/10 hover:bg-[#8a42db]/20 text-[#8a42db] font-bold text-[10px] transition-colors"
+            title="Fit Entire Chart to Screen"
+          >
+            <Maximize2 className="w-3 h-3" />
+            <span>Fit Screen</span>
+          </button>
+
+          <button 
+            onClick={() => { setScale(1); setPan({ x: 0, y: 0 }); }}
+            className="p-1 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
+            title="Reset Position"
+          >
+            <RotateCcw className="w-3 h-3" />
+          </button>
         </div>
       </div>
 
       {/* Main Tree Canvas - Mobile */}
-      <div className="lg:hidden flex-1 overflow-y-auto custom-scrollbar relative pb-32 pt-2">
+      <div className="lg:hidden flex-1 overflow-y-auto custom-scrollbar relative pb-20 pt-1">
         <MobileOrgTree 
           org={selectedOrg} 
           employees={employees} 
-          searchQuery={searchQuery} 
-          expandedNodes={expandedNodes} 
-          toggleExpand={toggleExpand} 
+          searchQuery={searchQuery}
         />
       </div>
     </div>
