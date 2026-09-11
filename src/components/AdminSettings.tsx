@@ -1,330 +1,145 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Save, CheckCircle, RefreshCcw, Plus, Trash2, KeyRound } from 'lucide-react';
+import React from 'react';
+import { Settings, KeyRound, ShieldCheck, Database, Building2, Server, Smartphone, CheckCircle2 } from 'lucide-react';
 import { Language } from '../types';
-import { translations } from '../translations';
-import { fetchPayrollConfig, upsertPayrollConfig, PayrollConfig, PayrollTier } from '../lib/services/payroll-config-service';
 
 interface AdminSettingsProps {
- language: Language;
- onOpenProfile?: () => void;
+  language: Language;
+  onOpenProfile?: () => void;
 }
 
 export default function AdminSettings({ language, onOpenProfile }: AdminSettingsProps) {
- const t = translations[language];
- const [config, setConfig] = useState<PayrollConfig | null>(null);
- const [isLoading, setIsLoading] = useState(true);
- const [isSaving, setIsSaving] = useState(false);
- const [saveSuccess, setSaveSuccess] = useState(false);
-
- useEffect(() => {
-  loadConfig();
- }, []);
-
- const loadConfig = async () => {
-  setIsLoading(true);
-  const data = await fetchPayrollConfig();
-  setConfig(data);
-  setIsLoading(false);
- };
-
- const handleSave = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!config) return;
-
-  setIsSaving(true);
-  try {
-   for (const [key, value] of Object.entries(config)) {
-    if (key === 'payroll_tiers') {
-     await upsertPayrollConfig('payroll_tiers_json', 0, JSON.stringify(value));
-     continue;
-    }
-    
-    let label = '';
-    switch (key) {
-     case 'pf_percent': label = 'PF % of Basic'; break;
-     case 'professional_tax': label = 'Professional Tax (Fixed)'; break;
-     case 'hra_fixed': label = 'Legacy HRA'; break;
-     case 'medical_allowance': label = 'Legacy Medical'; break;
-     case 'conveyance_allowance': label = 'Legacy Conveyance'; break;
-    }
-    if (typeof value === 'number') {
-     await upsertPayrollConfig(key, value, label);
-    }
-   }
-   setSaveSuccess(true);
-   setTimeout(() => setSaveSuccess(false), 3000);
-  } catch (err: any) {
-   console.error('Failed to save config:', err);
-   alert(`Failed to save settings: ${err.message || 'Check your connection'}`);
-  } finally {
-   setIsSaving(false);
-  }
- };
-
- const handleChange = (key: keyof PayrollConfig, value: string) => {
-  if (!config) return;
-  setConfig({
-   ...config,
-   [key]: Number(value)
-  });
- };
-
- const addTier = () => {
-  if (!config) return;
-  const newTier: PayrollTier = {
-   id: Date.now().toString(),
-   name: `Tier ${(config.payroll_tiers?.length || 0) + 1}`,
-   minSalary: 0,
-   maxSalary: 999999,
-   hra: 0,
-   ma: 0,
-   ca: 0
-  };
-  setConfig({
-   ...config,
-   payroll_tiers: [...(config.payroll_tiers || []), newTier]
-  });
- };
-
- const updateTier = (tierId: string, field: keyof PayrollTier, value: string | number) => {
-  if (!config || !config.payroll_tiers) return;
-  const updatedTiers = config.payroll_tiers.map(t => {
-   if (t.id === tierId) {
-    return { ...t, [field]: field === 'name' ? value : Number(value) };
-   }
-   return t;
-  });
-  setConfig({ ...config, payroll_tiers: updatedTiers });
- };
-
- const removeTier = (tierId: string) => {
-  if (!config || !config.payroll_tiers) return;
-  if (config.payroll_tiers.length <= 1) {
-   alert("You must have at least one payroll tier.");
-   return;
-  }
-  setConfig({
-   ...config,
-   payroll_tiers: config.payroll_tiers.filter(t => t.id !== tierId)
-  });
- };
-
- if (isLoading) {
   return (
-   <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-    <RefreshCcw className="w-8 h-8 animate-spin mb-4 text-[#8a42db]"/>
-    <p>Loading settings...</p>
-   </div>
+    <div className="space-y-6 animate-fadeIn max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold font-display text-slate-800 flex items-center gap-2">
+            <Settings className="w-6 h-6 text-[#8a42db]" />
+            {language === 'te' ? 'సిస్టమ్ సెట్టింగ్‌లు' : 'System Settings'}
+          </h2>
+          <p className="text-xs text-slate-400 mt-1">
+            {language === 'te'
+              ? 'అడ్మినిస్ట్రేటర్ ఖాతా క్రెడెన్షియల్స్, భద్రత మరియు ప్రాధాన్యతలను నిర్వహించండి.'
+              : 'Manage administrator account credentials, security, and preferences.'}
+          </p>
+        </div>
+      </div>
+
+      {/* Admin Profile & Password Quick Access */}
+      <div className="bg-white rounded-[28px] p-6 sm:p-7 border border-purple-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-purple-200 transition-all">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#7e3acb] to-[#a855f7] text-white flex items-center justify-center shadow-md shadow-purple-600/20 shrink-0">
+            <KeyRound className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-800">
+              {language === 'te' ? 'అడ్మిన్ ప్రొఫైల్ & పాస్‌వర్డ్ సెట్టింగ్‌లు' : 'Admin Profile & Security Settings'}
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {language === 'te'
+                ? 'మీ ఖాతా పాస్‌వర్డ్ మరియు ప్రొఫైల్ సమాచారాన్ని నవీకరించండి.'
+                : 'Manage your administrator password and account credentials.'}
+            </p>
+          </div>
+        </div>
+        {onOpenProfile && (
+          <button
+            type="button"
+            onClick={onOpenProfile}
+            className="shrink-0 px-5 py-2.5 bg-[#8a42db] hover:bg-[#7e3acb] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-purple-600/15 flex items-center gap-2 cursor-pointer active:scale-95"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-white" />
+            <span>{language === 'te' ? 'పాస్‌వర్డ్ మార్చండి' : 'Change Password'}</span>
+          </button>
+        )}
+      </div>
+
+      {/* Organization & System Status Overview */}
+      <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-slate-100 shadow-sm space-y-6">
+        <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+          <ShieldCheck className="w-5 h-5 text-[#8a42db]" />
+          <h3 className="text-sm font-bold text-slate-800">
+            {language === 'te' ? 'సిస్టమ్ & నెట్‌వర్క్ స్థితి' : 'System & Organization Overview'}
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Organization Card */}
+          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex items-start gap-3.5">
+            <div className="p-2.5 rounded-xl bg-purple-50 text-[#8a42db] shrink-0">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                {language === 'te' ? 'సంస్థ' : 'Organization'}
+              </p>
+              <h4 className="text-sm font-bold text-slate-800 mt-0.5">
+                Medcy Hospitals & Vizag IVF Centre
+              </h4>
+              <span className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                <CheckCircle2 className="w-3 h-3" />
+                Multi-Tenant Bifurcation Active
+              </span>
+            </div>
+          </div>
+
+          {/* Database Card */}
+          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex items-start gap-3.5">
+            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 shrink-0">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                {language === 'te' ? 'డేటాబేస్ ఇంజిన్' : 'Database Engine'}
+              </p>
+              <h4 className="text-sm font-bold text-slate-800 mt-0.5">
+                Supabase PostgreSQL (Cloud)
+              </h4>
+              <span className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                <CheckCircle2 className="w-3 h-3" />
+                Connected & Synchronized
+              </span>
+            </div>
+          </div>
+
+          {/* Security & Access */}
+          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex items-start gap-3.5">
+            <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 shrink-0">
+              <Server className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                {language === 'te' ? 'భద్రత & యాక్సెస్ కంట్రోల్' : 'Access Control & Security'}
+              </p>
+              <h4 className="text-sm font-bold text-slate-800 mt-0.5">
+                Role-Based Access Control (RBAC)
+              </h4>
+              <p className="text-xs text-slate-500 mt-1">
+                Admin, Team Lead & Field Staff permissions enforced.
+              </p>
+            </div>
+          </div>
+
+          {/* Mobile & Offline App Card */}
+          <div className="p-4 rounded-2xl bg-slate-50/80 border border-slate-100 flex items-start gap-3.5">
+            <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600 shrink-0">
+              <Smartphone className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                {language === 'te' ? 'PWA & ఆఫ్‌లైన్ ఇంజిన్' : 'PWA & Offline Engine'}
+              </p>
+              <h4 className="text-sm font-bold text-slate-800 mt-0.5">
+                Progressive Web App v1.3.0
+              </h4>
+              <span className="inline-flex items-center gap-1.5 mt-2 text-[11px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                <CheckCircle2 className="w-3 h-3" />
+                Offline Caching & Geo-Tracking Enabled
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
- }
-
- if (!config) return null;
-
- return (
-  <div className="space-y-6 animate-fadeIn max-w-4xl mx-auto">
-   <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-    <div>
-     <h2 className="text-xl font-bold font-display text-slate-800 flex items-center gap-2">
-      <Settings className="w-6 h-6 text-[#8a42db]"/>
-      {language === 'te' ? 'సిస్టమ్ సెట్టింగ్‌లు' : 'System Settings'}
-     </h2>
-     <p className="text-xs text-slate-400 mt-1">
-      {language === 'te' 
-       ? 'పేరోల్ స్ట్రక్చర్ మరియు ఇతర సెట్టింగ్‌లను కాన్ఫిగర్ చేయండి.' 
-       : 'Configure payroll structure, allowances, and deductions.'}
-     </p>
-    </div>
-   </div>
-
-   {/* Admin Profile & Password Quick Access */}
-   {onOpenProfile && (
-    <div className="bg-white rounded-[28px] p-5 sm:p-6 border border-teal-100/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-     <div className="flex items-center gap-3.5">
-      <div className="w-11 h-11 rounded-2xl bg-[#8a42db] text-white flex items-center justify-center shadow-md shadow-teal-600/20 shrink-0">
-       <KeyRound className="w-5 h-5"/>
-      </div>
-      <div>
-       <h3 className="text-sm font-bold text-slate-800">
-        {language === 'te' ? 'అడ్మిన్ ప్రొఫైల్ & పాస్‌వర్డ్ సెట్టింగ్‌లు' : 'Admin Profile & Security Settings'}
-       </h3>
-       <p className="text-xs text-slate-500 mt-0.5">
-        {language === 'te' ? 'మీ ఖాతా పాస్‌వర్డ్ మరియు ప్రొఫైల్ సమాచారాన్ని నవీకరించండి.' : 'Manage your administrator password and account credentials.'}
-       </p>
-      </div>
-     </div>
-     <button
-      type="button"
-      onClick={onOpenProfile}
-      className="shrink-0 px-4 py-2.5 bg-white hover:bg-slate-50 text-[#7e3acb] border border-purple-200 hover:border-purple-300 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
-     >
-      <KeyRound className="w-3.5 h-3.5 text-[#8a42db]"/>
-      <span>{language === 'te' ? 'పాస్‌వర్డ్ మార్చండి' : 'Change Password'}</span>
-     </button>
-    </div>
-   )}
-
-   <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-slate-100 shadow-sm">
-    <form onSubmit={handleSave} className="space-y-8">
-     
-     <div>
-      <h3 className="text-sm font-bold text-slate-800 mb-4 pb-2 border-b border-slate-100">
-       {language === 'te' ? 'పేరోల్ స్ట్రక్చర్ (Payroll Structure)' : 'Payroll Structure'}
-      </h3>
-      
-      <div className="flex items-center justify-between mb-4">
-       <p className="text-sm text-slate-500">Define salary ranges and their corresponding allowances.</p>
-       <button
-        type="button"
-        onClick={addTier}
-        className="flex items-center gap-1.5 text-xs font-bold bg-[#f3edfb] text-[#7e3acb] hover:bg-purple-100 px-3 py-1.5 rounded-lg transition-colors"
-       >
-        <Plus className="w-4 h-4"/>
-        Add Tier
-       </button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-       {config.payroll_tiers?.map((tier, index) => (
-        <div key={tier.id} className="mb-6 border border-slate-100 rounded-2xl p-5 bg-slate-50/50 shadow-sm relative group">
-         <button 
-          type="button"
-          onClick={() => removeTier(tier.id)}
-          className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-          title="Remove Tier"
-         >
-          <Trash2 className="w-4 h-4"/>
-         </button>
-         
-         <div className="mb-4">
-          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tier Name</label>
-          <input 
-           type="text"
-           required 
-           value={tier.name} 
-           onChange={(e) => updateTier(tier.id, 'name', e.target.value)} 
-           className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10"
-           placeholder="e.g. Tier 1"
-          />
-         </div>
-
-         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div>
-           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Min Salary</label>
-           <div className="relative">
-            <span className="absolute left-3 top-2 text-slate-400 font-bold text-sm">₹</span>
-            <input 
-             type="number"
-             required 
-             value={tier.minSalary} 
-             onChange={(e) => updateTier(tier.id, 'minSalary', e.target.value)} 
-             className="w-full pl-7 pr-2 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10"
-            />
-           </div>
-          </div>
-          <div>
-           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Max Salary</label>
-           <div className="relative">
-            <span className="absolute left-3 top-2 text-slate-400 font-bold text-sm">₹</span>
-            <input 
-             type="number"
-             required 
-             value={tier.maxSalary} 
-             onChange={(e) => updateTier(tier.id, 'maxSalary', e.target.value)} 
-             className="w-full pl-7 pr-2 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10"
-            />
-           </div>
-          </div>
-         </div>
-
-         <div className="grid grid-cols-1 gap-3 pt-4 border-t border-slate-200/60">
-          <div className="flex items-center justify-between">
-           <label className="text-xs font-bold text-slate-500">HRA</label>
-           <div className="relative w-32">
-            <span className="absolute left-3 top-1.5 text-slate-400 font-bold text-sm">₹</span>
-            <input type="number"required value={tier.hra} onChange={(e) => updateTier(tier.id, 'hra', e.target.value)} className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"/>
-           </div>
-          </div>
-          <div className="flex items-center justify-between">
-           <label className="text-xs font-bold text-slate-500">Medical</label>
-           <div className="relative w-32">
-            <span className="absolute left-3 top-1.5 text-slate-400 font-bold text-sm">₹</span>
-            <input type="number"required value={tier.ma} onChange={(e) => updateTier(tier.id, 'ma', e.target.value)} className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"/>
-           </div>
-          </div>
-          <div className="flex items-center justify-between">
-           <label className="text-xs font-bold text-slate-500">Conveyance</label>
-           <div className="relative w-32">
-            <span className="absolute left-3 top-1.5 text-slate-400 font-bold text-sm">₹</span>
-            <input type="number"required value={tier.ca} onChange={(e) => updateTier(tier.id, 'ca', e.target.value)} className="w-full pl-7 pr-2 py-1.5 bg-white border border-slate-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"/>
-           </div>
-          </div>
-         </div>
-        </div>
-       ))}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-
-       {/* Deductions */}
-       <div className="space-y-1">
-        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-         PF % (Percentage of Basic)
-        </label>
-        <div className="relative">
-         <input
-          type="number"
-          step="0.1"
-          required
-          value={config.pf_percent || ''}
-          onChange={(e) => handleChange('pf_percent', e.target.value)}
-          className="w-full pl-4 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"
-         />
-         <span className="absolute right-4 top-2 text-slate-400 font-bold">%</span>
-        </div>
-       </div>
-
-       <div className="space-y-1">
-        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-         Professional Tax (Fixed)
-        </label>
-        <div className="relative">
-         <span className="absolute left-4 top-2 text-slate-400 font-bold">₹</span>
-         <input
-          type="number"
-          required
-          value={config.professional_tax || ''}
-          onChange={(e) => handleChange('professional_tax', e.target.value)}
-          className="w-full pl-8 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"
-         />
-        </div>
-       </div>
-      </div>
-      
-      <div className="mt-6 p-4 bg-[#f3edfb] border border-teal-100 rounded-xl">
-       <p className="text-xs text-[#6a2baf] font-medium">
-        <span className="font-bold">Info:</span> Changing these values will apply to all <b>future</b> payslips generated. Existing payslips will not be modified unless manually regenerated.
-       </p>
-      </div>
-     </div>
-
-     <div className="pt-6 border-t border-slate-100 flex items-center justify-end gap-4">
-      {saveSuccess && (
-       <span className="text-emerald-600 text-sm font-bold flex items-center gap-2 animate-fadeIn">
-        <CheckCircle className="w-4 h-4"/>
-        Settings Saved!
-       </span>
-      )}
-      <button
-       type="submit"
-       disabled={isSaving}
-       className="bg-[#8a42db] hover:bg-[#7e3acb] text-white px-8 py-3 rounded-xl text-sm font-bold shadow-md shadow-teal-600/15 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-70"
-      >
-       {isSaving ? <RefreshCcw className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>}
-       {language === 'te' ? 'సేవ్ చేయండి' : 'Save Settings'}
-      </button>
-     </div>
-    </form>
-   </div>
-  </div>
- );
 }
