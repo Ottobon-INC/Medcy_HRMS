@@ -30,6 +30,7 @@ interface AppRouterProps {
   language: Language;
   currentUser: Employee;
   employees: Employee[];
+  allEmployees?: Employee[];
   isLocalMode: boolean;
   tasks: Task[];
   noDataText: string;
@@ -38,8 +39,8 @@ interface AppRouterProps {
   onToggleCheckIn: (userId: string, isCheckedIn: boolean, photoData?: string, punchType?: PunchType, punchNote?: string) => Promise<any>;
   onAddPin: (employeeId: string, label: string, pinType?: PinType, photoUrl?: string) => Promise<any>;
   onApplyLeave: (empId: string, req: any) => Promise<void>;
-  onApproveLeave: (reqId: string, note?: string) => Promise<void>;
-  onRejectLeave: (reqId: string, note?: string) => Promise<void>;
+  onApproveLeave: (reqId: string, approverId: string, note?: string) => Promise<void>;
+  onRejectLeave: (reqId: string, approverId: string, note?: string) => Promise<void>;
   onAddEmployee: (emp: any) => Promise<void>;
   onUpdateEmployee: (id: string, fields: Partial<Employee>) => Promise<void>;
   onDeleteEmployee: (id: string) => Promise<void>;
@@ -131,7 +132,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
 
     case 'myRoster':
       return (
-        <EmployeeRoster 
+        <EmployeeRoster
           language={language}
           employeeId={currentUser.id}
         />
@@ -208,9 +209,19 @@ export const AppRouter: React.FC<AppRouterProps> = ({
       return (
         <AdminLeaveApprovals
           language={language}
-          employees={employees}
-          onApproveLeave={(_empId, reqId, note) => onApproveLeave(reqId, note)}
-          onRejectLeave={(_empId, reqId, note) => onRejectLeave(reqId, note)}
+          currentUser={currentUser}
+          employees={allEmployees || employees}
+          onApproveLeave={(_empId, reqId, approverId, note) => onApproveLeave(reqId, approverId || currentUser.id, note)}
+          onRejectLeave={(_empId, reqId, approverId, note) => onRejectLeave(reqId, approverId || currentUser.id, note)}
+          onApplyLeave={(empId, req) => onApplyLeave(empId, req)}
+        />
+      );
+    case 'doctorPlanner':
+      return (
+        <DoctorVisitPlanner
+          language={language}
+          currentUser={currentUser}
+          employees={allEmployees || employees}
         />
       );
     case 'officeLocations':
@@ -224,10 +235,6 @@ export const AppRouter: React.FC<AppRouterProps> = ({
     case 'adminSettings':
       return (
         <AdminSettings language={language} onOpenProfile={onOpenProfile} />
-      );
-    case 'dutyRoster':
-      return (
-        <DutyRosterModule language={language} employees={employees} />
       );
     case 'tasks':
       return (
@@ -244,7 +251,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
         <AdminTaskManager
           language={language}
           currentUser={currentUser}
-          employees={employees}
+          employees={allEmployees || employees}
           tasks={tasks}
           onCreateTask={onCreateTask}
           onUpdateTask={onUpdateTask}
@@ -257,7 +264,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
         <ExecutiveOverview
           language={language}
           currentUser={currentUser}
-          employees={employees}
+          employees={allEmployees || employees}
           tasks={tasks}
           setActiveTab={setActiveTab}
         />
@@ -267,7 +274,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
         <OrgHierarchyView
           language={language}
           currentUser={currentUser}
-          employees={employees}
+          employees={allEmployees || employees}
         />
       );
 

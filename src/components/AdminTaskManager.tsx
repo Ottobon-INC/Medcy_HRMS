@@ -1,19 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  CheckSquare, 
-  Plus, 
-  Search, 
-  Filter, 
-  User, 
-  Calendar, 
-  Clock, 
-  AlertCircle, 
-  CheckCircle2, 
-  Edit3, 
-  Trash2, 
-  Send, 
-  X, 
-  Check, 
+import {
+  CheckSquare,
+  Plus,
+  Search,
+  Filter,
+  User,
+  Calendar,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  Edit3,
+  Trash2,
+  Send,
+  X,
+  Check,
   AlertTriangle,
   ChevronDown,
   LayoutGrid,
@@ -61,16 +61,48 @@ export default function AdminTaskManager({
 
   // Modal States
   const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const fieldEmployees = employees.filter(
-    e =>
-      e.hierarchyLevel !== 'executive' &&
-      e.id !== 'EMP-EXEC-001' &&
-      e.id !== 'EMP-EXEC-002' &&
-      !e.designation?.toLowerCase().includes('executive director') &&
-      !e.name?.toLowerCase().includes('anoopama') &&
-      !e.name?.toLowerCase().includes('indra')
-  );
+  const isTeamLead = currentUser?.hierarchyLevel === 'team_lead';
+  const isManager = currentUser?.hierarchyLevel === 'manager' || currentUser?.hierarchyLevel === 'senior_manager';
+
+  // Determine assignable employees:
+  // - Self is ALWAYS included (for self-assigned tasks)
+  // - For Team Leads (Memidi Kishor & Vinay Bhushan):
+  //   Can assign to ALL level-3 employees in their organization / hospital network (and direct reports) + Self
+  // - For Managers (Ravikumar Raghupatruni):
+  //   Can assign to ALL employees under him: Unit Heads (Memidi Kishor, Vinay Bhushan) + all 8 subordinate staff + Self
+  // - For Executives / General Admin: Can assign to all employees in hospital network + Self
+  const assignableEmployees = useMemo(() => {
+    if (isTeamLead) {
+      return employees.filter(e =>
+        e.id === currentUser.id ||
+        ((e.hierarchyLevel === 'employee' || !e.hierarchyLevel || e.reportingTo === currentUser.id) &&
+          (!currentUser.hospital || !e.hospital || e.hospital === currentUser.hospital))
+      );
+    }
+    if (isManager) {
+      return employees.filter(e =>
+        e.id === currentUser.id ||
+        (e.hierarchyLevel !== 'executive' &&
+          e.id !== 'EMP-EXEC-001' &&
+          e.id !== 'EMP-EXEC-002' &&
+          !e.designation?.toLowerCase().includes('executive director') &&
+          (e.reportingTo === currentUser.id || !currentUser.hospital || !e.hospital || e.hospital === currentUser.hospital))
+      );
+    }
+    // Executive / General Admin
+    return employees.filter(e =>
+      e.id === currentUser.id ||
+      (e.hierarchyLevel !== 'executive' &&
+        e.id !== 'EMP-EXEC-001' &&
+        e.id !== 'EMP-EXEC-002' &&
+        !e.designation?.toLowerCase().includes('executive director') &&
+        !e.name?.toLowerCase().includes('anoopama') &&
+        !e.name?.toLowerCase().includes('indra') &&
+        (!currentUser.hospital || !e.hospital || e.hospital === currentUser.hospital))
+    );
+  }, [employees, currentUser, isTeamLead, isManager]);
+
+  const fieldEmployees = assignableEmployees;
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
@@ -97,7 +129,18 @@ export default function AdminTaskManager({
 
   // Filter tasks
   const filteredTasks = useMemo(() => {
+    const assignableIds = new Set(assignableEmployees.map(e => e.id));
     return tasks.filter(task => {
+      // If team lead or manager: show self tasks, tasks created by me, and tasks of assignable staff
+      if (isTeamLead || isManager) {
+        const isSelf = task.assignedTo === currentUser.id;
+        const isCreatedByMe = task.createdBy === currentUser.id;
+        const isInScope = task.assignedTo && assignableIds.has(task.assignedTo);
+        if (!isSelf && !isCreatedByMe && !isInScope) {
+          return false;
+        }
+      }
+
       const taskDate = task.taskDate || (task.createdAt ? task.createdAt.split('T')[0] : todayStr);
 
       // Time filter (Today's Work vs History/All)
@@ -135,7 +178,7 @@ export default function AdminTaskManager({
 
       return true;
     });
-  }, [tasks, timeFilter, selectedDate, assigneeFilter, priorityFilter, statusFilter, searchQuery, employeesMap, todayStr]);
+  }, [tasks, timeFilter, selectedDate, assigneeFilter, priorityFilter, statusFilter, searchQuery, employeesMap, todayStr, assignableEmployees, isTeamLead, currentUser.id]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -156,7 +199,7 @@ export default function AdminTaskManager({
     setFormData({
       description: '',
       priority: 'medium',
-      assignedTo: employees.length > 0 ? employees[0].id : '',
+      assignedTo: currentUser.id,
       taskDate: todayStr,
       status: 'in_progress',
       notes: ''
@@ -287,7 +330,7 @@ export default function AdminTaskManager({
 
   return (
     <div id="admin-work-manager-container" className="space-y-6 sm:space-y-8 animate-fadeIn">
-      
+
       {/* Top Header Card */}
       <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -300,8 +343,8 @@ export default function AdminTaskManager({
                 {t.taskManager || 'Work Assignment Panel'}
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                {language === 'te' 
-                  ? 'సిబ్బందికి రోజువారీ పనులను కేటాయించండి మరియు పూర్తయిన స్థితిని పర్యవేక్షించండి' 
+                {language === 'te'
+                  ? 'సిబ్బందికి రోజువారీ పనులను కేటాయించండి మరియు పూర్తయిన స్థితిని పర్యవేక్షించండి'
                   : 'Assign daily work directly to staff, inspect historical records, and track completion'}
               </p>
             </div>
@@ -309,26 +352,24 @@ export default function AdminTaskManager({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          
+
           {/* Time Filter: Today vs All History */}
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/50">
             <button
               onClick={() => setTimeFilter('today')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition-all uppercase cursor-pointer ${
-                timeFilter === 'today'
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition-all uppercase cursor-pointer ${timeFilter === 'today'
                   ? 'bg-white text-teal-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               {t.todayTasks || "Today's Work"}
             </button>
             <button
               onClick={() => setTimeFilter('history')}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition-all uppercase cursor-pointer ${
-                timeFilter === 'history'
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold tracking-wider transition-all uppercase cursor-pointer ${timeFilter === 'history'
                   ? 'bg-white text-teal-700 shadow-sm'
                   : 'text-slate-500 hover:text-slate-700'
-              }`}
+                }`}
             >
               {t.historyTasks || "All Dates"}
             </button>
@@ -338,18 +379,16 @@ export default function AdminTaskManager({
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/50">
             <button
               onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                viewMode === 'table' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-              }`}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewMode === 'table' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                }`}
               title="Table View"
             >
               <List className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                viewMode === 'kanban' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-              }`}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${viewMode === 'kanban' ? 'bg-white text-teal-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                }`}
               title="Kanban View"
             >
               <LayoutGrid className="w-4 h-4" />
@@ -368,11 +407,11 @@ export default function AdminTaskManager({
             <button
               id="admin-btn-create-task"
               onClick={handleOpenCreateModal}
-            className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm shadow-teal-600/10 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t.createTask || 'Assign New Work'}</span>
-          </button>
+              className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm shadow-teal-600/10 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t.createTask || 'Assign New Work'}</span>
+            </button>
           </div>
 
 
@@ -459,8 +498,11 @@ export default function AdminTaskManager({
             className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none text-slate-700"
           >
             <option value="all">{t.filterByAssignee || 'All Staff'}</option>
-            {employees.map(emp => (
-              <option key={emp.id} value={emp.id}>{emp.name}</option>
+            <option value={currentUser.id}>★ Myself ({currentUser.name})</option>
+            {assignableEmployees.filter(emp => emp.id !== currentUser.id).map(emp => (
+              <option key={emp.id} value={emp.id}>
+                {emp.name} ({emp.designation || 'Staff'}) {emp.reportingTo === currentUser.id ? '• [Direct Report]' : ''}
+              </option>
             ))}
           </select>
 
@@ -501,7 +543,7 @@ export default function AdminTaskManager({
             {t.noTasks || 'No work assignments found.'}
           </h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            {timeFilter === 'today' 
+            {timeFilter === 'today'
               ? (language === 'te' ? 'ఈరోజు ఎలాంటి పనులు కేటాయించలేదు. కొత్త పనిని చేర్చడానికి పైన ఉన్న బటన్‌ను క్లిక్ చేయండి.' : 'No assignments created for today yet. Click "Assign New Work" above to assign tasks.')
               : (language === 'te' ? 'ఎంచుకున్న ఫిల్టర్‌కు అనుగుణంగా రికార్డులేవీ లేవు.' : 'No historical work assignments found for the selected filter criteria.')}
           </p>
@@ -528,7 +570,7 @@ export default function AdminTaskManager({
 
                   return (
                     <tr key={task.id} className="hover:bg-slate-50/60 transition-colors group">
-                      
+
                       {/* Work Description */}
                       <td className="py-4 px-6 max-w-md">
                         <div className="space-y-1">
@@ -547,11 +589,17 @@ export default function AdminTaskManager({
                       <td className="py-4 px-4">
                         {assignedEmp ? (
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-[10px]">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] ${assignedEmp.id === currentUser.id ? 'bg-[#8a42db] text-white' : 'bg-[#f3edfb] text-[#7e3acb]'
+                              }`}>
                               {assignedEmp.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                             </div>
                             <div>
-                              <span className="font-bold text-slate-800 block text-xs">{assignedEmp.name}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-slate-800 block text-xs">{assignedEmp.name}</span>
+                                {assignedEmp.id === currentUser.id && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-purple-100 text-[#7e3acb]">Self</span>
+                                )}
+                              </div>
                               <span className="text-[10px] text-slate-400 block">{assignedEmp.id}</span>
                             </div>
                           </div>
@@ -584,7 +632,7 @@ export default function AdminTaskManager({
                       {/* Actions */}
                       <td className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          
+
                           {/* Nudge / Remind */}
                           {task.status !== 'completed' && task.assignedTo && (
                             <button
@@ -763,7 +811,7 @@ export default function AdminTaskManager({
       {(showCreateModal || editingTask) && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
           <div className="bg-white rounded-[32px] w-full max-w-lg shadow-2xl overflow-hidden">
-            
+
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
@@ -785,7 +833,7 @@ export default function AdminTaskManager({
             </div>
 
             <form onSubmit={handleSaveForm} className="p-6 space-y-4 text-xs">
-              
+
               {/* Direct Work Description */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -803,23 +851,39 @@ export default function AdminTaskManager({
 
               {/* Assignee & Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
+
                 {/* Assignee */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    {t.assignedTo || 'Assign To Staff'}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {t.assignedTo || 'Assign To Staff'}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, assignedTo: currentUser.id })}
+                      className="text-[10px] font-bold text-[#8a42db] hover:underline cursor-pointer"
+                    >
+                      Assign to Myself (Self)
+                    </button>
+                  </div>
                   <select
                     value={formData.assignedTo}
                     onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none text-slate-700"
                   >
                     <option value="">Unassigned</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.name} ({emp.designation || emp.role})
+                    <optgroup label="Self Assignment">
+                      <option value={currentUser.id}>
+                        ★ {currentUser.name} (Self - {currentUser.designation || 'Unit Head'})
                       </option>
-                    ))}
+                    </optgroup>
+                    <optgroup label="3rd Level Team Staff (Field Officers)">
+                      {assignableEmployees.filter(emp => emp.id !== currentUser.id).map(emp => (
+                        <option key={emp.id} value={emp.id}>
+                          {emp.name} ({emp.designation || emp.role}) {emp.reportingTo === currentUser.id ? '• [Direct Report]' : ''}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
                 </div>
 
@@ -840,7 +904,7 @@ export default function AdminTaskManager({
 
               {/* Priority & Status (if editing) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                
+
                 {/* Priority */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -935,7 +999,7 @@ export default function AdminTaskManager({
             <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
             </div>
-            
+
             <div className="space-y-1">
               <h3 className="text-base font-black text-slate-800">
                 {language === 'te' ? 'పని కేటాయింపును తొలగించాలా?' : 'Delete Work Assignment?'}

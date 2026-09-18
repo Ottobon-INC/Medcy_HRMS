@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 import { Calendar, Check, X, Moon, Clock, User, MessageSquare, AlertCircle } from 'lucide-react';
-import { Language, Employee, LeaveRequest, Branch } from '../types';
+import { Language, Employee, LeaveRequest, LeaveType, Branch } from '../types';
 import { translations } from '../translations';
+import * as leaveService from '../lib/services/leave-service';
 
 interface AdminLeaveApprovalsProps {
   language: Language;
+  currentUser: Employee;
   employees: Employee[];
-  onApproveLeave: (empId: string, reqId: string, note?: string) => void;
-  onRejectLeave: (empId: string, reqId: string, note?: string) => void;
+  onApproveLeave: (empId: string, reqId: string, approverId: string, note?: string) => void;
+  onRejectLeave: (empId: string, reqId: string, approverId: string, note?: string) => void;
+  onApplyLeave?: (empId: string, leave: Omit<LeaveRequest, 'id'>) => Promise<void>;
 }
 
 export default function AdminLeaveApprovals({
   language,
+  currentUser,
   employees,
   onApproveLeave,
   onRejectLeave,
+  onApplyLeave,
 }: AdminLeaveApprovalsProps) {
   const t = translations[language];
 
@@ -22,21 +27,61 @@ export default function AdminLeaveApprovals({
   const [decisionNotes, setDecisionNotes] = useState<Record<string, string>>({});
   const [leaveBranchFilter, setLeaveBranchFilter] = useState<Branch | 'all'>('all');
 
-  // Compile leave requests across all employees, filtered by selected branch
+  // Apply Leave Modal State
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  const [applyError, setApplyError] = useState('');
+  const [applySuccessMsg, setApplySuccessMsg] = useState('');
+  const [applyFormData, setApplyFormData] = useState({
+    type: 'casual' as LeaveType,
+    fromDate: '',
+    toDate: '',
+    reason: ''
+  });
+
+  // Identify supervisor for current user
+  const mySupervisor = employees.find(e => e.id === currentUser.reportingTo);
+
+  // Determine scoped employees based on current user's hierarchy
+  let scopedEmployees = employees;
+  if (currentUser.hierarchyLevel === 'team_lead') {
+    scopedEmployees = employees.filter(emp => emp.reportingTo === currentUser.id);
+  } else if (currentUser.hierarchyLevel === 'senior_manager') {
+    scopedEmployees = employees.filter(emp => emp.hospital === currentUser.hospital);
+  } else if (currentUser.hierarchyLevel === 'manager') {
+    // Manager (e.g. Ravikumar Raghupatruni):
+    // Manages Unit Heads (Memidi Kishor & Vinay Bhushan) and all employees in hospital network
+    scopedEmployees = employees.filter(emp =>
+      emp.id !== currentUser.id &&
+      (emp.reportingTo === currentUser.id || (!currentUser.hospital || !emp.hospital || emp.hospital === currentUser.hospital))
+    );
+  }
+
+  // Compile leave requests across scoped employees, filtered by selected branch
   const pendingRequests: { emp: Employee; req: LeaveRequest }[] = [];
   const processedRequests: { emp: Employee; req: LeaveRequest }[] = [];
 
-  employees.forEach(emp => {
-    if (leaveBranchFilter !== 'all' && (emp.branch || 'visakhapatnam') !== leaveBranchFilter) {
+  scopedEmployees.forEach(emp => {
+    const isDirectReport = emp.reportingTo === currentUser.id;
+    // Direct reports (e.g. Unit Heads under Ravi Kumar) are NEVER filtered out by branch
+    if (!isDirectReport && currentUser.hierarchyLevel !== 'team_lead' && leaveBranchFilter !== 'all' && (emp.branch || 'visakhapatnam') !== leaveBranchFilter) {
       return;
     }
-    emp.leaveRequests.forEach(req => {
-      if (req.status === 'pending') {
+    (emp.leaveRequests || []).forEach(req => {
+      const isPending = req.status?.toLowerCase() === 'pending';
+      if (isPending) {
         pendingRequests.push({ emp, req });
       } else {
         processedRequests.push({ emp, req });
       }
     });
+  });
+
+  // Prioritize direct reports at the top of pending requests
+  pendingRequests.sort((a, b) => {
+    const aDirect = a.emp.reportingTo === currentUser.id ? 1 : 0;
+    const bDirect = b.emp.reportingTo === currentUser.id ? 1 : 0;
+    return bDirect - aDirect;
   });
 
   // Sort processed requests so recent is first
@@ -95,7 +140,7 @@ export default function AdminLeaveApprovals({
 
   return (
     <div id="admin-leaves-container" className="space-y-8 animate-fadeIn">
-      
+
       {/* 1. Title Header & Branch Selector */}
       <div className="bg-white rounded-[32px] p-6 border border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
@@ -107,37 +152,91 @@ export default function AdminLeaveApprovals({
           </p>
         </div>
 
-        <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Apply My Leave Button */}
           <button
-            onClick={() => setLeaveBranchFilter('all')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              leaveBranchFilter === 'all'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
+            onClick={() => {
+              setApplyError('');
+              setApplySuccessMsg('');
+              setApplyFormData({ type: 'casual', fromDate: '', toDate: '', reason: '' });
+              setShowApplyModal(true);
+            }}
+            className="px-4 py-2 bg-[#8a42db] hover:bg-[#7e3acb] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
           >
-            All Branches
+            <Moon className="w-4 h-4" />
+            <span>Apply for Leave</span>
           </button>
-          <button
-            onClick={() => setLeaveBranchFilter('visakhapatnam')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              leaveBranchFilter === 'visakhapatnam'
-                ? 'bg-white text-teal-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Visakhapatnam
-          </button>
-          <button
-            onClick={() => setLeaveBranchFilter('vizianagaram')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-              leaveBranchFilter === 'vizianagaram'
-                ? 'bg-white text-indigo-700 shadow-sm'
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            Vizianagaram
-          </button>
+
+          {currentUser.hierarchyLevel === 'team_lead' ? (
+            <div className="px-4 py-2 bg-[#f3edfb] text-[#7e3acb] rounded-xl text-xs font-bold border border-purple-200">
+              Team Unit Lead: {currentUser.name} ({scopedEmployees.length} Direct Reportees)
+            </div>
+          ) : currentUser.hierarchyLevel === 'manager' ? (
+            <div className="flex items-center gap-2">
+              <div className="px-3.5 py-2 bg-[#f3edfb] text-[#7e3acb] rounded-xl text-xs font-bold border border-purple-200">
+                Regional Head: {currentUser.name} ({scopedEmployees.length} Team Members)
+              </div>
+              <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+                <button
+                  onClick={() => setLeaveBranchFilter('all')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${leaveBranchFilter === 'all'
+                      ? 'bg-white text-[#7e3acb] shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setLeaveBranchFilter('visakhapatnam')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${leaveBranchFilter === 'visakhapatnam'
+                      ? 'bg-white text-[#7e3acb] shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                >
+                  Vizag
+                </button>
+                <button
+                  onClick={() => setLeaveBranchFilter('vizianagaram')}
+                  className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${leaveBranchFilter === 'vizianagaram'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                >
+                  VZM
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+              <button
+                onClick={() => setLeaveBranchFilter('all')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${leaveBranchFilter === 'all'
+                    ? 'bg-white text-[#7e3acb] shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                  }`}
+              >
+                All Branches
+              </button>
+              <button
+                onClick={() => setLeaveBranchFilter('visakhapatnam')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${leaveBranchFilter === 'visakhapatnam'
+                    ? 'bg-white text-[#7e3acb] shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                  }`}
+              >
+                Visakhapatnam
+              </button>
+              <button
+                onClick={() => setLeaveBranchFilter('vizianagaram')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${leaveBranchFilter === 'vizianagaram'
+                    ? 'bg-white text-indigo-700 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                  }`}
+              >
+                Vizianagaram
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -165,27 +264,34 @@ export default function AdminLeaveApprovals({
               const empBranch = emp.branch || 'visakhapatnam';
 
               return (
-                <div 
-                  key={req.id} 
+                <div
+                  key={req.id}
                   id={`pending-leave-${req.id}`}
                   className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col lg:flex-row justify-between gap-6"
                 >
                   <div className="space-y-4 flex-1">
                     {/* User profile row */}
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-teal-50 text-teal-700 rounded-xl flex items-center justify-center font-bold text-xs">
+                      <div className="w-9 h-9 bg-[#f3edfb] text-[#7e3acb] rounded-xl flex items-center justify-center font-bold text-xs">
                         {emp.name.split(' ').map(n => n[0]).join('')}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <h4 className="text-xs font-bold text-slate-800">{emp.name}</h4>
-                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                            empBranch === 'visakhapatnam' ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                          }`}>
+                          {emp.reportingTo === currentUser.id && (
+                            <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-100 text-[#7e3acb] border border-purple-200">
+                              ★ Direct Report ({emp.designation || 'Unit Head'})
+                            </span>
+                          )}
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${empBranch === 'visakhapatnam' ? 'bg-[#f3edfb] text-[#7e3acb] border border-purple-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                            }`}>
                             {empBranch === 'visakhapatnam' ? 'Vizag' : 'Vizianagaram'}
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-400">{emp.designation} • ID: {emp.id} • Reports to: Ravi Kumar</p>
+                        <p className="text-[10px] text-slate-400">
+                          {emp.designation} • ID: {emp.id}
+                          {emp.reportingTo ? ` • Reports to: ${employees.find(e => e.id === emp.reportingTo)?.name || 'Unknown'}` : ''}
+                        </p>
                       </div>
                     </div>
 
@@ -240,7 +346,7 @@ export default function AdminLeaveApprovals({
                       <Check className="w-4 h-4" />
                       <span>{language === 'te' ? 'ఆమోదించు' : 'Approve'}</span>
                     </button>
-                    
+
                     <button
                       onClick={() => onRejectLeave(emp.id, req.id, noteText)}
                       className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 px-4 py-2.5 rounded-xl text-xs font-bold transition-all uppercase cursor-pointer"
@@ -296,11 +402,10 @@ export default function AdminLeaveApprovals({
                     </td>
                     <td className="p-4 text-xs text-slate-500 font-mono">{req.submittedAt}</td>
                     <td className="p-4 text-right">
-                      <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${
-                        req.status === 'approved' 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
+                      <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase ${req.status === 'approved'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                           : 'bg-rose-50 text-rose-700 border border-rose-100'
-                      }`}>
+                        }`}>
                         {req.status}
                       </span>
                     </td>
@@ -312,6 +417,185 @@ export default function AdminLeaveApprovals({
         )}
       </div>
 
+      {/* APPLY LEAVE MODAL FOR CURRENT USER */}
+      {showApplyModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-[32px] w-full max-w-md shadow-lg overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#f3edfb] text-[#8a42db] flex items-center justify-center">
+                  <Moon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-800 tracking-tight">
+                    Apply for Leave
+                  </h3>
+                  <p className="text-[10px] text-slate-400">
+                    Submitting request as {currentUser.name} ({currentUser.designation || 'Unit Head'})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowApplyModal(false)}
+                className="p-1.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 text-xs">
+              {/* Approving Supervisor Notice */}
+              <div className="p-3.5 bg-[#f3edfb]/60 rounded-2xl border border-purple-200/70 text-slate-700 space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wider text-[#7e3acb] block">
+                  Leave Approval Authority
+                </span>
+                <p className="text-xs font-bold text-slate-800">
+                  {mySupervisor ? (
+                    <>
+                      {mySupervisor.name} <span className="font-normal text-slate-500">({mySupervisor.designation || 'Regional Head'})</span>
+                    </>
+                  ) : (
+                    'Executive Director Management'
+                  )}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  Your submitted leave application will appear on your manager's Leave Approvals panel for formal review.
+                </p>
+              </div>
+
+              {applyError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+                  {applyError}
+                </div>
+              )}
+
+              {applySuccessMsg && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold">
+                  {applySuccessMsg}
+                </div>
+              )}
+
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!applyFormData.fromDate || !applyFormData.toDate || !applyFormData.reason.trim()) {
+                    setApplyError('Please fill all required fields');
+                    return;
+                  }
+                  setIsApplying(true);
+                  setApplyError('');
+                  try {
+                    const leavePayload = {
+                      type: applyFormData.type,
+                      fromDate: applyFormData.fromDate,
+                      toDate: applyFormData.toDate,
+                      reason: applyFormData.reason.trim(),
+                      status: 'pending' as const,
+                      submittedAt: new Date().toISOString()
+                    };
+
+                    if (onApplyLeave) {
+                      await onApplyLeave(currentUser.id, leavePayload);
+                    } else {
+                      await leaveService.submitLeaveRequest(currentUser.id, leavePayload);
+                    }
+
+                    setApplySuccessMsg('Leave request submitted successfully for supervisor approval!');
+                    setTimeout(() => {
+                      setShowApplyModal(false);
+                      setApplySuccessMsg('');
+                    }, 1500);
+                  } catch (err: any) {
+                    setApplyError(err?.message || 'Failed to submit leave application.');
+                  } finally {
+                    setIsApplying(false);
+                  }
+                }}
+                className="space-y-4"
+              >
+                {/* Leave Type */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Leave Type *
+                  </label>
+                  <select
+                    value={applyFormData.type}
+                    onChange={(e) => setApplyFormData({ ...applyFormData, type: e.target.value as LeaveType })}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none text-slate-700"
+                  >
+                    <option value="casual">Casual Leave (CL)</option>
+                    <option value="sick">Sick Leave (SL)</option>
+                    <option value="monthly">Monthly / Regular Leave</option>
+                    <option value="annual">Annual Leave</option>
+                    <option value="maternity_paternity">Maternity / Paternity Leave</option>
+                  </select>
+                </div>
+
+                {/* Date Range */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      From Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={applyFormData.fromDate}
+                      onChange={(e) => setApplyFormData({ ...applyFormData, fromDate: e.target.value })}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      To Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={applyFormData.toDate}
+                      onChange={(e) => setApplyFormData({ ...applyFormData, toDate: e.target.value })}
+                      className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Reason */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Reason for Leave *
+                  </label>
+                  <textarea
+                    required
+                    rows={3}
+                    value={applyFormData.reason}
+                    onChange={(e) => setApplyFormData({ ...applyFormData, reason: e.target.value })}
+                    placeholder="Brief description of leave reason..."
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#8a42db]/20 text-slate-700"
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowApplyModal(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-xs transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isApplying}
+                    className="px-5 py-2 bg-[#8a42db] hover:bg-[#7e3acb] disabled:opacity-50 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-sm cursor-pointer"
+                  >
+                    {isApplying ? 'Submitting...' : 'Submit Application'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

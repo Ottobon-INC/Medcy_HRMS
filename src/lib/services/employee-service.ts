@@ -1,6 +1,135 @@
 import { supabase } from '../supabase-client';
 import { Employee, LeaveBalance, LeaveType, LeaveStatus, AttendanceRecord, AttendanceStatus, CheckInLog, Payslip, MonthlyLeaveQuota, Branch, HierarchyLevel } from '../../types';
 
+// Known deterministic hierarchy mapping configuration
+export const KNOWN_EMPLOYEE_HIERARCHY: Record<string, {
+  hospital: 'vizag_ivf' | 'medcy_hospitals' | 'both';
+  hierarchyLevel: HierarchyLevel;
+  reportingTo?: string;
+  role?: 'admin' | 'employee';
+  designation?: string;
+  branch?: Branch;
+}> = {
+  // Master Executives
+  'EMP-EXEC-001': { hospital: 'both', hierarchyLevel: 'executive', role: 'admin', designation: 'Executive Director' },
+  'EMP-EXEC-002': { hospital: 'both', hierarchyLevel: 'executive', role: 'admin', designation: 'Executive Director' },
+
+  // Medcy Hospitals: Senior Manager
+  'EMP-MEDCY-001': { hospital: 'medcy_hospitals', hierarchyLevel: 'senior_manager', role: 'admin', designation: 'Senior Manager', branch: 'visakhapatnam' },
+
+  // Medcy Team 1: Rambabu
+  'EMP-2026-004': { hospital: 'medcy_hospitals', hierarchyLevel: 'team_lead', reportingTo: 'EMP-MEDCY-001', role: 'admin', designation: 'Team Lead', branch: 'visakhapatnam' },
+  'EMP-2026-005': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-004', designation: 'Employee', branch: 'visakhapatnam' }, // Manoj
+  'EMP-2026-006': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-004', designation: 'Employee', branch: 'visakhapatnam' }, // AppalNaidu
+
+  // Medcy Team 2: Satish
+  'EMP-MEDCY-002': { hospital: 'medcy_hospitals', hierarchyLevel: 'team_lead', reportingTo: 'EMP-MEDCY-001', role: 'admin', designation: 'Team Lead', branch: 'visakhapatnam' },
+  'EMP-2026-002': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-002', designation: 'Employee', branch: 'visakhapatnam' }, // Rajesh
+  'EMP-MEDCY-003': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-002', designation: 'Employee', branch: 'visakhapatnam' }, // Santosh
+  'EMP-2026-007': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-002', designation: 'Employee', branch: 'visakhapatnam' }, // Hari Krishna
+  'EMP-MEDCY-004': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-002', designation: 'Employee', branch: 'visakhapatnam' }, // Uday Kumar
+
+  // Medcy Team 3: Prudhvi
+  'EMP-MEDCY-005': { hospital: 'medcy_hospitals', hierarchyLevel: 'team_lead', reportingTo: 'EMP-MEDCY-001', role: 'admin', designation: 'Team Lead', branch: 'visakhapatnam' },
+  'EMP-2026-003': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-005', designation: 'Employee', branch: 'visakhapatnam' }, // Mahesh Babu
+  'EMP-2026-001': { hospital: 'medcy_hospitals', hierarchyLevel: 'employee', reportingTo: 'EMP-MEDCY-005', designation: 'Employee', branch: 'visakhapatnam' }, // Karan Kumar
+
+  // Vizag IVF Regional Manager, Unit Heads & Staff
+  'EMP-2026-011': { hospital: 'vizag_ivf', hierarchyLevel: 'manager', role: 'admin', designation: 'Regional Head (Marketing)', branch: 'visakhapatnam' }, // Ravikumar Raghupatruni
+  // SKLM Unit
+  'EMP-2026-016': { hospital: 'vizag_ivf', hierarchyLevel: 'team_lead', reportingTo: 'EMP-2026-011', role: 'admin', designation: 'SKLM Unit Head', branch: 'visakhapatnam' }, // Memidi Kishor
+  'EMP-2026-017': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-016', designation: 'Field Officer', branch: 'visakhapatnam' }, // Arugula Sasi
+  'EMP-2026-018': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-016', designation: 'Field Officer (HQ: Srikakulam)', branch: 'visakhapatnam' }, // Pinninti Purna Chandra Kumar
+  'EMP-2026-022': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-016', designation: 'Field Officer (Vizag)', branch: 'visakhapatnam' }, // U. J. V. V. Kumar
+  'EMP-2026-014': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-016', designation: 'Admin (Gajuwaka / Gwk RO)', branch: 'visakhapatnam' }, // S. Kishore Reddy
+  // VZM Unit
+  'EMP-2026-015': { hospital: 'vizag_ivf', hierarchyLevel: 'team_lead', reportingTo: 'EMP-2026-011', role: 'admin', designation: 'VZM Unit Head', branch: 'vizianagaram' }, // Kottakota Vinay Bhushan
+  'EMP-2026-019': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-015', designation: 'Field Officer (HQ: Bobbili)', branch: 'vizianagaram' }, // Pallanti Bhaskar Rao
+  'EMP-2026-020': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-015', designation: 'Field Officer (HQ: Vizianagaram)', branch: 'vizianagaram' }, // Pathivada Sathish
+  'EMP-2026-021': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-015', designation: 'Field Officer (Vizag, VZM)', branch: 'vizianagaram' }, // G. Hanumanth Rao
+  'EMP-2026-012': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-015', designation: 'Admin (Vizianagaram - Accountant)', branch: 'vizianagaram' }, // Ejenti Shyam
+};
+
+export const MEDCY_GHOST_EMPLOYEES: Array<{
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'employee';
+  designation: string;
+  joiningDate: string;
+  status: 'pending';
+  hospital: 'medcy_hospitals';
+  hierarchyLevel: HierarchyLevel;
+  reportingTo?: string;
+  branch: Branch;
+}> = [
+    {
+      id: 'EMP-MEDCY-001',
+      name: 'Dr. Bhramhaji',
+      email: 'bhramhaji.ghost@medcy.com',
+      role: 'admin',
+      designation: 'Senior Manager',
+      joiningDate: '2026-09-01',
+      status: 'pending',
+      hospital: 'medcy_hospitals',
+      hierarchyLevel: 'senior_manager',
+      reportingTo: undefined,
+      branch: 'visakhapatnam'
+    },
+    {
+      id: 'EMP-MEDCY-002',
+      name: 'Satish',
+      email: 'satish.ghost@medcy.com',
+      role: 'admin',
+      designation: 'Team Lead',
+      joiningDate: '2026-09-01',
+      status: 'pending',
+      hospital: 'medcy_hospitals',
+      hierarchyLevel: 'team_lead',
+      reportingTo: 'EMP-MEDCY-001',
+      branch: 'visakhapatnam'
+    },
+    {
+      id: 'EMP-MEDCY-003',
+      name: 'Santosh',
+      email: 'santosh.ghost@medcy.com',
+      role: 'employee',
+      designation: 'Employee',
+      joiningDate: '2026-09-01',
+      status: 'pending',
+      hospital: 'medcy_hospitals',
+      hierarchyLevel: 'employee',
+      reportingTo: 'EMP-MEDCY-002',
+      branch: 'visakhapatnam'
+    },
+    {
+      id: 'EMP-MEDCY-004',
+      name: 'Uday Kumar',
+      email: 'uday.ghost@medcy.com',
+      role: 'employee',
+      designation: 'Employee',
+      joiningDate: '2026-09-01',
+      status: 'pending',
+      hospital: 'medcy_hospitals',
+      hierarchyLevel: 'employee',
+      reportingTo: 'EMP-MEDCY-002',
+      branch: 'visakhapatnam'
+    },
+    {
+      id: 'EMP-MEDCY-005',
+      name: 'Prudhvi',
+      email: 'prudhvi.ghost@medcy.com',
+      role: 'admin',
+      designation: 'Team Lead',
+      joiningDate: '2026-09-01',
+      status: 'pending',
+      hospital: 'medcy_hospitals',
+      hierarchyLevel: 'team_lead',
+      reportingTo: 'EMP-MEDCY-001',
+      branch: 'visakhapatnam'
+    }
+  ];
+
 export async function fetchAllEmployeesData(): Promise<Employee[]> {
   const { data: emps, error: empError } = await supabase
     .from('HRMS_employees')
@@ -26,7 +155,7 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
 
   const { data: quotas, error: quotaError } = await supabase.from('HRMS_monthly_leave_quota').select('*');
   if (quotaError && quotaError.code !== 'PGRST205') console.warn('Monthly quotas sync notice:', quotaError.message);
-  
+
   const currentMonth = new Date().toISOString().substring(0, 7);
   const quotaList = quotas || [];
 
@@ -131,7 +260,7 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
     const isCheckedIn = !!(todayRecord && todayRecord.check_in_time && !todayRecord.check_out_time);
 
     // Map payslips
-      const empPayslips: Payslip[] = payrollList
+    const empPayslips: Payslip[] = payrollList
       .filter(p => p.employee_id === emp.id)
       .map(p => ({
         id: p.id,
@@ -581,66 +710,6 @@ export async function seedInitialDatabase() {
       dob: '1999-11-30'
     },
     {
-      id: 'EMP-2026-008',
-      name: 'Shiva Kumar',
-      email: 'balivada.shiva@gmail.com',
-      password: 'balivada.shiva@gmail.com',
-      role: 'employee',
-      designation: 'Employee',
-      joining_date: '2026-09-01',
-      basic_pay: 0.00,
-      status: 'active',
-      phone: '846018424',
-      gender: 'male',
-      experience: 0,
-      dob: '1989-08-06'
-    },
-    {
-      id: 'EMP-2026-009',
-      name: 'Gondu Srinivasa Rao',
-      email: 'gondusrinivaskrishna@gmail.com',
-      password: 'gondusrinivaskrishna@gmail.com',
-      role: 'employee',
-      designation: 'Employee',
-      joining_date: '2026-09-01',
-      basic_pay: 0.00,
-      status: 'active',
-      phone: '9705686880',
-      gender: 'male',
-      experience: 0,
-      dob: '1988-06-20'
-    },
-    {
-      id: 'EMP-2026-010',
-      name: 'Dhanusha Dadi',
-      email: 'dhanushadadi88@gmail.com',
-      password: 'dhanushadadi88@gmail.com',
-      role: 'employee',
-      designation: 'Employee',
-      joining_date: '2026-09-01',
-      basic_pay: 0.00,
-      status: 'active',
-      phone: '8008668844',
-      gender: 'female',
-      experience: 0,
-      dob: '1993-09-03'
-    },
-    {
-      id: 'EMP-2026-011',
-      name: 'R. Ravi Kumar',
-      email: 'ravildm09@gmail.com',
-      password: 'ravildm09@gmail.com',
-      role: 'admin',
-      designation: 'Branch Operations Manager',
-      joining_date: '2026-09-01',
-      basic_pay: 0.00,
-      status: 'active',
-      phone: '9182068148',
-      gender: 'male',
-      experience: 0,
-      dob: '1978-06-01'
-    },
-    {
       id: 'EMP-EXEC-001',
       name: 'Indra Mam',
       email: 'indra@vizagivf.com',
@@ -671,49 +740,159 @@ export async function seedInitialDatabase() {
       dob: '1982-01-01'
     },
     {
-      id: 'EMP-2026-012',
-      name: 'Gonti Shyam',
-      email: 'sanjushyam7382@gmail.com',
-      password: 'sanjushyam7382@gmail.com',
-      role: 'employee',
-      designation: 'Employee',
+      id: 'EMP-2026-011',
+      name: 'Ravikumar Raghupatruni',
+      email: 'rkpatnaik5186@gmail.com',
+      password: 'rkpatnaik5186@gmail.com',
+      role: 'admin',
+      designation: 'Regional Head (Marketing)',
       joining_date: '2026-09-01',
       basic_pay: 0.00,
       status: 'active',
-      phone: '7331140843',
+      phone: '9182068148',
       gender: 'male',
-      experience: 0,
-      dob: '2001-03-06'
+      experience: 10,
+      dob: '1978-06-01'
     },
     {
-      id: 'EMP-2026-013',
-      name: 'U. Jayavani',
-      email: 'ugrangijaya@gmail.com',
-      password: 'ugrangijaya@gmail.com',
-      role: 'employee',
-      designation: 'Employee',
+      id: 'EMP-2026-016',
+      name: 'Memidi Kishor',
+      email: 'kishorememidi233@gmail.com',
+      password: 'kishorememidi233@gmail.com',
+      role: 'admin',
+      designation: 'SKLM Unit Head',
       joining_date: '2026-09-01',
       basic_pay: 0.00,
       status: 'active',
-      phone: '8500880441',
-      gender: 'female',
-      experience: 0,
-      dob: '1990-02-23'
+      phone: '7981374403',
+      gender: 'male',
+      experience: 5
+    },
+    {
+      id: 'EMP-2026-015',
+      name: 'Kottakota Vinay Bhushan',
+      email: 'vinaybhushan0923@gmail.com',
+      password: 'vinaybhushan0923@gmail.com',
+      role: 'admin',
+      designation: 'VZM Unit Head',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '8897561317',
+      gender: 'male',
+      experience: 5
+    },
+    {
+      id: 'EMP-2026-017',
+      name: 'Arugula Sasi',
+      email: 'sasiarugula8741@gmail.com',
+      password: 'sasiarugula8741@gmail.com',
+      role: 'employee',
+      designation: 'Field Officer',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9700678741',
+      gender: 'male',
+      experience: 2
+    },
+    {
+      id: 'EMP-2026-018',
+      name: 'Pinninti Purna Chandra Kumar',
+      email: 'pinnintipurnachandrakumar@gmail.com',
+      password: 'pinnintipurnachandrakumar@gmail.com',
+      role: 'employee',
+      designation: 'Field Officer (HQ: Srikakulam)',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9010633295',
+      gender: 'male',
+      experience: 2
+    },
+    {
+      id: 'EMP-2026-022',
+      name: 'U. J. V. V. Kumar',
+      email: 'uppu.kumar@gmail.com',
+      password: 'uppu.kumar@gmail.com',
+      role: 'employee',
+      designation: 'Field Officer (Vizag)',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '7095616161',
+      gender: 'male',
+      experience: 3
     },
     {
       id: 'EMP-2026-014',
       name: 'S. Kishore Reddy',
-      email: 'sattikishorereddy@gmail.com',
-      password: 'sattikishorereddy@gmail.com',
+      email: 'sathikishore@gmail.com',
+      password: 'sathikishore@gmail.com',
       role: 'employee',
-      designation: 'Employee',
+      designation: 'Admin (Gajuwaka / Gwk RO)',
       joining_date: '2026-09-01',
       basic_pay: 0.00,
       status: 'active',
       phone: '9959004840',
       gender: 'male',
-      experience: 0,
-      dob: '1988-06-28'
+      experience: 4
+    },
+    {
+      id: 'EMP-2026-019',
+      name: 'Pallanti Bhaskar Rao',
+      email: 'pallantibhaskarrao172@gmail.com',
+      password: 'pallantibhaskarrao172@gmail.com',
+      role: 'employee',
+      designation: 'Field Officer (HQ: Bobbili)',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '6300809148',
+      gender: 'male',
+      experience: 2
+    },
+    {
+      id: 'EMP-2026-020',
+      name: 'Pathivada Sathish',
+      email: 'pathivadasathish9@gmail.com',
+      password: 'pathivadasathish9@gmail.com',
+      role: 'employee',
+      designation: 'Field Officer (HQ: Vizianagaram)',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9573934676',
+      gender: 'male',
+      experience: 2
+    },
+    {
+      id: 'EMP-2026-021',
+      name: 'G. Hanumanth Rao',
+      email: 'hrgammala@gmail.com',
+      password: 'hrgammala@gmail.com',
+      role: 'employee',
+      designation: 'Field Officer (Vizag, VZM)',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '8143223728',
+      gender: 'male',
+      experience: 3
+    },
+    {
+      id: 'EMP-2026-012',
+      name: 'Ejenti Shyam',
+      email: 'sanjushyam7382@gmail.com',
+      password: 'sanjushyam7382@gmail.com',
+      role: 'employee',
+      designation: 'Admin (Vizianagaram - Accountant)',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '7331140843',
+      gender: 'male',
+      experience: 3
     }
   ];
 

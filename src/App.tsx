@@ -55,18 +55,18 @@ export default function App() {
       'admin-tasks': 'adminTasks',
       'admin-live-map': 'adminLiveMap'
     };
-    
+
     if (pathToTab[path]) return pathToTab[path];
     return localStorage.getItem('medcy_active_tab') || 'dashboard';
   });
-  
+
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // Sync activeTab to LocalStorage and URL
   useEffect(() => {
     localStorage.setItem('medcy_active_tab', activeTab);
-    
+
     const tabToPath: Record<string, string> = {
       'executiveOverview': 'executive-overview',
       'orgChart': 'org-chart',
@@ -90,7 +90,7 @@ export default function App() {
       'adminTasks': 'admin-tasks',
       'adminLiveMap': 'admin-live-map'
     };
-    
+
     const newPath = '/' + (tabToPath[activeTab] || activeTab);
     if (window.location.pathname !== newPath) {
       window.history.pushState(null, '', newPath);
@@ -124,12 +124,12 @@ export default function App() {
         'admin-tasks': 'adminTasks',
         'admin-live-map': 'adminLiveMap'
       };
-      
+
       if (pathToTab[path]) {
         setActiveTab(pathToTab[path]);
       }
     };
-    
+
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
@@ -137,7 +137,7 @@ export default function App() {
   // --- Domain Hooks ---
   const { employees, isLoading, error, isLocalMode, loadData, addEmployee, updateEmployee, deleteEmployee, changePassword } = useEmployees();
   const { currentUser, currentUserId, login, logout } = useAuth(employees);
-  
+
   const { applyLeave, approveLeave, rejectLeave, updateBalances } = useLeaves(isLocalMode, loadData);
   const { toggleCheckIn, updateAttendance, forceCloseSession } = useAttendance(isLocalMode, loadData);
   const { addPin } = useLocationPins(currentUser?.id, isLocalMode);
@@ -150,15 +150,15 @@ export default function App() {
   // --- Auto Route On Role Change ---
   useEffect(() => {
     if (!currentUser) return;
-    
+
     const isExecutive = currentUser.hierarchyLevel === 'executive';
     const isManager = currentUser.hierarchyLevel === 'manager';
     const isAdminLevel = currentUser.role === 'admin' || isExecutive || isManager;
 
     const adminTabs = [
       'adminDashboard', 'directory', 'attendanceOverview', 'leaveApprovals',
-      'officeLocations', 'messages', 'adminSettings', 'dutyRoster', 'adminMissedPunches', 'fieldOps', 'adminTasks',
-      'executiveOverview', 'orgChart'
+      'officeLocations', 'messages', 'adminSettings', 'fieldOps', 'adminTasks',
+      'executiveOverview', 'orgChart', 'doctorPlanner', 'leave'
     ];
     const employeeTabs = [
       'dashboard', 'attendance', 'leave', 'messages', 'myRoster', 'employeeMissedPunches', 'fieldDuty', 'callCapture', 'tasks'
@@ -200,7 +200,7 @@ export default function App() {
               We couldn't connect or fetch tables. Ensure your Supabase project is active and schemas have been executed.
             </p>
           </div>
-          
+
           <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-xl text-left space-y-2">
             <span className="text-[9px] font-bold uppercase tracking-wider text-teal-600">Quick Setup:</span>
             <ol className="text-[10px] text-slate-500 space-y-1 list-decimal list-inside leading-normal font-medium">
@@ -211,8 +211,8 @@ export default function App() {
           </div>
 
           <div className="pt-2">
-            <button 
-              onClick={loadData} 
+            <button
+              onClick={loadData}
               className="w-full py-3.5 bg-teal-600 hover:bg-teal-700 active:scale-98 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-md shadow-teal-600/10 cursor-pointer transition-all"
             >
               Retry Connection
@@ -254,15 +254,15 @@ export default function App() {
       <div id="app-root-shell" className="min-h-screen bg-[#f8fafc] flex flex-col font-sans antialiased text-slate-900">
         <OfflineIndicator />
         <PwaInstallPrompt />
-        
+
         {/* 1. Header Navigation Bar */}
         <AppHeader
           currentUser={currentUser}
           onOpenProfile={() => setShowProfileModal(true)}
           onLogout={handleLogout}
           onLogoClick={() => setActiveTab(
-            currentUser.hierarchyLevel === 'executive' 
-              ? 'executiveOverview' 
+            currentUser.hierarchyLevel === 'executive'
+              ? 'executiveOverview'
               : ((currentUser.role === 'admin' || currentUser.hierarchyLevel === 'manager') ? 'adminDashboard' : 'dashboard')
           )}
           onOpenMenu={() => setMobileNavOpen(true)}
@@ -282,7 +282,7 @@ export default function App() {
 
         {/* 2. Body Grid / Sidebar Layout */}
         <div id="portal-body-wrapper" className="flex-1 w-full mx-auto px-4 sm:px-6 py-6 md:py-8 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 print:p-0 print:m-0">
-          
+
           {/* Desktop Sidebar Navigation */}
           <AppSidebar
             currentUser={currentUser}
