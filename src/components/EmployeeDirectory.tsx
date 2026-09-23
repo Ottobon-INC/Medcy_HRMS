@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Plus, Edit3, Trash2, ArrowLeft, Calendar, Moon, User, Mail, IndianRupee, CalendarDays, Eye, EyeOff, Power, FileText, Printer, X, Building2 } from 'lucide-react';
+import { Plus, Edit3, Trash2, ArrowLeft, Calendar, Moon, User, Mail, IndianRupee, CalendarDays, Eye, EyeOff, Power, FileText, Printer, X, Building2, Search } from 'lucide-react';
 import { Language, Employee, LeaveType, Branch, HierarchyLevel } from '../types';
 import { translations } from '../translations';
 import AttendanceModule from './AttendanceModule';
@@ -55,10 +55,14 @@ export default function EmployeeDirectory({
  const [showEditModal, setShowEditModal] = useState(false);
  const [editTargetId, setEditTargetId] = useState<string | null>(null);
  const [directoryBranchFilter, setDirectoryBranchFilter] = useState<Branch | 'all'>('all');
+ const [directoryOrgFilter, setDirectoryOrgFilter] = useState<'all' | 'vizag_ivf' | 'medcy_hospitals'>('all');
+ const [searchQuery, setSearchQuery] = useState('');
 
  // Form State
  const [formName, setFormName] = useState('');
  const [formEmail, setFormEmail] = useState('');
+ const [formReportingTo, setFormReportingTo] = useState('');
+ const [formHospital, setFormHospital] = useState<'vizag_ivf' | 'medcy_hospitals' | 'both'>('vizag_ivf');
  const [formDesignation, setFormDesignation] = useState('');
  const [formJoiningDate, setFormJoiningDate] = useState('');
  const [formBasicSalary, setFormBasicSalary] = useState(40000);
@@ -89,7 +93,9 @@ export default function EmployeeDirectory({
   setFormPassword('');
   setFormStatus('active');
   setFormBranch('visakhapatnam');
+  setFormHospital('vizag_ivf');
   setFormHierarchyLevel('employee');
+  setFormReportingTo('');
   setFormGender(undefined);
   setFormExperience(0);
   setFormBankAccountNo('');
@@ -112,7 +118,9 @@ export default function EmployeeDirectory({
   setFormPassword(emp.password || '');
   setFormStatus(emp.status || 'active');
   setFormBranch(emp.branch || 'visakhapatnam');
+  setFormHospital(emp.hospital || 'vizag_ivf');
   setFormHierarchyLevel(emp.hierarchyLevel || (emp.role === 'admin' ? 'manager' : 'employee'));
+  setFormReportingTo(emp.reportingTo || '');
   setFormGender(emp.gender || undefined);
   setFormExperience(emp.experience || 0);
   setFormBankAccountNo(emp.bankDetails?.accountNumber || '');
@@ -138,10 +146,11 @@ export default function EmployeeDirectory({
     designation: formDesignation,
     joiningDate: formJoiningDate,
     basicSalary: Number(formBasicSalary),
-    role: formHierarchyLevel === 'executive' || formHierarchyLevel === 'manager' ? 'admin' : formRole,
+    role: ['executive', 'manager', 'senior_manager', 'team_lead'].includes(formHierarchyLevel) ? 'admin' : formRole,
     branch: formBranch,
+    hospital: formHospital,
     hierarchyLevel: formHierarchyLevel,
-    reportingTo: formHierarchyLevel === 'employee' ? 'EMP-2026-011' : undefined,
+    reportingTo: formReportingTo ? formReportingTo : undefined,
     phone: formPhone,
     password: formPassword,
     status: formStatus,
@@ -170,10 +179,11 @@ export default function EmployeeDirectory({
    designation: formDesignation,
    joiningDate: formJoiningDate,
    basicSalary: Number(formBasicSalary),
-   role: formHierarchyLevel === 'executive' || formHierarchyLevel === 'manager' ? 'admin' : formRole,
-   branch: formBranch,
-   hierarchyLevel: formHierarchyLevel,
-   reportingTo: formHierarchyLevel === 'employee' ? 'EMP-2026-011' : undefined,
+    role: ['executive', 'manager', 'senior_manager', 'team_lead'].includes(formHierarchyLevel) ? 'admin' : formRole,
+    branch: formBranch,
+    hospital: formHospital,
+    hierarchyLevel: formHierarchyLevel,
+    reportingTo: formReportingTo ? formReportingTo : undefined,
    phone: formPhone,
    password: formPassword,
    status: formStatus,
@@ -433,49 +443,96 @@ export default function EmployeeDirectory({
      </p>
     </div>
 
-    <div className="flex items-center gap-3 flex-wrap">
-     <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+    <div className="flex items-center gap-2.5 flex-wrap">
+      {/* Search Input */}
+      <div className="relative w-full sm:w-60">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+        <input 
+          type="text"
+          placeholder="Search name, ID, role, email..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2 pl-8 pr-3 focus:outline-none focus:ring-2 focus:ring-[#8a42db]/30 placeholder:text-slate-400"
+        />
+      </div>
+
+      {/* Organization / Entity Filter */}
+      <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+        <button
+          onClick={() => setDirectoryOrgFilter('all')}
+          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            directoryOrgFilter === 'all'
+              ? 'bg-white text-[#7e3acb] shadow-sm'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          All Entities
+        </button>
+        <button
+          onClick={() => setDirectoryOrgFilter('vizag_ivf')}
+          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            directoryOrgFilter === 'vizag_ivf'
+              ? 'bg-white text-teal-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Vizag IVF
+        </button>
+        <button
+          onClick={() => setDirectoryOrgFilter('medcy_hospitals')}
+          className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            directoryOrgFilter === 'medcy_hospitals'
+              ? 'bg-white text-purple-700 shadow-sm'
+              : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          Medcy
+        </button>
+      </div>
+
+      {/* Branch Filter */}
+      <div className="flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-bold">
+       <button
+        onClick={() => setDirectoryBranchFilter('all')}
+        className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+         directoryBranchFilter === 'all'
+          ? 'bg-white text-[#7e3acb] shadow-sm'
+          : 'text-slate-500 hover:text-slate-800'
+        }`}
+       >
+        All Branches ({employees.length})
+       </button>
+       <button
+        onClick={() => setDirectoryBranchFilter('visakhapatnam')}
+        className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+         directoryBranchFilter === 'visakhapatnam'
+          ? 'bg-white text-[#7e3acb] shadow-sm'
+          : 'text-slate-500 hover:text-slate-800'
+        }`}
+       >
+        Vizag ({employees.filter(e => (e.branch || 'visakhapatnam') === 'visakhapatnam').length})
+       </button>
+       <button
+        onClick={() => setDirectoryBranchFilter('vizianagaram')}
+        className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+         directoryBranchFilter === 'vizianagaram'
+          ? 'bg-white text-indigo-700 shadow-sm'
+          : 'text-slate-500 hover:text-slate-800'
+        }`}
+       >
+        Vizianagaram ({employees.filter(e => e.branch === 'vizianagaram').length})
+       </button>
+      </div>
+
       <button
-       onClick={() => setDirectoryBranchFilter('all')}
-       className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-        directoryBranchFilter === 'all'
-         ? 'bg-white text-[#7e3acb] shadow-sm'
-         : 'text-slate-500 hover:text-slate-800'
-       }`}
+       id="btn-add-employee"
+       onClick={handleOpenAdd}
+       className="flex items-center gap-2 bg-[#8a42db] hover:bg-[#7e3acb] text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-teal-600/15 cursor-pointer transition-all active:scale-95"
       >
-       All ({employees.length})
-      </button>
-      <button
-       onClick={() => setDirectoryBranchFilter('visakhapatnam')}
-       className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-        directoryBranchFilter === 'visakhapatnam'
-         ? 'bg-white text-[#7e3acb] shadow-sm'
-         : 'text-slate-500 hover:text-slate-800'
-       }`}
-      >
-       Visakhapatnam ({employees.filter(e => (e.branch || 'visakhapatnam') === 'visakhapatnam').length})
-      </button>
-      <button
-       onClick={() => setDirectoryBranchFilter('vizianagaram')}
-       className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-        directoryBranchFilter === 'vizianagaram'
-         ? 'bg-white text-indigo-700 shadow-sm'
-         : 'text-slate-500 hover:text-slate-800'
-       }`}
-      >
-       Vizianagaram ({employees.filter(e => e.branch === 'vizianagaram').length})
+       <Plus className="w-4 h-4"/>
+       <span>{dirText.btnNew}</span>
       </button>
      </div>
-
-     <button
-      id="btn-add-employee"
-      onClick={handleOpenAdd}
-      className="flex items-center gap-2 bg-[#8a42db] hover:bg-[#7e3acb] text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md shadow-teal-600/15 cursor-pointer transition-all active:scale-95"
-     >
-      <Plus className="w-4 h-4"/>
-      <span>{dirText.btnNew}</span>
-     </button>
-    </div>
    </div>
 
    {/* Roster Listing Card */}
@@ -494,7 +551,24 @@ export default function EmployeeDirectory({
       </thead>
       <tbody className="divide-y divide-slate-100">
        {employees
-        .filter(emp => directoryBranchFilter === 'all' || (emp.branch || 'visakhapatnam') === directoryBranchFilter)
+        .filter(emp => {
+          if (directoryBranchFilter !== 'all' && (emp.branch || 'visakhapatnam') !== directoryBranchFilter) return false;
+          if (directoryOrgFilter !== 'all') {
+            if (directoryOrgFilter === 'medcy_hospitals' && emp.hospital !== 'medcy_hospitals' && emp.hospital !== 'both') return false;
+            if (directoryOrgFilter === 'vizag_ivf' && emp.hospital !== 'vizag_ivf' && emp.hospital !== 'both' && emp.hospital) return false;
+          }
+          if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase().trim();
+            return (
+              (emp.name || '').toLowerCase().includes(q) ||
+              (emp.email || '').toLowerCase().includes(q) ||
+              (emp.designation || '').toLowerCase().includes(q) ||
+              (emp.id || '').toLowerCase().includes(q) ||
+              (emp.phone || '').toLowerCase().includes(q)
+            );
+          }
+          return true;
+        })
         .map((emp) => {
          const empBranch = emp.branch || 'visakhapatnam';
          const isExec = emp.hierarchyLevel === 'executive';
@@ -537,10 +611,16 @@ export default function EmployeeDirectory({
              )}
              {emp.status === 'inactive' && <span className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[8px] rounded uppercase font-bold shrink-0">Inactive</span>}
             </div>
-            <div className="text-[10px] text-slate-400 mt-0.5 flex flex-col sm:flex-row sm:items-center sm:gap-1.5 overflow-hidden">
-             <span className="truncate block max-w-full">{emp.id} • {emp.email}</span>
-             {!isExec && !isMgr && <span className="text-slate-400 font-medium truncate">↳ Direct report: Ravi Kumar</span>}
-            </div>
+             <div className="text-[10px] text-slate-400 mt-0.5 flex flex-col sm:flex-row sm:items-center sm:gap-1.5 overflow-hidden">
+              <span className="truncate block max-w-full">{emp.id} • {emp.email}</span>
+              {(() => {
+                if (isExec) return <span className="text-purple-600 font-bold truncate">👑 Executive Tier</span>;
+                if (isMgr || emp.hierarchyLevel === 'senior_manager') return <span className="text-blue-600 font-bold truncate">🏢 Operations Lead</span>;
+                const manager = emp.reportingTo ? employees.find(m => m.id === emp.reportingTo) : null;
+                if (manager) return <span className="text-slate-500 font-medium truncate">↳ Reports to: {manager.name}</span>;
+                return <span className="text-amber-600 font-medium truncate">↳ Unassigned</span>;
+              })()}
+             </div>
            </div>
           </div>
          </td>
@@ -833,6 +913,18 @@ export default function EmployeeDirectory({
 
        <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
+         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Organization</label>
+         <select
+          value={formHospital}
+          onChange={(e) => setFormHospital(e.target.value as any)}
+          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"
+         >
+          <option value="vizag_ivf">Vizag IVF Centre</option>
+          <option value="medcy_hospitals">Medcy Hospitals</option>
+         </select>
+        </div>
+
+        <div className="space-y-1">
          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Branch Location</label>
          <select
           value={formBranch}
@@ -843,7 +935,9 @@ export default function EmployeeDirectory({
           <option value="vizianagaram">Vizianagaram (Branch)</option>
          </select>
         </div>
+       </div>
 
+       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hierarchy Tier</label>
          <select
@@ -852,8 +946,26 @@ export default function EmployeeDirectory({
           className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"
          >
           <option value="employee">Level 1: Staff Employee</option>
-          <option value="manager">Level 2: Operations Manager</option>
-          <option value="executive">Level 3: Executive Director</option>
+          <option value="team_lead">Level 2: Team Lead</option>
+          <option value="manager">Level 3: Operations / Dept Manager</option>
+          <option value="senior_manager">Level 4: Senior Manager</option>
+          <option value="executive">Level 5: Executive Director</option>
+         </select>
+        </div>
+
+        <div className="space-y-1">
+         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reports Directly To</label>
+         <select
+          value={formReportingTo}
+          onChange={(e) => setFormReportingTo(e.target.value)}
+          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"
+         >
+          <option value="">None (Top Level / Direct Report to Founder)</option>
+          {employees.map(m => (
+           <option key={m.id} value={m.id}>
+            {m.name} ({m.designation} - {m.hospital === 'medcy_hospitals' ? 'Medcy' : 'Vizag IVF'})
+           </option>
+          ))}
          </select>
         </div>
        </div>
@@ -1077,6 +1189,18 @@ export default function EmployeeDirectory({
 
        <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
+         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Organization</label>
+         <select
+          value={formHospital}
+          onChange={(e) => setFormHospital(e.target.value as any)}
+          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"
+         >
+          <option value="vizag_ivf">Vizag IVF Centre</option>
+          <option value="medcy_hospitals">Medcy Hospitals</option>
+         </select>
+        </div>
+
+        <div className="space-y-1">
          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Branch Location</label>
          <select
           value={formBranch}
@@ -1087,7 +1211,9 @@ export default function EmployeeDirectory({
           <option value="vizianagaram">Vizianagaram (Branch)</option>
          </select>
         </div>
+       </div>
 
+       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hierarchy Tier</label>
          <select
@@ -1096,8 +1222,28 @@ export default function EmployeeDirectory({
           className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"
          >
           <option value="employee">Level 1: Staff Employee</option>
-          <option value="manager">Level 2: Operations Manager</option>
-          <option value="executive">Level 3: Executive Director</option>
+          <option value="team_lead">Level 2: Team Lead</option>
+          <option value="manager">Level 3: Operations / Dept Manager</option>
+          <option value="senior_manager">Level 4: Senior Manager</option>
+          <option value="executive">Level 5: Executive Director</option>
+         </select>
+        </div>
+
+        <div className="space-y-1">
+         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reports Directly To</label>
+         <select
+          value={formReportingTo}
+          onChange={(e) => setFormReportingTo(e.target.value)}
+          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/10 text-slate-700"
+         >
+          <option value="">None (Top Level / Direct Report to Founder)</option>
+          {employees
+           .filter(m => m.id !== editTargetId)
+           .map(m => (
+            <option key={m.id} value={m.id}>
+             {m.name} ({m.designation} - {m.hospital === 'medcy_hospitals' ? 'Medcy' : 'Vizag IVF'})
+            </option>
+           ))}
          </select>
         </div>
        </div>

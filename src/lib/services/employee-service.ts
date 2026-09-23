@@ -291,12 +291,9 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
       };
     }
 
-    // Known hierarchy mapping fallback
-    const knownConfig = KNOWN_EMPLOYEE_HIERARCHY[emp.id];
-
-    // Branch & Hierarchy Resolution with robust backward compatibility
-    const branch: Branch = (emp.branch as Branch) || knownConfig?.branch || 'visakhapatnam';
-    let hierarchyLevel: HierarchyLevel = (emp.hierarchy_level as HierarchyLevel) || knownConfig?.hierarchyLevel;
+    // Branch & Hierarchy Resolution - Dynamic from DB
+    const branch: Branch = (emp.branch as Branch) || 'visakhapatnam';
+    let hierarchyLevel: HierarchyLevel = (emp.hierarchy_level as HierarchyLevel);
     if (!hierarchyLevel) {
       if (emp.id === 'EMP-2026-011' || (emp.name && emp.name.toLowerCase().includes('ravi kumar'))) {
         hierarchyLevel = 'manager';
@@ -311,17 +308,12 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
       ? emp.managed_branches
       : (isExecOrManager ? ['visakhapatnam', 'vizianagaram'] : [branch]);
 
-    // Determine reportingTo: prioritize explicit DB field, then known config, then default for Vizag IVF
-    let reportingTo: string | undefined = emp.reporting_to;
-    if (!reportingTo && knownConfig?.reportingTo) {
-      reportingTo = knownConfig.reportingTo;
-    } else if (!reportingTo && hierarchyLevel === 'employee' && (emp.hospital || knownConfig?.hospital) !== 'medcy_hospitals') {
-      reportingTo = 'EMP-2026-011';
-    }
+    // Determine reportingTo: prioritize explicit DB field
+    const reportingTo: string | undefined = emp.reporting_to ? emp.reporting_to : undefined;
 
-    const resolvedRole = (isExecOrManager || emp.role === 'admin' || knownConfig?.role === 'admin') ? 'admin' : 'employee';
-    const hospital = (emp.hospital as import('../../types').Hospital) || knownConfig?.hospital || 'vizag_ivf';
-    const designation = emp.designation || knownConfig?.designation || (hierarchyLevel === 'team_lead' ? 'Team Lead' : hierarchyLevel === 'senior_manager' ? 'Senior Manager' : 'Employee');
+    const resolvedRole = (isExecOrManager || emp.role === 'admin') ? 'admin' : 'employee';
+    const hospital = (emp.hospital as import('../../types').Hospital) || 'vizag_ivf';
+    const designation = emp.designation || (hierarchyLevel === 'team_lead' ? 'Team Lead' : hierarchyLevel === 'senior_manager' ? 'Senior Manager' : hierarchyLevel === 'executive' ? 'Executive Director' : 'Employee');
 
     return {
       id: emp.id,
@@ -531,9 +523,10 @@ export async function createEmployee(emp: Omit<Employee, 'isCheckedIn' | 'leaveB
     experience: emp.experience || 0,
     bank_details: emp.bankDetails || null,
     branch: emp.branch || 'visakhapatnam',
+    hospital: emp.hospital || 'vizag_ivf',
     hierarchy_level: emp.hierarchyLevel || 'employee',
     managed_branches: emp.managedBranches || (emp.hierarchyLevel === 'manager' ? ['visakhapatnam', 'vizianagaram'] : [emp.branch || 'visakhapatnam']),
-    reporting_to: emp.reportingTo || (emp.hierarchyLevel === 'employee' ? 'EMP-2026-011' : null)
+    reporting_to: emp.reportingTo || null
   };
 
   const { error } = await supabase
@@ -591,9 +584,10 @@ export async function updateEmployee(id: string, fields: Partial<Employee>): Pro
   if (fields.experience !== undefined) updatePayload.experience = fields.experience;
   if (fields.bankDetails !== undefined) updatePayload.bank_details = fields.bankDetails;
   if (fields.branch !== undefined) updatePayload.branch = fields.branch;
+  if (fields.hospital !== undefined) updatePayload.hospital = fields.hospital;
   if (fields.hierarchyLevel !== undefined) updatePayload.hierarchy_level = fields.hierarchyLevel;
   if (fields.managedBranches !== undefined) updatePayload.managed_branches = fields.managedBranches;
-  if (fields.reportingTo !== undefined) updatePayload.reporting_to = fields.reportingTo;
+  if (fields.reportingTo !== undefined) updatePayload.reporting_to = fields.reportingTo || null;
 
   if (Object.keys(updatePayload).length > 0) {
     const { error } = await supabase

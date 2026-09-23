@@ -317,6 +317,7 @@ export default function App() {
                 onUpdateTask={updateTask}
                 onDeleteTask={deleteTask}
                 onUpdateTaskStatus={updateTaskStatus}
+                onRefreshEmployees={loadData}
               />
             </React.Suspense>
           </main>

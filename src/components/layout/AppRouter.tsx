@@ -49,6 +49,7 @@ interface AppRouterProps {
  onDeleteTask: (id: string) => Promise<void>;
  onUpdateTaskStatus: (id: string, status: any) => Promise<void>;
  onOpenProfile?: () => void;
+ onRefreshEmployees?: () => Promise<void>;
 }
 
 export const AppRouter: React.FC<AppRouterProps> = ({
@@ -76,7 +77,8 @@ export const AppRouter: React.FC<AppRouterProps> = ({
  onCreateTask,
  onUpdateTask,
  onDeleteTask,
- onUpdateTaskStatus
+ onUpdateTaskStatus,
+ onRefreshEmployees
 }) => {
  switch (activeTab) {
   // --- EMPLOYEE MODULES ---
@@ -152,7 +154,7 @@ export const AppRouter: React.FC<AppRouterProps> = ({
    return (
     <EmployeeDirectory
      language={language}
-     employees={employees}
+     employees={allEmployees && allEmployees.length > 0 ? allEmployees : employees}
      onAddEmployee={onAddEmployee}
      onUpdateEmployee={onUpdateEmployee}
      onDeleteEmployee={onDeleteEmployee}
@@ -252,6 +254,8 @@ export const AppRouter: React.FC<AppRouterProps> = ({
      language={language}
      currentUser={currentUser}
      employees={allEmployees || employees}
+     onUpdateEmployee={onUpdateEmployee}
+     onRefreshEmployees={onRefreshEmployees}
     />
    );
 
