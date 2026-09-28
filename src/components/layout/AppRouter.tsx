@@ -18,7 +18,7 @@ const TaskModule = React.lazy(() => import('../TaskModule'));
 const AdminTaskManager = React.lazy(() => import('../AdminTaskManager'));
 const ExecutiveOverview = React.lazy(() => import('../ExecutiveOverview'));
 const OrgHierarchyView = React.lazy(() => import('../OrgHierarchyView'));
-const CallPhotoCaptureView = React.lazy(() => import('../fieldops/CallPhotoCaptureView').then(m => ({ default: m.CallPhotoCaptureView })));
+const CallPhotoCaptureView = React.lazy(() => import('../fieldops/CallPhotoCaptureView').then(m => ({ default: m.CallPhotoCaptureView || m.default })));
 const DoctorVisitPlanner = React.lazy(() => import('../DoctorVisitPlanner'));
 
 

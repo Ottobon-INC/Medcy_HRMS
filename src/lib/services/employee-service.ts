@@ -41,7 +41,17 @@ export const KNOWN_EMPLOYEE_HIERARCHY: Record<string, {
   'EMP-2026-010': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', branch: 'vizianagaram' }, // Dhanusha Dadi
   'EMP-2026-012': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', branch: 'visakhapatnam' }, // Gonti Shyam
   'EMP-2026-013': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', branch: 'vizianagaram' }, // U. Jayavani
-  'EMP-2026-014': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', branch: 'visakhapatnam' }, // S. Kishore Reddy
+  'EMP-2026-014': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-016', branch: 'visakhapatnam' }, // S. Kishore Reddy
+  'EMP-2026-015': { hospital: 'vizag_ivf', hierarchyLevel: 'team_lead', reportingTo: 'EMP-2026-011', role: 'admin', designation: 'VZM Unit Head', branch: 'visakhapatnam' }, // Pushpalata sethi
+  'EMP-2026-016': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', designation: 'SKLM Unit Head', branch: 'visakhapatnam' }, // Gadela Rajasekhar
+  'EMP-2026-017': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-011', designation: 'Field Officer', branch: 'visakhapatnam' }, // Ravi Undrasapu
+  'EMP-2026-018': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-024', designation: 'Field Officer (HQ: Srikakulam)', branch: 'visakhapatnam' }, // Pinninti Purna Chandra Kumar (Chandra Kumar)
+  'EMP-2026-019': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-023', designation: 'Field Officer (HQ: Bobbili)', branch: 'visakhapatnam' }, // Pallanti Bhaskar Rao (Bhaskar)
+  'EMP-2026-020': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-023', designation: 'Field Officer (HQ: Vizianagaram)', branch: 'vizianagaram' }, // Pathivada Sathish (Satish)
+  'EMP-2026-021': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-015', designation: 'Field Officer (Vizag, VZM)', branch: 'visakhapatnam' }, // G. Hanumanth Rao
+  'EMP-2026-022': { hospital: 'vizag_ivf', hierarchyLevel: 'employee', reportingTo: 'EMP-2026-016', designation: 'Field Officer (Vizag)', branch: 'visakhapatnam' }, // U. J. V. V. Kumar
+  'EMP-2026-023': { hospital: 'vizag_ivf', hierarchyLevel: 'team_lead', reportingTo: 'EMP-2026-011', role: 'admin', designation: 'Team Lead', branch: 'visakhapatnam' }, // Vinay Bushan
+  'EMP-2026-024': { hospital: 'vizag_ivf', hierarchyLevel: 'team_lead', reportingTo: 'EMP-2026-011', role: 'admin', designation: 'SKLM Unit Head', branch: 'visakhapatnam' }, // Kishore Mamidi
 };
 
 export const MEDCY_GHOST_EMPLOYEES: Array<{
@@ -311,7 +321,11 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
     // Determine reportingTo: prioritize explicit DB field
     const reportingTo: string | undefined = emp.reporting_to ? emp.reporting_to : undefined;
 
-    const resolvedRole = (isExecOrManager || emp.role === 'admin') ? 'admin' : 'employee';
+    // If hierarchy is plain 'employee', always force 'employee' role regardless of what the DB role column says.
+    // This prevents a stale/incorrect 'admin' in the role column from giving the admin dashboard to a regular employee.
+    const resolvedRole = hierarchyLevel === 'employee'
+      ? 'employee'
+      : (isExecOrManager || emp.role === 'admin') ? 'admin' : 'employee';
     const hospital = (emp.hospital as import('../../types').Hospital) || 'vizag_ivf';
     const designation = emp.designation || (hierarchyLevel === 'team_lead' ? 'Team Lead' : hierarchyLevel === 'senior_manager' ? 'Senior Manager' : hierarchyLevel === 'executive' ? 'Executive Director' : 'Employee');
 
@@ -455,6 +469,161 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
       });
     }
   });
+
+  // Ensure Pushpalata Sethi exists as unassigned staff in Vizag IVF
+  if (!mappedEmployees.some(e => e.id === 'EMP-2026-015' || e.email?.toLowerCase() === 'pushpasethi72@gmail.com')) {
+    mappedEmployees.push({
+      id: 'EMP-2026-015',
+      name: 'Pushpalata sethi',
+      email: 'Pushpasethi72@gmail.com',
+      password: 'Pushpasethi72@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joiningDate: '2026-09-01',
+      basicSalary: 0,
+      status: 'active',
+      phone: '8897854336',
+      gender: 'female',
+      experience: 0,
+      hospital: 'vizag_ivf',
+      branch: 'visakhapatnam',
+      hierarchyLevel: 'employee',
+      managedBranches: ['visakhapatnam'],
+      reportingTo: undefined,
+      isCheckedIn: false,
+      leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 }, maternity: { allowed: 90, taken: 0 } },
+      monthlyQuota: { id: 'pushpa-quota', month: currentMonth, allotted: 3, used: 0, remaining: 3 },
+      leaveRequests: [],
+      attendanceRecords: [],
+      checkInLogs: [],
+      payslips: [],
+      advanceRequests: []
+    });
+  }
+
+  // Ensure Gadela Rajasekhar exists in Vizag IVF (reporting to Ravi Kumar)
+  if (!mappedEmployees.some(e => e.id === 'EMP-2026-016' || e.email?.toLowerCase() === 'rajasekharbpharm345@gmail.com')) {
+    mappedEmployees.push({
+      id: 'EMP-2026-016',
+      name: 'Gadela Rajasekhar',
+      email: 'rajasekharbpharm345@gmail.com',
+      password: 'rajasekharbpharm345@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joiningDate: '2026-09-01',
+      basicSalary: 0,
+      status: 'active',
+      phone: '9490505590',
+      gender: 'male',
+      experience: 0,
+      hospital: 'vizag_ivf',
+      branch: 'visakhapatnam',
+      hierarchyLevel: 'employee',
+      managedBranches: ['visakhapatnam'],
+      reportingTo: 'EMP-2026-011',
+      isCheckedIn: false,
+      leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 }, paternity: { allowed: 7, taken: 0 } },
+      monthlyQuota: { id: 'rajasekhar-quota', month: currentMonth, allotted: 3, used: 0, remaining: 3 },
+      leaveRequests: [],
+      attendanceRecords: [],
+      checkInLogs: [],
+      payslips: [],
+      advanceRequests: []
+    });
+  }
+
+  // Ensure Ravi Undrasapu exists in Vizag IVF (reporting to Ravi Kumar)
+  if (!mappedEmployees.some(e => e.id === 'EMP-2026-017' || e.email?.toLowerCase() === 'raviundrasapu2@gmail.com')) {
+    mappedEmployees.push({
+      id: 'EMP-2026-017',
+      name: 'Ravi Undrasapu',
+      email: 'raviundrasapu2@gmail.com',
+      password: 'raviundrasapu2@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joiningDate: '2026-09-01',
+      basicSalary: 0,
+      status: 'active',
+      phone: '9110565573',
+      gender: 'male',
+      experience: 0,
+      hospital: 'vizag_ivf',
+      branch: 'visakhapatnam',
+      hierarchyLevel: 'employee',
+      managedBranches: ['visakhapatnam'],
+      reportingTo: 'EMP-2026-011',
+      isCheckedIn: false,
+      leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 }, paternity: { allowed: 7, taken: 0 } },
+      monthlyQuota: { id: 'raviundrasapu-quota', month: currentMonth, allotted: 3, used: 0, remaining: 3 },
+      leaveRequests: [],
+      attendanceRecords: [],
+      checkInLogs: [],
+      payslips: [],
+      advanceRequests: []
+    });
+  }
+
+  // Ensure Vinay Bushan exists as Team Lead in Vizag IVF (reporting to Ravi Kumar)
+  if (!mappedEmployees.some(e => e.id === 'EMP-2026-023' || e.email?.toLowerCase() === 'vinaybhushan0925@gmail.com')) {
+    mappedEmployees.push({
+      id: 'EMP-2026-023',
+      name: 'Vinay Bushan',
+      email: 'vinaybhushan0925@gmail.com',
+      password: 'vinaybhushan0925@gmail.com',
+      role: 'admin',
+      designation: 'Team Lead',
+      joiningDate: '2026-09-01',
+      basicSalary: 0,
+      status: 'active',
+      phone: '8897561317',
+      gender: 'male',
+      experience: 0,
+      hospital: 'vizag_ivf',
+      branch: 'visakhapatnam',
+      hierarchyLevel: 'team_lead',
+      managedBranches: ['visakhapatnam'],
+      reportingTo: 'EMP-2026-011',
+      isCheckedIn: false,
+      leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 }, paternity: { allowed: 7, taken: 0 } },
+      monthlyQuota: { id: 'vinay-quota', month: currentMonth, allotted: 3, used: 0, remaining: 3 },
+      leaveRequests: [],
+      attendanceRecords: [],
+      checkInLogs: [],
+      payslips: [],
+      advanceRequests: []
+    });
+  }
+
+  // Ensure Kishore Mamidi exists as SKLM Unit Head (Team Lead) in Vizag IVF (reporting to Ravi Kumar)
+  if (!mappedEmployees.some(e => e.id === 'EMP-2026-024' || e.email?.toLowerCase() === 'kishoremamidi233@gmail.com')) {
+    mappedEmployees.push({
+      id: 'EMP-2026-024',
+      name: 'Kishore Mamidi',
+      email: 'kishoremamidi233@gmail.com',
+      password: 'kishoremamidi233@gmail.com',
+      role: 'admin',
+      designation: 'SKLM Unit Head',
+      joiningDate: '2026-09-01',
+      basicSalary: 0,
+      status: 'active',
+      phone: '7981374403',
+      gender: 'male',
+      experience: 0,
+      hospital: 'vizag_ivf',
+      branch: 'visakhapatnam',
+      hierarchyLevel: 'team_lead',
+      managedBranches: ['visakhapatnam'],
+      reportingTo: 'EMP-2026-011',
+      isCheckedIn: false,
+      leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 }, paternity: { allowed: 7, taken: 0 } },
+      monthlyQuota: { id: 'kishore-quota', month: currentMonth, allotted: 3, used: 0, remaining: 3 },
+      leaveRequests: [],
+      attendanceRecords: [],
+      checkInLogs: [],
+      payslips: [],
+      advanceRequests: []
+    });
+  }
 
   return mappedEmployees;
 }
@@ -894,6 +1063,81 @@ export async function seedInitialDatabase() {
       gender: 'male',
       experience: 0,
       dob: '1988-06-28'
+    },
+    {
+      id: 'EMP-2026-015',
+      name: 'Pushpalata sethi',
+      email: 'Pushpasethi72@gmail.com',
+      password: 'Pushpasethi72@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '8897854336',
+      gender: 'female',
+      experience: 0,
+      dob: '1995-05-15'
+    },
+    {
+      id: 'EMP-2026-016',
+      name: 'Gadela Rajasekhar',
+      email: 'rajasekharbpharm345@gmail.com',
+      password: 'rajasekharbpharm345@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9490505590',
+      gender: 'male',
+      experience: 0,
+      dob: '1995-01-01'
+    },
+    {
+      id: 'EMP-2026-017',
+      name: 'Ravi Undrasapu',
+      email: 'raviundrasapu2@gmail.com',
+      password: 'raviundrasapu2@gmail.com',
+      role: 'employee',
+      designation: 'Employee',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '9110565573',
+      gender: 'male',
+      experience: 0,
+      dob: '1995-01-01'
+    },
+    {
+      id: 'EMP-2026-023',
+      name: 'Vinay Bushan',
+      email: 'vinaybhushan0925@gmail.com',
+      password: 'vinaybhushan0925@gmail.com',
+      role: 'admin',
+      designation: 'Team Lead',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '8897561317',
+      gender: 'male',
+      experience: 0,
+      dob: '1995-01-01'
+    },
+    {
+      id: 'EMP-2026-024',
+      name: 'Kishore Mamidi',
+      email: 'kishoremamidi233@gmail.com',
+      password: 'kishoremamidi233@gmail.com',
+      role: 'admin',
+      designation: 'SKLM Unit Head',
+      joining_date: '2026-09-01',
+      basic_pay: 0.00,
+      status: 'active',
+      phone: '7981374403',
+      gender: 'male',
+      experience: 0,
+      dob: '1995-01-01'
     }
   ];
 

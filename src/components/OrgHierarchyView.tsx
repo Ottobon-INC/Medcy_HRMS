@@ -205,7 +205,7 @@ const OrgTree = ({
   onEditEmployee: (emp: Employee) => void;
   onUnassignEmployee: (emp: Employee) => void;
 }) => {
-  const { executives, midLevelLeaders, groupsByLead } = useDynamicOrgHierarchy(org, searchQuery, employees);
+  const { executives, midLevelLeaders, groupsByLead, unassigned } = useDynamicOrgHierarchy(org, searchQuery, employees);
 
   return (
     <div className="flex flex-col items-center w-full min-w-max px-6">
@@ -406,6 +406,59 @@ const OrgTree = ({
           </div>
         </div>
       )}
+
+      {/* Unassigned Personnel Section in Main Tree Canvas */}
+      {unassigned.length > 0 && (
+        <div className="mt-12 flex flex-col items-center w-full relative z-10 pt-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-px w-16 bg-gradient-to-r from-transparent to-amber-300"></div>
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 shadow-2xs">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+              <span className="text-[11px] font-black uppercase tracking-wider">
+                Unassigned Personnel ({unassigned.length})
+              </span>
+            </div>
+            <div className="h-px w-16 bg-gradient-to-l from-transparent to-amber-300"></div>
+          </div>
+
+          <p className="text-[11px] text-slate-400 mb-4 text-center max-w-md">
+            The following personnel have no assigned reporting lead in {org === 'vizag_ivf' ? 'Vizag IVF Centre' : 'Medcy Hospitals'}. Click "Assign Lead" to position them into the team tree.
+          </p>
+
+          <div className="flex flex-wrap justify-center gap-3.5 max-w-4xl">
+            {unassigned.map(emp => (
+              <div
+                key={emp.id}
+                className="bg-white border-2 border-dashed border-amber-300 rounded-xl p-3 flex items-center justify-between gap-3 w-72 shadow-xs hover:shadow-md hover:border-amber-400 transition-all bg-gradient-to-br from-white to-amber-50/20 group relative"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar employee={emp} size="md" />
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold text-slate-800 truncate" title={emp.name}>
+                      {emp.name}
+                    </h4>
+                    <p className="text-[9px] text-slate-400 uppercase tracking-wide truncate mt-0.5">
+                      {emp.designation || 'Staff'} • {emp.branch || 'visakhapatnam'}
+                    </p>
+                    <span className="inline-block text-[9px] font-bold text-amber-700 bg-amber-100/80 px-1.5 py-0.2 rounded mt-1">
+                      Unassigned
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => onEditEmployee(emp)}
+                  title="Assign to a team lead"
+                  className="px-2.5 py-1.5 rounded-lg bg-[#8a42db] text-white text-[10px] font-bold hover:bg-[#7a32cb] cursor-pointer shadow-xs shrink-0 flex items-center gap-1 transition-transform active:scale-95"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  <span>Assign Lead</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -426,7 +479,7 @@ const MobileOrgTree = ({
   onEditEmployee: (emp: Employee) => void;
   onUnassignEmployee: (emp: Employee) => void;
 }) => {
-  const { executives, midLevelLeaders, groupsByLead } = useDynamicOrgHierarchy(org, searchQuery, employees);
+  const { executives, midLevelLeaders, groupsByLead, unassigned } = useDynamicOrgHierarchy(org, searchQuery, employees);
 
   return (
     <div className="w-full flex flex-col gap-4 px-2 pb-20 max-w-md mx-auto">
@@ -529,6 +582,42 @@ const MobileOrgTree = ({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Mobile Unassigned Personnel Section */}
+      {unassigned.length > 0 && (
+        <div className="mt-6 p-3 rounded-xl bg-amber-50/50 border border-amber-200">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="w-4 h-4 text-amber-600" />
+            <span className="text-xs font-bold text-amber-900">
+              Unassigned Personnel ({unassigned.length})
+            </span>
+          </div>
+
+          <div className="space-y-2">
+            {unassigned.map(emp => (
+              <div
+                key={emp.id}
+                className="bg-white border border-amber-200 rounded-lg p-2.5 flex items-center justify-between gap-2 shadow-xs"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Avatar employee={emp} size="sm" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-slate-800 truncate">{emp.name}</p>
+                    <p className="text-[9px] text-slate-400 uppercase truncate">{emp.designation || 'Staff'}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => onEditEmployee(emp)}
+                  className="px-2.5 py-1 rounded-md bg-[#8a42db] text-white text-[10px] font-bold hover:bg-[#7a32cb] shrink-0"
+                >
+                  Assign
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

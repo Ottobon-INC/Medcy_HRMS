@@ -49,7 +49,8 @@ export default function App() {
       'call-capture': 'callCapture',
       'field-ops': 'fieldOps',
       'tasks': 'tasks',
-      'admin-tasks': 'adminTasks'
+      'admin-tasks': 'adminTasks',
+      'doctor-planner': 'doctorPlanner'
     };
     
     if (pathToTab[path]) return pathToTab[path];
@@ -80,7 +81,8 @@ export default function App() {
       'callCapture': 'call-capture',
       'fieldOps': 'field-ops',
       'tasks': 'tasks',
-      'adminTasks': 'admin-tasks'
+      'adminTasks': 'admin-tasks',
+      'doctorPlanner': 'doctor-planner'
     };
     
     const newPath = '/' + (tabToPath[activeTab] || activeTab);
@@ -110,7 +112,8 @@ export default function App() {
         'call-capture': 'callCapture',
         'field-ops': 'fieldOps',
         'tasks': 'tasks',
-        'admin-tasks': 'adminTasks'
+        'admin-tasks': 'adminTasks',
+        'doctor-planner': 'doctorPlanner'
       };
       
       if (pathToTab[path]) {
@@ -148,7 +151,8 @@ export default function App() {
     const adminTabs = [
       'adminDashboard', 'directory', 'attendanceOverview', 'leaveApprovals',
       'officeLocations', 'messages', 'adminSettings', 'fieldOps', 'adminTasks',
-      'executiveOverview', 'orgChart', 'doctorPlanner'
+      'executiveOverview', 'orgChart', 'doctorPlanner', 'callCapture', 'fieldDuty',
+      'dashboard', 'attendance', 'leave', 'tasks'
     ];
     const employeeTabs = [
       'dashboard', 'attendance', 'leave', 'messages', 'fieldDuty', 'callCapture', 'tasks', 'doctorPlanner'

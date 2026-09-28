@@ -123,7 +123,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Doctor Plans</span>
             </button>
 
-            {isTeamLead && (
+            {(isTeamLead || isAdmin) && (
               <>
                 <button onClick={() => onSelectTab('callCapture')} className={getBtnClass('callCapture')}>
                   <div className={getIconClass('callCapture')}>

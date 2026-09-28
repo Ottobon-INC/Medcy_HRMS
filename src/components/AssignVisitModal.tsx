@@ -188,11 +188,10 @@ export default function AssignVisitModal({
       return;
     }
 
-    // Auto-determined approval status rule:
-    // Base employees self-scheduling require lead approval ('pending')
-    // Team Leads, Managers, Admins are auto-approved ('approved')
-    // Any visit assigned by a Team Lead to a member is auto-approved ('approved')
-    const approvalStatus = isBaseEmployeeSelfScheduling ? 'pending' : 'approved';
+    // New rule for async workflow:
+    // ALL self-scheduled calls are auto-approved for immediate execution.
+    // Team Lead reviews completed calls asynchronously in the Call Review Queue.
+    const approvalStatus = 'approved';
     const approvedBy = isBaseEmployeeSelfScheduling ? undefined : (currentUser?.id || adminId);
 
     const autoTitle = title.trim() || (doctorName ? `${doctorName}${clinicName ? ` - ${clinicName}` : ''}` : 'Doctor Visit');
@@ -240,7 +239,7 @@ export default function AssignVisitModal({
             <div>
               <h3 className="font-bold text-base text-slate-800">
                 {isSelfSchedule 
-                  ? (isBaseEmployeeSelfScheduling ? 'Plan Doctor Call (Requires Lead Approval)' : 'Schedule Doctor Call') 
+                  ? (isBaseEmployeeSelfScheduling ? 'Plan Doctor Call' : 'Schedule Doctor Call') 
                   : (isTeamLead ? 'Assign Team Doctor Call' : 'Assign Field / Doctor Visit')}
               </h3>
               <p className="text-[11px] text-slate-500 font-medium">
@@ -267,8 +266,8 @@ export default function AssignVisitModal({
           )}
 
           {isBaseEmployeeSelfScheduling && (
-            <div className="mb-4 p-3 bg-amber-50 text-amber-800 rounded-xl text-xs font-medium border border-amber-200 flex items-center justify-between">
-              <span>📋 This planned visit will be submitted to your <strong>Team Lead</strong> for approval before field visit execution.</span>
+            <div className="mb-4 p-3 bg-blue-50 text-blue-800 rounded-xl text-xs font-medium border border-blue-200 flex items-center gap-2">
+              <span>✅ You can start this call immediately. Your <strong>Team Lead</strong> will review it after completion.</span>
             </div>
           )}
 
@@ -496,7 +495,7 @@ export default function AssignVisitModal({
             {loading 
               ? 'Saving...' 
               : (isSelfSchedule 
-                  ? (isBaseEmployeeSelfScheduling ? 'Submit for Lead Approval' : 'Schedule Doctor Call') 
+                  ? 'Confirm & Plan Call' 
                   : (isTeamLead ? 'Assign Team Call' : 'Assign Field Visit'))}
           </button>
         </div>

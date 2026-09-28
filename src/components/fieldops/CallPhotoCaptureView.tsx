@@ -747,9 +747,26 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
           </span>
 
           {isCompleted ? (
-           <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px]">
-            <CheckCircle2 className="w-3.5 h-3.5"/> Visit Verified
-           </span>
+           <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <span className="text-emerald-700 font-bold flex items-center gap-1 text-[11px]">
+             <CheckCircle2 className="w-3.5 h-3.5"/> Visit Verified
+            </span>
+            {visit.approvalStatus === 'post_review' && (
+             <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-bold text-[10px] flex items-center gap-1">
+              🔍 Pending Lead Review
+             </span>
+            )}
+            {visit.approvalStatus === 'approved' && (
+             <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-[10px] flex items-center gap-1">
+              ✓ Reviewed
+             </span>
+            )}
+            {visit.approvalStatus === 'rejected' && (
+             <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[10px] flex items-center gap-1" title={visit.rejectionReason || 'Flagged by Lead'}>
+              ⚠ Flagged by Lead
+             </span>
+            )}
+           </div>
           ) : isOngoing ? (
            <button
             type="button"
@@ -758,13 +775,9 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
            >
             <Square className="w-3 h-3 fill-white"/> Depart & Close Visit
            </button>
-          ) : visit.approvalStatus === 'pending' ? (
-           <span className="px-3 py-1.5 rounded-lg bg-amber-100 text-amber-800 font-bold text-xs flex items-center gap-1 cursor-not-allowed" title="Your direct Team Lead must approve this visit before you can start">
-            ⏳ Awaiting Lead Approval
-           </span>
           ) : visit.approvalStatus === 'rejected' ? (
            <span className="px-3 py-1.5 rounded-lg bg-rose-100 text-rose-800 font-bold text-xs flex items-center gap-1" title={visit.rejectionReason || 'Rejected by Lead'}>
-            ✗ Rejected by Lead
+            ✗ Flagged by Lead
            </span>
           ) : (
            <div className="flex items-center gap-2">
@@ -818,3 +831,5 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
   </div>
  );
 };
+
+export default CallPhotoCaptureView;

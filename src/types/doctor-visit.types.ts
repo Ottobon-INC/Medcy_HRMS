@@ -9,7 +9,7 @@ export interface DoctorVisit {
   visitPurpose?: string;
   status: 'planned' | 'completed' | 'missed' | 'rescheduled';
   notes?: string;
-  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvalStatus?: 'pending' | 'approved' | 'post_review' | 'rejected';
   approvedBy?: string;
   rejectionReason?: string;
   address?: string;

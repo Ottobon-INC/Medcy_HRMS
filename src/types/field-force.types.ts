@@ -65,7 +65,7 @@ export interface FieldVisit {
   clientReference?: string;
   locationException: boolean;
   rescheduleReason?: string;
-  approvalStatus?: 'pending' | 'approved' | 'rejected';
+  approvalStatus?: 'pending' | 'approved' | 'post_review' | 'rejected';
   approvedBy?: string;
   rejectionReason?: string;
   doctorName?: string;

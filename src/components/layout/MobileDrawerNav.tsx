@@ -241,7 +241,7 @@ export const MobileDrawerNav: React.FC<MobileDrawerNavProps> = ({
         <span>Doctor Plans</span>
        </button>
 
-       {isTeamLead && (
+       {(isTeamLead || isAdmin) && (
          <>
            <button
              onClick={() => handleTabClick('callCapture')}

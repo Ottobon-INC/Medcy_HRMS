@@ -218,6 +218,11 @@ export async function updateVisitStatus(
         const compTime = new Date(now).getTime();
         updatePayload.duration_minutes = Math.round((compTime - arrTime) / 60000);
       }
+
+      // Automatically transition completed calls to post_review for TL review queue (unless already flagged/rejected)
+      if (existing.approval_status !== 'rejected') {
+        updatePayload.approval_status = 'post_review';
+      }
       break;
 
     case 'CANCELLED':
@@ -254,7 +259,7 @@ export async function updateVisitStatus(
     .select();
 
   // Gracefully fallback if newer columns do not exist on legacy table
-  if (error && (error.code === '42703' || error.code === 'PGRST204' || error.message?.includes('start_photo_url') || error.message?.includes('proof_photo_url') || error.message?.includes('completion_notes'))) {
+  if (error && (error.code === '42703' || error.code === 'PGRST204' || error.code === '23514' || error.message?.includes('start_photo_url') || error.message?.includes('proof_photo_url') || error.message?.includes('completion_notes') || error.message?.includes('approval_status'))) {
     let shouldRetry = false;
     if (updatePayload.start_photo_url !== undefined) {
       delete updatePayload.start_photo_url;
@@ -266,6 +271,10 @@ export async function updateVisitStatus(
     }
     if (updatePayload.completion_notes !== undefined) {
       delete updatePayload.completion_notes;
+      shouldRetry = true;
+    }
+    if (updatePayload.approval_status !== undefined) {
+      delete updatePayload.approval_status;
       shouldRetry = true;
     }
     
@@ -327,7 +336,7 @@ export async function completeCallWithPhoto(
   longitude?: number,
   notes?: string
 ): Promise<FieldVisit> {
-  return updateVisitStatus(
+  const result = await updateVisitStatus(
     visitId,
     employeeId,
     'COMPLETED',
@@ -339,6 +348,10 @@ export async function completeCallWithPhoto(
     photoData,
     notes
   );
+  if (result.approvalStatus !== 'rejected') {
+    result.approvalStatus = 'post_review';
+  }
+  return result;
 }
 
 export async function createAdHocCall(
@@ -448,4 +461,43 @@ export async function deleteVisit(visitId: string): Promise<void> {
 
   if (error) throw error;
 }
+
+export async function markCallForPostReview(visitId: string): Promise<void> {
+  const { error } = await supabase
+    .from('HRMS_field_visits')
+    .update({ approval_status: 'post_review' })
+    .eq('id', visitId)
+    .eq('approval_status', 'approved');
+
+  if (error) {
+    console.warn('markCallForPostReview warning:', error);
+  }
+}
+
+export async function getPostReviewCalls(
+  teamMemberIds: string[],
+  dateFrom?: string
+): Promise<FieldVisit[]> {
+  if (!teamMemberIds.length) return [];
+
+  let query = supabase
+    .from('HRMS_field_visits')
+    .select('*')
+    .in('employee_id', teamMemberIds)
+    .eq('approval_status', 'post_review')
+    .eq('status', 'COMPLETED')
+    .order('completed_at', { ascending: false, nullsFirst: false });
+
+  if (dateFrom) {
+    query = query.gte('completed_at', dateFrom);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.warn('getPostReviewCalls error:', error);
+    return [];
+  }
+  return (data || []).map(mapVisit);
+}
+
 

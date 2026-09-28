@@ -82,8 +82,8 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'self' | 'assign'>('self');
 
-  // Team Approvals Filter
-  const [approvalFilter, setApprovalFilter] = useState<'pending' | 'all' | 'approved' | 'rejected'>('pending');
+  // Team Review Queue Filter
+  const [approvalFilter, setApprovalFilter] = useState<'post_review' | 'all' | 'approved' | 'rejected'>('post_review');
   const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState<string>('all');
 
   const weekDates = useMemo(() => {
@@ -118,10 +118,15 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
       const flattenedMyVisits = myVisitsArrays.flat();
       setMyVisits(flattenedMyVisits);
 
-      // 2. If leader, fetch team visits
+      // 2. If leader, fetch team visits and post-review queue
       if (hasTeam && teamMemberIds.length > 0) {
-        const teamData = await fieldVisitService.getTeamVisits(teamMemberIds);
-        setTeamVisits(teamData);
+        const [teamData, postReviewData] = await Promise.all([
+          fieldVisitService.getTeamVisits(teamMemberIds),
+          fieldVisitService.getPostReviewCalls(teamMemberIds)
+        ]);
+        const postReviewIds = new Set(postReviewData.map(v => v.id));
+        const merged = [...postReviewData, ...teamData.filter(v => !postReviewIds.has(v.id))];
+        setTeamVisits(merged);
       }
     } catch (err: any) {
       console.error("Failed to load doctor visits:", err);
@@ -141,18 +146,18 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
       await fieldVisitService.approveFieldVisit(visitId, currentUser.id);
       await loadVisits();
     } catch (err: any) {
-      alert("Failed to approve visit: " + err.message);
+      alert("Failed to acknowledge visit: " + err.message);
     }
   };
 
   const handleReject = async (visitId: string) => {
-    const reason = window.prompt("Enter rejection / reschedule guidance for the representative:");
+    const reason = window.prompt("Enter guidance, issue description, or follow-up note for the representative:");
     if (reason === null) return; // cancelled prompt
     try {
       await fieldVisitService.rejectFieldVisit(visitId, currentUser.id, reason);
       await loadVisits();
     } catch (err: any) {
-      alert("Failed to reject visit: " + err.message);
+      alert("Failed to flag visit: " + err.message);
     }
   };
 
@@ -173,12 +178,19 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
   }, [myVisits, selectedDate]);
 
   const pendingApprovalsCount = useMemo(() => {
-    return teamVisits.filter(v => v.approvalStatus === 'pending').length;
+    return teamVisits.filter(v => v.approvalStatus === 'post_review' || v.approvalStatus === 'pending').length;
   }, [teamVisits]);
 
   const filteredTeamVisits = useMemo(() => {
     return teamVisits.filter(v => {
-      const matchesStatus = approvalFilter === 'all' || v.approvalStatus === approvalFilter;
+      let matchesStatus = false;
+      if (approvalFilter === 'all') {
+        matchesStatus = true;
+      } else if (approvalFilter === 'post_review') {
+        matchesStatus = v.approvalStatus === 'post_review' || v.approvalStatus === 'pending';
+      } else {
+        matchesStatus = v.approvalStatus === approvalFilter;
+      }
       const matchesEmp = selectedEmployeeFilter === 'all' || v.employeeId === selectedEmployeeFilter;
       return matchesStatus && matchesEmp;
     });
@@ -225,7 +237,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
               }`}
             >
               <Users size={14} />
-              <span>Team Approvals & Tasks</span>
+              <span>Call Review Queue</span>
               {pendingApprovalsCount > 0 && (
                 <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-black ${
                   plannerTab === 'team_approvals' ? 'bg-white text-[#8a42db]' : 'bg-rose-500 text-white animate-pulse'
@@ -281,7 +293,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                     const isSelected = selectedDate === dateStr;
                     const isToday = new Date().toISOString().split('T')[0] === dateStr;
                     const dayVisits = myVisits.filter(v => v.scheduledDate === dateStr);
-                    const pendingDayCount = dayVisits.filter(v => v.approvalStatus === 'pending').length;
+                    const reviewDayCount = dayVisits.filter(v => v.approvalStatus === 'post_review' || v.approvalStatus === 'pending').length;
 
                     return (
                       <button
@@ -306,9 +318,9 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                           </div>
                         </div>
 
-                        {pendingDayCount > 0 && (
-                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
-                            {pendingDayCount} pending
+                        {reviewDayCount > 0 && (
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${isSelected ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'}`}>
+                            {reviewDayCount} review
                           </span>
                         )}
                       </button>
@@ -352,9 +364,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                     </div>
                     <h3 className="text-slate-700 font-bold text-sm mb-1">No doctor calls planned for this date</h3>
                     <p className="text-slate-400 text-xs max-w-xs mb-4">
-                      {currentUser.hierarchyLevel === 'employee' 
-                        ? 'Plan your clinic visits now. They will route to your Team Lead for approval.' 
-                        : 'Schedule visits directly. Your calls are ready for instant photo execution.'}
+                      Plan your clinic visits now and start them freely. Your Team Lead will review completed calls.
                     </p>
                     <button
                       onClick={() => {
@@ -369,6 +379,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                 ) : (
                   <div className="space-y-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
                     {selectedDayVisits.map((visit) => {
+                      const isPostReview = visit.approvalStatus === 'post_review';
                       const isPending = visit.approvalStatus === 'pending';
                       const isRejected = visit.approvalStatus === 'rejected';
                       const isApproved = visit.approvalStatus === 'approved' || !visit.approvalStatus;
@@ -385,9 +396,14 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                               </h3>
 
                               {/* Approval Status Badges */}
+                              {isPostReview && (
+                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-blue-100 text-blue-800 flex items-center gap-1">
+                                  🔍 Pending Lead Review
+                                </span>
+                              )}
                               {isPending && (
                                 <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-100 text-amber-800 flex items-center gap-1">
-                                  ⏳ Awaiting Lead Approval
+                                  ⏳ Legacy Pending
                                 </span>
                               )}
                               {isApproved && (
@@ -396,8 +412,8 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                                 </span>
                               )}
                               {isRejected && (
-                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 flex items-center gap-1">
-                                  ✗ Rejected
+                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-100 text-rose-800 flex items-center gap-1" title={visit.rejectionReason || 'Flagged by Lead'}>
+                                  ⚠ Flagged by Lead
                                 </span>
                               )}
                             </div>
@@ -449,7 +465,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
           </div>
         </div>
       ) : (
-        /* View Mode 2: Team Approvals & Roster (Team Leads & Managers) */
+        /* View Mode 2: Call Review Queue (Team Leads & Managers) */
         <div className="space-y-6">
           {/* Header Controls & Filters */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-100 shadow-xs">
@@ -457,12 +473,12 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
               {/* Approval Filter Pills */}
               <div className="flex items-center bg-slate-100 p-1 rounded-xl">
                 <button
-                  onClick={() => setApprovalFilter('pending')}
+                  onClick={() => setApprovalFilter('post_review')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    approvalFilter === 'pending' ? 'bg-[#8a42db] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                    approvalFilter === 'post_review' ? 'bg-[#8a42db] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <span>Pending Approvals</span>
+                  <span>Awaiting Review</span>
                   {pendingApprovalsCount > 0 && (
                     <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-rose-500 text-white">
                       {pendingApprovalsCount}
@@ -475,7 +491,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                     approvalFilter === 'all' ? 'bg-[#8a42db] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  All Team Visits
+                  All Team Calls
                 </button>
                 <button
                   onClick={() => setApprovalFilter('approved')}
@@ -483,7 +499,15 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                     approvalFilter === 'approved' ? 'bg-[#8a42db] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Approved
+                  Acknowledged
+                </button>
+                <button
+                  onClick={() => setApprovalFilter('rejected')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    approvalFilter === 'rejected' ? 'bg-[#8a42db] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Flagged
                 </button>
               </div>
 
@@ -520,7 +544,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
             <div className="flex justify-between items-center mb-6 pb-3 border-b border-slate-100">
               <div>
                 <h2 className="text-base font-black text-slate-800">
-                  {approvalFilter === 'pending' ? 'Visits Requiring Lead Approval' : 'Team Field Operations Schedule'}
+                  {approvalFilter === 'post_review' ? 'Doctor Calls Awaiting Review' : 'Team Field Operations Schedule'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {filteredTeamVisits.length} records matching current filter
@@ -537,8 +561,8 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                 <CheckCircle2 size={40} className="text-emerald-400 mx-auto mb-3" />
                 <h3 className="text-sm font-bold text-slate-700">All caught up!</h3>
                 <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-                  {approvalFilter === 'pending' 
-                    ? 'No pending doctor visit approvals from your team members right now.' 
+                  {approvalFilter === 'post_review' 
+                    ? 'No doctor calls awaiting review from your team right now.' 
                     : 'No team visit records found for this filter.'}
                 </p>
               </div>
@@ -546,14 +570,14 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
               <div className="space-y-3.5">
                 {filteredTeamVisits.map((visit) => {
                   const emp = employees.find(e => e.id === visit.employeeId);
-                  const isPending = visit.approvalStatus === 'pending';
+                  const isAwaitingReview = visit.approvalStatus === 'post_review' || visit.approvalStatus === 'pending';
 
                   return (
                     <div 
                       key={visit.id}
                       className={`p-4 rounded-xl border transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
-                        isPending 
-                          ? 'border-amber-200 bg-amber-50/20' 
+                        isAwaitingReview 
+                          ? 'border-blue-200 bg-blue-50/20' 
                           : 'border-slate-200 bg-white'
                       }`}
                     >
@@ -572,6 +596,16 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                               📅 {visit.scheduledDate} {visit.scheduledStart && `(${visit.scheduledStart})`}
                             </span>
                           )}
+                          {visit.status === 'COMPLETED' && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              ✓ Completed
+                            </span>
+                          )}
+                          {visit.durationMinutes ? (
+                            <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                              ⏱️ {visit.durationMinutes} mins
+                            </span>
+                          ) : null}
                         </div>
 
                         {visit.clinicName && (
@@ -588,6 +622,12 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                           </p>
                         )}
 
+                        {visit.completionNotes && (
+                          <p className="text-[11px] text-slate-700 bg-slate-50 p-2 rounded-lg font-medium border border-slate-200/60">
+                            <strong>Rep Field Notes:</strong> {visit.completionNotes}
+                          </p>
+                        )}
+
                         {visit.visitPurpose && (
                           <p className="text-[11px] text-slate-600 bg-slate-50 p-2 rounded-lg font-medium inline-block">
                             <strong>Agenda:</strong> {visit.visitPurpose}
@@ -597,21 +637,23 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
 
                       {/* Action Buttons for Team Lead */}
                       <div className="flex items-center gap-2 self-end md:self-center">
-                        {isPending ? (
+                        {isAwaitingReview ? (
                           <>
                             <button
                               onClick={() => handleApprove(visit.id)}
                               className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                              title="Acknowledge & verify completed call"
                             >
                               <Check size={14} />
-                              <span>Approve</span>
+                              <span>Acknowledge Call</span>
                             </button>
                             <button
                               onClick={() => handleReject(visit.id)}
                               className="px-3.5 py-1.5 bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                              title="Flag issues or request clarification"
                             >
                               <X size={14} />
-                              <span>Reject</span>
+                              <span>Flag Issue</span>
                             </button>
                           </>
                         ) : (
@@ -621,7 +663,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                                 ? 'bg-emerald-100 text-emerald-800' 
                                 : 'bg-rose-100 text-rose-800'
                             }`}>
-                              {visit.approvalStatus === 'approved' ? '✓ Approved' : '✗ Rejected'}
+                              {visit.approvalStatus === 'approved' ? '✓ Acknowledged' : '⚠ Flagged'}
                             </span>
                             <button
                               onClick={() => handleDelete(visit.id)}

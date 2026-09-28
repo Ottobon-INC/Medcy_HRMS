@@ -22,7 +22,7 @@ async function inspectEmployees() {
   console.log(`Total employees in DB: ${data?.length}`);
   console.log('List of employees:');
   data?.forEach((emp, index) => {
-    console.log(`${index + 1}. ID: ${emp.id} | Name: "${emp.name}" | Role: ${emp.role} | Designation: "${emp.designation}" | Hierarchy: ${emp.hierarchy_level} | Branch: ${emp.branch}`);
+    console.log(`${index + 1}. ID: ${emp.id} | Name: "${emp.name}" | Email: "${emp.email}" | Role: ${emp.role} | Designation: "${emp.designation}" | Hierarchy: ${emp.hierarchy_level} | ReportingTo: ${emp.reporting_to} | Branch: ${emp.branch} | Hospital: ${emp.hospital}`);
   });
 }
 
