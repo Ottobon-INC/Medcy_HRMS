@@ -54,15 +54,10 @@ export default function VisitDetailSheet({ language, visit, onClose, onUpdateSta
   setLoading(true);
   setError(null);
   
-  // Require photo and completion notes for completing a visit
+  // Require photo for completing a visit (notes are optional)
   if (newStatus === 'COMPLETED') {
    if (!photoData) {
     setError('Photo proof is required to complete this visit.');
-    setLoading(false);
-    return;
-   }
-   if (!notes.trim()) {
-    setError('Completion Notes / Summary is mandatory. Please provide a brief report before submitting.');
     setLoading(false);
     return;
    }
@@ -172,19 +167,19 @@ export default function VisitDetailSheet({ language, visit, onClose, onUpdateSta
       )}
      </div>
 
-     {/* Proof Capture UI (only show if arrived/in_progress or already completed) */}
-     {(visit.status === 'ARRIVED' || visit.status === 'IN_PROGRESS' || visit.status === 'COMPLETED') && (
+     {/* Proof Capture UI (show if ASSIGNED, ARRIVED, IN_PROGRESS or COMPLETED) */}
+     {(visit.status === 'ASSIGNED' || visit.status === 'ARRIVED' || visit.status === 'IN_PROGRESS' || visit.status === 'COMPLETED') && (
       <div className="space-y-4 border-t border-slate-100 pt-6">
        <h3 className="font-bold text-sm text-slate-800">Visit Proof</h3>
        
        {/* Photo Area */}
        <div className="border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center bg-slate-50/50 min-h-[200px] overflow-hidden relative">
         {photoData ? (
-         <img src={photoData} alt="Proof"className="w-full h-full object-cover absolute inset-0"/>
+         <img src={photoData} alt="Proof" className="w-full h-full object-cover absolute inset-0"/>
         ) : stream ? (
          <>
           <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover absolute inset-0"/>
-          <button onClick={capturePhoto} className="absolute bottom-4 bg-white text-[#8a42db] px-6 py-2 rounded-full font-bold shadow-sm z-10 flex items-center gap-2">
+          <button onClick={capturePhoto} className="absolute bottom-4 bg-white text-[#8a42db] px-6 py-2 rounded-full font-bold shadow-sm z-10 flex items-center gap-2 cursor-pointer">
            <Camera className="w-5 h-5"/> Capture
           </button>
          </>
@@ -193,7 +188,7 @@ export default function VisitDetailSheet({ language, visit, onClose, onUpdateSta
           <Camera className="w-10 h-10 text-slate-300 mx-auto mb-2"/>
           <p className="text-xs text-slate-500 font-medium mb-3">Photo proof is required</p>
           {visit.status !== 'COMPLETED' && (
-           <button onClick={startCamera} className="bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-300 transition-colors">
+           <button onClick={startCamera} className="bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold hover:bg-slate-300 transition-colors cursor-pointer">
             Open Camera
            </button>
           )}
@@ -204,14 +199,13 @@ export default function VisitDetailSheet({ language, visit, onClose, onUpdateSta
        {/* Notes Area */}
        <div>
         <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-         <span>Departure Summary Notes <span className="text-rose-500">*</span></span>
-         <span className="text-[10px] text-rose-500 font-semibold">Mandatory</span>
+         <span>Visit Notes <span className="text-slate-400 font-normal">(Optional)</span></span>
         </label>
         <textarea
          disabled={visit.status === 'COMPLETED'}
          className="w-full bg-slate-50 border border-slate-200 focus:border-[#8a42db] rounded-xl text-sm p-3 focus:ring-2 focus:ring-[#8a42db]/20 disabled:opacity-70 text-slate-800"
          rows={3}
-         placeholder="Enter detailed visit summary (e.g. discussions held, product samples given, follow-ups)..."
+         placeholder="Enter visit notes (e.g. discussions held, product samples given, follow-ups)..."
          value={visit.status === 'COMPLETED' ? visit.completionNotes || '' : notes}
          onChange={(e) => setNotes(e.target.value)}
         />
@@ -223,50 +217,29 @@ export default function VisitDetailSheet({ language, visit, onClose, onUpdateSta
 
     {/* Footer Actions based on status */}
     <div className="p-6 bg-white border-t border-slate-100">
-     {visit.status === 'ASSIGNED' && (
-      (() => {
-       const todayStr = new Date().toISOString().split('T')[0];
-       const isToday = !visit.scheduledDate || visit.scheduledDate === todayStr;
-       
-       if (!isToday) {
-        return (
-         <div className="w-full bg-slate-100 text-slate-600 py-3.5 px-4 rounded-xl text-xs font-bold text-center border border-slate-200">
-          📅 Scheduled for {visit.scheduledDate} {visit.scheduledStart ? `at ${visit.scheduledStart}` : ''}
-          <span className="block text-[11px] font-medium text-slate-400 mt-0.5">En Route trip can be started on the scheduled date</span>
-         </div>
-        );
-       }
-
-       return (
-        <button 
-         onClick={() => handleAction('EN_ROUTE')} disabled={loading}
-         className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold transition-all shadow-sm shadow-blue-600/20"
-        >
-         {loading ? 'Processing...' : 'Start Trip (En Route)'}
-        </button>
-       );
-      })()
-     )}
-     
-     {visit.status === 'EN_ROUTE' && (
+     {visit.status !== 'COMPLETED' ? (
       <button 
-       onClick={() => handleAction('ARRIVED')} disabled={loading}
-       className="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-xl font-bold transition-all shadow-sm shadow-orange-600/20"
+       onClick={() => {
+        if (!photoData && !stream) {
+         startCamera();
+        } else {
+         handleAction('COMPLETED');
+        }
+       }} 
+       disabled={loading || (Boolean(stream) && !photoData)}
+       className="w-full bg-[#8a42db] hover:bg-[#7e3acb] disabled:opacity-50 disabled:bg-slate-300 text-white py-4 rounded-xl font-bold transition-all shadow-sm shadow-purple-600/20 flex justify-center items-center gap-2 cursor-pointer"
       >
-       {loading ? 'Processing...' : 'I Have Arrived'}
+       {loading ? (
+        'Completing...'
+       ) : !photoData && !stream ? (
+        <><Camera className="w-5 h-5"/> Snap Proof &amp; Complete</>
+       ) : !photoData && stream ? (
+        <><Camera className="w-5 h-5"/> Take Photo Above First</>
+       ) : (
+        <><CheckCircle2 className="w-5 h-5"/> Submit Visit Proof</>
+       )}
       </button>
-     )}
-     
-     {(visit.status === 'ARRIVED' || visit.status === 'IN_PROGRESS') && (
-      <button 
-       onClick={() => handleAction('COMPLETED')} disabled={loading || !photoData || !notes.trim()}
-       className="w-full bg-[#8a42db] hover:bg-[#7e3acb] disabled:opacity-50 disabled:bg-slate-300 text-white py-4 rounded-xl font-bold transition-all shadow-sm shadow-teal-600/20 flex justify-center items-center gap-2"
-      >
-       {loading ? 'Completing...' : <><CheckCircle2 className="w-5 h-5"/> Complete Visit</>}
-      </button>
-     )}
-
-     {visit.status === 'COMPLETED' && (
+     ) : (
       <div className="w-full bg-[#f3edfb] text-[#8a42db] py-4 rounded-xl font-bold text-center flex items-center justify-center gap-2">
        <CheckCircle2 className="w-5 h-5"/> Visit Completed
       </div>

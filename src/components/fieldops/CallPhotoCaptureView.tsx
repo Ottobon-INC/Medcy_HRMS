@@ -3,17 +3,10 @@ import {
  Camera,
  RefreshCw,
  MapPin,
- Clock,
  CheckCircle2,
  AlertCircle,
- Play,
- Square,
- ChevronRight,
  Phone,
  FileText,
- Maximize2,
- Sparkles,
- Navigation,
  Plus
 } from 'lucide-react';
 import { FieldVisit, Language, Employee } from '../../types';
@@ -51,15 +44,12 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
 
  // Photo & Location Capture State
  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
- const [captureStage, setCaptureStage] = useState<'idle' | 'start_preview' | 'end_preview'>('idle');
+ const [captureStage, setCaptureStage] = useState<'idle' | 'proof_capture'>('idle');
  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; address?: string } | null>(null);
  const [gpsLoading, setGpsLoading] = useState(false);
  const [notes, setNotes] = useState('');
  const [submitting, setSubmitting] = useState(false);
  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
- // Active call duration timer
- const [durationSeconds, setDurationSeconds] = useState(0);
 
  // 1. Fetch Today's Visits for Employee
  const loadVisits = useCallback(async () => {
@@ -122,19 +112,6 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
     }
    }
    setVisits(data);
-
-   // Check if there is already an in-progress call
-   const ongoing = data.find(v => v.status === 'IN_PROGRESS');
-   if (ongoing) {
-    setActiveVisit(ongoing);
-    if (ongoing.startedAt) {
-     const startMs = new Date(ongoing.startedAt).getTime();
-     const nowMs = Date.now();
-     setDurationSeconds(Math.max(0, Math.floor((nowMs - startMs) / 1000)));
-    }
-   } else {
-    setActiveVisit(null);
-   }
   } catch (err) {
    console.error('Failed to load visits:', err);
   } finally {
@@ -146,16 +123,6 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
   loadVisits();
  }, [loadVisits]);
 
- // Duration timer ticker
- useEffect(() => {
-  let interval: any;
-  if (activeVisit && activeVisit.status === 'IN_PROGRESS') {
-   interval = setInterval(() => {
-    setDurationSeconds(prev => prev + 1);
-   }, 1000);
-  }
-  return () => clearInterval(interval);
- }, [activeVisit]);
 
  useEffect(() => {
   if (isCameraActive && videoRef.current && streamRef.current) {
@@ -295,69 +262,30 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
   stopCamera();
  };
 
- // 5. Start Call Action
- const handleInitiateStartCall = async (visit: FieldVisit) => {
+ // 5. Single Snap Proof Actions
+ const handleInitiateSnapProof = async (visit: FieldVisit) => {
   setActiveVisit(visit);
-  setCaptureStage('start_preview');
+  setCaptureStage('proof_capture');
   setCapturedPhoto(null);
+  setNotes('');
   await acquireLocation();
   await startCamera(facingMode);
  };
 
- const handleConfirmStartCall = async () => {
+ const handleSubmitSnapProof = async () => {
   if (!activeVisit || !capturedPhoto) return;
   setSubmitting(true);
   try {
-   const updated = await fieldVisitService.startCallWithPhoto(
+   await fieldVisitService.completeVisitWithProof(
     activeVisit.id,
     employeeId,
     capturedPhoto,
     currentLocation?.lat,
     currentLocation?.lng,
-    currentLocation?.address,
-    notes
+    notes.trim() || undefined
    );
 
-   setActiveVisit(updated);
-   setCaptureStage('idle');
-   setCapturedPhoto(null);
-   setDurationSeconds(0);
-   setSuccessMessage('Arrival logged! Proof photo and GPS coordinates recorded for this visit.');
-   setTimeout(() => setSuccessMessage(null), 4000);
-   await loadVisits();
-  } catch (err: any) {
-   alert('Failed to record start call photo: ' + err.message);
-  } finally {
-   setSubmitting(false);
-  }
- };
-
- // 6. End Call Action
- const handleInitiateEndCall = async () => {
-  setCaptureStage('end_preview');
-  setCapturedPhoto(null);
-  await acquireLocation();
-  await startCamera(facingMode);
- };
-
- const handleConfirmEndCall = async () => {
-  if (!activeVisit || !capturedPhoto) return;
-  if (!notes.trim()) {
-   alert('A Visit Departure Summary is required. Please provide a brief summary of the visit.');
-   return;
-  }
-  setSubmitting(true);
-  try {
-   await fieldVisitService.completeCallWithPhoto(
-    activeVisit.id,
-    employeeId,
-    capturedPhoto,
-    currentLocation?.lat,
-    currentLocation?.lng,
-    notes
-   );
-
-   setSuccessMessage('Visit closed! Departure proof and total duration saved successfully.');
+   setSuccessMessage('Visit completed! Proof photo and location tagged successfully.');
    setTimeout(() => setSuccessMessage(null), 4000);
    setActiveVisit(null);
    setCaptureStage('idle');
@@ -365,19 +293,10 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
    setNotes('');
    await loadVisits();
   } catch (err: any) {
-   alert('Failed to complete call: ' + err.message);
+   alert('Failed to submit visit proof: ' + err.message);
   } finally {
    setSubmitting(false);
   }
- };
-
-
-
- const formatTimer = (seconds: number) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  const hrs = Math.floor(mins / 60);
-  return `${hrs > 0 ? hrs.toString().padStart(2, '0') + ':' : ''}${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
  };
 
  return (
@@ -391,7 +310,7 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
       </div>
       <div>
        <h2 className="text-xl font-black text-slate-800">Field Visit Log</h2>
-       <p className="text-xs text-slate-400 font-medium">Log your doctor & clinic visits with GPS-verified arrival and departure proof photos</p>
+       <p className="text-xs text-slate-400 font-medium">Log your doctor & clinic visits with single GPS-verified proof photos after completion</p>
       </div>
      </div>
     </div>
@@ -414,57 +333,6 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
     </div>
    )}
 
-   {/* ACTIVE CALL IN-PROGRESS BANNER */}
-   {activeVisit && activeVisit.status === 'IN_PROGRESS' && captureStage === 'idle' && (
-    <div className="bg-gradient-to-r from-teal-700 to-teal-900 text-white rounded-2xl p-6 shadow-md border border-[#7e3acb] space-y-4">
-     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div className="space-y-1">
-       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400/20 text-amber-300 rounded-full text-xs font-black uppercase tracking-wider border border-amber-300/30">
-        <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"/>
-        Visit In Progress
-       </span>
-       <h3 className="text-lg font-black text-white">{activeVisit.title}</h3>
-       <p className="text-xs text-teal-200">
-        Started at: <span className="font-mono font-bold text-white">{activeVisit.startedAt ? new Date(activeVisit.startedAt).toLocaleTimeString() : 'Just now'}</span>
-       </p>
-      </div>
-
-      {/* Running Stopwatch Timer */}
-      <div className="bg-slate-900/60 px-6 py-3 rounded-2xl border border-[#8a42db]/40 text-center">
-       <span className="text-[10px] font-black uppercase tracking-widest text-teal-300 block">Duration</span>
-       <span className="text-3xl font-black font-mono tracking-tight text-white block mt-0.5">
-        {formatTimer(durationSeconds)}
-       </span>
-      </div>
-     </div>
-
-     <div className="pt-3 border-t border-[#7e3acb]/60 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      {activeVisit.startPhotoUrl && (
-       <div className="flex items-center gap-3">
-        <img
-         src={activeVisit.startPhotoUrl}
-         alt="Start photo proof"
-         className="w-12 h-12 rounded-xl object-cover border-2 border-teal-400 shadow-md"
-        />
-        <div>
-         <span className="text-[10px] font-black uppercase text-teal-300 block">Start Photo Verified</span>
-         <span className="text-xs text-teal-100 font-medium">GPS location registered</span>
-        </div>
-       </div>
-      )}
-
-      <button
-       type="button"
-       onClick={handleInitiateEndCall}
-       className="w-full sm:w-auto px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer hover:scale-105"
-      >
-       <Square className="w-4 h-4 fill-slate-950"/>
-       Depart & Snap Exit Proof
-      </button>
-     </div>
-    </div>
-   )}
-
    {/* CAMERA CAPTURE / PREVIEW WORKSPACE */}
    {captureStage !== 'idle' && (
     <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-md space-y-5 animate-in fade-in duration-200">
@@ -472,10 +340,10 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
       <div>
        <h3 className="font-black text-base text-white flex items-center gap-2">
         <Camera className="w-5 h-5 text-teal-400"/>
-        {captureStage === 'start_preview' ? 'Snap Arrival Proof' : 'Snap Departure Proof'}
+        Snap Visit Proof
        </h3>
        <p className="text-xs text-slate-400 font-medium mt-0.5">
-        {activeVisit?.title} • {captureStage === 'start_preview' ? 'Arrival proof photo for this visit' : 'Departure proof photo for this visit'}
+        {activeVisit?.title} • Snap completed visit proof photo with geotag
        </p>
       </div>
 
@@ -485,6 +353,7 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
         stopCamera();
         setCaptureStage('idle');
         setCapturedPhoto(null);
+        setActiveVisit(null);
        }}
        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
       >
@@ -581,21 +450,14 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
          <label className="text-xs font-bold text-slate-300 block mb-1.5 flex items-center justify-between">
           <span className="flex items-center gap-1.5">
            <FileText className="w-3.5 h-3.5 text-teal-400"/>
-           {captureStage === 'start_preview' ? 'Visit Arrival Notes (Optional)' : 'Visit Departure Summary *'}
+           Visit Notes <span className="text-slate-400 font-normal">(Optional)</span>
           </span>
-          {captureStage === 'end_preview' && (
-           <span className="text-[10px] text-rose-400 font-bold">Mandatory to close visit</span>
-          )}
          </label>
          <textarea
           rows={2}
           value={notes}
           onChange={e => setNotes(e.target.value)}
-          placeholder={
-           captureStage === 'start_preview'
-            ? 'e.g., Met with Dr. Rao at OPD reception...'
-            : 'e.g., Prescribed product samples handed over, discussion concluded (Required)...'
-          }
+          placeholder="e.g., Prescribed product samples handed over, doctor feedback..."
           className="w-full bg-slate-800 border border-slate-700 focus:border-teal-400 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-teal-400/40"
          />
         </div>
@@ -614,19 +476,15 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
 
          <button
           type="button"
-          disabled={submitting || (captureStage === 'end_preview' && !notes.trim())}
-          onClick={captureStage === 'start_preview' ? handleConfirmStartCall : handleConfirmEndCall}
+          disabled={submitting || !capturedPhoto}
+          onClick={handleSubmitSnapProof}
           className="px-6 py-2.5 rounded-xl bg-[#8a42db] hover:bg-[#7e3acb] disabled:opacity-40 disabled:cursor-not-allowed text-white font-black text-xs flex items-center gap-2 shadow-sm shadow-purple-600/30 transition-all cursor-pointer"
          >
           {submitting ? (
            <span>Uploading Proof...</span>
-          ) : captureStage === 'start_preview' ? (
-           <>
-            <Play className="w-4 h-4 fill-white"/> Confirm Arrival
-           </>
           ) : (
            <>
-            <CheckCircle2 className="w-4 h-4"/> Confirm Departure &amp; Close Visit
+            <CheckCircle2 className="w-4 h-4"/> Submit Visit Proof
            </>
           )}
          </button>
@@ -646,7 +504,7 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
        Today's Assigned Visits ({visits.length})
       </h3>
       <p className="text-xs text-slate-400 font-medium mt-0.5">
-       Select a visit to begin logging your arrival proof
+       After your visit, tap &quot;Snap Proof &amp; Submit&quot; to capture proof and close the call
       </p>
      </div>
     </div>
@@ -704,37 +562,17 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
           </span>
          </div>
 
-         {/* Start & End Photos comparison if available */}
-         {(visit.startPhotoUrl || visit.proofPhotoUrl) && (
-          <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 grid grid-cols-2 gap-2 text-[10px] font-medium text-slate-600">
-           <div className="flex items-center gap-2">
-            {visit.startPhotoUrl ? (
-             <img
-              src={visit.startPhotoUrl}
-              alt="Start photo"
-              className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
-             />
-            ) : (
-             <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
-              <Camera className="w-4 h-4"/>
-             </div>
-            )}
-            <span className="truncate">Start Photo</span>
-           </div>
-
-           <div className="flex items-center gap-2 border-l border-slate-100 pl-2">
-            {visit.proofPhotoUrl ? (
-             <img
-              src={visit.proofPhotoUrl}
-              alt="End photo"
-              className="w-9 h-9 rounded-lg object-cover border border-slate-200 shrink-0"
-             />
-            ) : (
-             <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
-              <Camera className="w-4 h-4"/>
-             </div>
-            )}
-            <span className="truncate">End Photo</span>
+         {/* Snap Proof Photo if available */}
+         {(visit.proofPhotoUrl || visit.startPhotoUrl) && (
+          <div className="bg-white p-2.5 rounded-xl border border-slate-200/80 flex items-center gap-2.5 text-[10px] font-medium text-slate-600">
+           <img
+            src={visit.proofPhotoUrl || visit.startPhotoUrl}
+            alt="Visit proof"
+            className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0"
+           />
+           <div className="min-w-0">
+            <span className="font-bold text-slate-700 block truncate">Snap Proof Verified</span>
+            <span className="text-[10px] text-emerald-600 font-medium">GPS Geotagged</span>
            </div>
           </div>
          )}
@@ -767,14 +605,6 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
              </span>
             )}
            </div>
-          ) : isOngoing ? (
-           <button
-            type="button"
-            onClick={handleInitiateEndCall}
-            className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
-           >
-            <Square className="w-3 h-3 fill-white"/> Depart & Close Visit
-           </button>
           ) : visit.approvalStatus === 'rejected' ? (
            <span className="px-3 py-1.5 rounded-lg bg-rose-100 text-rose-800 font-bold text-xs flex items-center gap-1" title={visit.rejectionReason || 'Rejected by Lead'}>
             ✗ Flagged by Lead
@@ -797,10 +627,10 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
             </button>
             <button
              type="button"
-             onClick={() => handleInitiateStartCall(visit)}
+             onClick={() => handleInitiateSnapProof(visit)}
              className="px-3.5 py-1.5 rounded-lg bg-[#8a42db] hover:bg-[#7e3acb] text-white font-bold text-xs flex items-center gap-1 cursor-pointer"
             >
-             <Play className="w-3 h-3 fill-white"/> Arrive & Snap Proof
+             <Camera className="w-3.5 h-3.5"/> Snap Proof &amp; Submit
             </button>
            </div>
           )}

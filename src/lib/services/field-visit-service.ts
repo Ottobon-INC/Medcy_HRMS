@@ -206,17 +206,39 @@ export async function updateVisitStatus(
       eventType = 'VISIT_COMPLETED';
       if (notes) updatePayload.completion_notes = notes;
       
+      if (latitude && longitude) {
+        updatePayload.actual_latitude = latitude;
+        updatePayload.actual_longitude = longitude;
+
+        // Calculate distance if assigned location exists and arrival_distance_m was not set
+        if (existing.assigned_latitude && existing.assigned_longitude && !existing.arrival_distance_m) {
+          const dist = getDistanceMeters(
+            latitude, longitude,
+            existing.assigned_latitude, existing.assigned_longitude
+          );
+          updatePayload.arrival_distance_m = Math.round(dist);
+          metadata.distance_m = Math.round(dist);
+
+          if (dist > (existing.allowed_radius_meters || 150)) {
+            updatePayload.location_exception = true;
+            metadata.exception = 'LOCATION_MISMATCH';
+          }
+        }
+      }
+      if (address) updatePayload.actual_address = address;
+      
       // Handle photo proof
       if (photoData) {
         updatePayload.proof_photo_url = photoData; // Store base64 directly for now
         await addProof(visitId, 'photo', photoData, latitude, longitude);
       }
       
-      // Calculate duration
-      if (existing.arrived_at) {
-        const arrTime = new Date(existing.arrived_at).getTime();
+      // Calculate duration if starting timestamp exists
+      const refTime = existing.arrived_at || existing.started_at;
+      if (refTime) {
+        const arrTime = new Date(refTime).getTime();
         const compTime = new Date(now).getTime();
-        updatePayload.duration_minutes = Math.round((compTime - arrTime) / 60000);
+        updatePayload.duration_minutes = Math.max(1, Math.round((compTime - arrTime) / 60000));
       }
 
       // Automatically transition completed calls to post_review for TL review queue (unless already flagged/rejected)
@@ -242,10 +264,6 @@ export async function updateVisitStatus(
         updatePayload.actual_longitude = longitude;
       }
       if (address) updatePayload.actual_address = address;
-      if (photoData) {
-        updatePayload.start_photo_url = photoData;
-        await addProof(visitId, 'photo', photoData, latitude, longitude);
-      }
       break;
 
     default:
@@ -305,30 +323,7 @@ export async function updateVisitStatus(
   return mapVisit(updatedData);
 }
 
-export async function startCallWithPhoto(
-  visitId: string,
-  employeeId: string,
-  photoData: string,
-  latitude?: number,
-  longitude?: number,
-  address?: string,
-  notes?: string
-): Promise<FieldVisit> {
-  return updateVisitStatus(
-    visitId,
-    employeeId,
-    'IN_PROGRESS',
-    undefined,
-    latitude,
-    longitude,
-    10,
-    address,
-    photoData,
-    notes
-  );
-}
-
-export async function completeCallWithPhoto(
+export async function completeVisitWithProof(
   visitId: string,
   employeeId: string,
   photoData: string,
@@ -353,6 +348,9 @@ export async function completeCallWithPhoto(
   }
   return result;
 }
+
+// Retain completeCallWithPhoto for backward compatibility
+export const completeCallWithPhoto = completeVisitWithProof;
 
 export async function createAdHocCall(
   employeeId: string,
