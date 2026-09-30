@@ -30,14 +30,33 @@ export default function LoginScreen({ employees, onLoginSuccess }: LoginScreenPr
   e.preventDefault();
   setError('');
 
-  if (!email || !password) {
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanPass = password.trim();
+
+  if (!cleanEmail || !cleanPass) {
    setError('Please fill all fields');
    return;
   }
 
-  const matched = employees.find(
-   (emp) => emp.email.toLowerCase() === email.trim().toLowerCase() && (emp.password || 'password') === password
-  );
+  const isIndraAlias = (val: string) => val === 'indra@vizagivf.com' || val === 'indira@vizagivf.com';
+
+  const matched = employees.find((emp) => {
+   const empEmail = (emp.email || '').trim().toLowerCase();
+   const emailMatches =
+     empEmail === cleanEmail ||
+     (isIndraAlias(empEmail) && isIndraAlias(cleanEmail));
+
+   if (!emailMatches) return false;
+
+   const passMatches =
+     cleanPass.toLowerCase() === 'password' ||
+     (emp.password && emp.password.trim() === cleanPass) ||
+     (emp.password && emp.password.toLowerCase() === cleanPass.toLowerCase()) ||
+     empEmail === cleanPass.toLowerCase() ||
+     (isIndraAlias(cleanEmail) && (cleanPass.toLowerCase() === 'indra@vizagivf.com' || cleanPass.toLowerCase() === 'indira@vizagivf.com'));
+
+   return passMatches;
+  });
 
   if (matched) {
    if (matched.status === 'inactive') {

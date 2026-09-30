@@ -20,6 +20,7 @@ const ExecutiveOverview = React.lazy(() => import('../ExecutiveOverview'));
 const OrgHierarchyView = React.lazy(() => import('../OrgHierarchyView'));
 const CallPhotoCaptureView = React.lazy(() => import('../fieldops/CallPhotoCaptureView').then(m => ({ default: m.CallPhotoCaptureView || m.default })));
 const DoctorVisitPlanner = React.lazy(() => import('../DoctorVisitPlanner'));
+const ASHAEncountersModule = React.lazy(() => import('../ASHAEncountersModule').then(m => ({ default: m.default || m.ASHAEncountersModule })));
 
 
 interface AppRouterProps {
@@ -201,6 +202,14 @@ export const AppRouter: React.FC<AppRouterProps> = ({
      language={language}
      currentUser={currentUser}
      employees={employees}
+    />
+   );
+  case 'ashaEncounters':
+   return (
+    <ASHAEncountersModule
+     language={language}
+     currentUser={currentUser}
+     employees={allEmployees || employees}
     />
    );
   case 'officeLocations':

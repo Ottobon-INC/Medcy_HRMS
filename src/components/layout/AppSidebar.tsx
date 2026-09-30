@@ -13,7 +13,8 @@ import {
   Power,
   Camera,
   Menu,
-  GitBranch
+  GitBranch,
+  HeartHandshake
 } from 'lucide-react';
 import { Employee } from '../../types';
 
@@ -123,6 +124,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Doctor Plans</span>
             </button>
 
+            <button onClick={() => onSelectTab('ashaEncounters')} className={getBtnClass('ashaEncounters')}>
+              <div className={getIconClass('ashaEncounters')}>
+                <HeartHandshake size={22} />
+              </div>
+              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">ASHA Encounters</span>
+            </button>
+
             {(isTeamLead || isAdmin) && (
               <>
                 <button onClick={() => onSelectTab('callCapture')} className={getBtnClass('callCapture')}>
@@ -209,6 +217,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 <Calendar size={22} />
               </div>
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Visit Planner</span>
+            </button>
+
+            <button onClick={() => onSelectTab('ashaEncounters')} className={getBtnClass('ashaEncounters')}>
+              <div className={getIconClass('ashaEncounters')}>
+                <HeartHandshake size={22} />
+              </div>
+              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">ASHA Encounters</span>
             </button>
 
             <button onClick={() => onSelectTab('attendance')} className={getBtnClass('attendance')}>

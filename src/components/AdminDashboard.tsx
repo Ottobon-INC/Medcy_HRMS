@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, Users, CheckCircle, Clock, AlertCircle, MapPin, ChevronRight, Calendar, Sun, Moon } from 'lucide-react';
+import { ArrowRight, Users, CheckCircle, Clock, AlertCircle, MapPin, ChevronRight, Calendar, Sun, Moon, HeartHandshake } from 'lucide-react';
 import { Language, Employee, LeaveRequest } from '../types';
 import { translations } from '../translations';
 import TickerAlert from './TickerAlert';
@@ -286,6 +286,16 @@ export default function AdminDashboard({ language, employees, setActiveTab }: Ad
                <button onClick={() => setActiveTab('adminTasks')} className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 transition-colors text-left border border-transparent cursor-pointer">
                   <span className="text-[13px] font-bold text-slate-700">Tasks</span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
+               </button>
+               <button onClick={() => setActiveTab('ashaEncounters')} className="w-full flex items-center justify-between p-4 rounded-2xl bg-purple-50/70 hover:bg-purple-100/70 transition-colors text-left border border-purple-100 cursor-pointer group">
+                  <div className="flex items-center gap-2.5">
+                    <HeartHandshake className="w-4 h-4 text-[#8a42db]" />
+                    <span className="text-[13px] font-bold text-slate-800 group-hover:text-[#8a42db] transition-colors">ASHA Encounters (Live)</span>
+                  </div>
+                  <span className="flex items-center gap-1.5 text-xs text-[#8a42db] font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                    <ChevronRight className="w-4 h-4 text-purple-400 group-hover:translate-x-0.5 transition-transform" />
+                  </span>
                </button>
             </div>
             
