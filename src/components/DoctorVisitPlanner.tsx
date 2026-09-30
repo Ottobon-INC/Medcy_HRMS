@@ -202,7 +202,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Doctor Visit Planner</h1>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Visit Planner</h1>
             {isTeamLead && (
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-[#8a42db]">
                 Team Lead
@@ -210,7 +210,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
             )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Plan, track, and verify daily clinic & doctor visits across hospital networks
+            Plan, track, and verify daily clinic, doctor, RMP & lab calls across hospital networks
           </p>
         </div>
 
@@ -226,7 +226,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
               }`}
             >
               <CalendarIcon size={14} />
-              <span>My Doctor Visits</span>
+              <span>My Calls</span>
             </button>
             <button
               onClick={() => setPlannerTab('team_approvals')}
@@ -277,7 +277,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                 className="flex items-center gap-2 px-4 py-2 bg-[#8a42db] hover:bg-[#7e3acb] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm shadow-purple-500/20"
               >
                 <Plus size={16} />
-                <span>Plan Doctor Visit</span>
+                <span>Plan a Call</span>
               </button>
             </div>
           </div>
@@ -349,7 +349,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                     className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#8a42db]/10 hover:bg-[#8a42db]/20 text-[#8a42db] rounded-xl text-xs font-bold transition-colors cursor-pointer"
                   >
                     <Plus size={14} />
-                    <span>Add Doctor</span>
+                    <span>Add Call</span>
                   </button>
                 </div>
 
@@ -362,9 +362,9 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                     <div className="w-14 h-14 rounded-2xl bg-purple-50 text-[#8a42db] flex items-center justify-center mb-3">
                       <Stethoscope size={28} />
                     </div>
-                    <h3 className="text-slate-700 font-bold text-sm mb-1">No doctor calls planned for this date</h3>
+                    <h3 className="text-slate-700 font-bold text-sm mb-1">No calls planned for this date</h3>
                     <p className="text-slate-400 text-xs max-w-xs mb-4">
-                      Plan your clinic visits now and start them freely. Your Team Lead will review completed calls.
+                      Plan your calls now and start them freely. Your Team Lead will review completed calls.
                     </p>
                     <button
                       onClick={() => {
@@ -373,7 +373,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                       }}
                       className="px-4 py-2 bg-[#8a42db] hover:bg-[#7e3acb] text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <Plus size={14} /> Plan a Doctor Call
+                      <Plus size={14} /> Plan a Call
                     </button>
                   </div>
                 ) : (
@@ -392,7 +392,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                           <div className="space-y-1 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <h3 className="text-sm font-bold text-slate-800">
-                                {visit.doctorName || visit.title}
+                                {visit.labName || visit.doctorName || visit.title}
                               </h3>
 
                               {/* Approval Status Badges */}
@@ -562,7 +562,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                 <h3 className="text-sm font-bold text-slate-700">All caught up!</h3>
                 <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
                   {approvalFilter === 'post_review' 
-                    ? 'No doctor calls awaiting review from your team right now.' 
+                    ? 'No calls awaiting review from your team right now.' 
                     : 'No team visit records found for this filter.'}
                 </p>
               </div>
@@ -589,7 +589,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
                           </span>
                           <span className="text-xs text-slate-400">•</span>
                           <span className="text-xs font-bold text-slate-800">
-                            {visit.doctorName || visit.title}
+                            {visit.labName || visit.doctorName || visit.title}
                           </span>
                           {visit.scheduledDate && (
                             <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded font-mono">

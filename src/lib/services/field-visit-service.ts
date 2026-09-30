@@ -41,6 +41,8 @@ function mapVisit(data: any): FieldVisit {
     rejectionReason: data.rejection_reason || undefined,
     doctorName: data.doctor_name || undefined,
     clinicName: data.clinic_name || undefined,
+    labName: data.lab_name || undefined,
+    callType: data.call_type || undefined,
     area: data.area || undefined,
     timeSlot: data.time_slot || undefined,
     visitPurpose: data.visit_purpose || undefined
@@ -70,37 +72,55 @@ export async function getAllVisitsForDate(date: string): Promise<FieldVisit[]> {
 }
 
 export async function createVisit(visit: Partial<FieldVisit>): Promise<FieldVisit> {
-  const { data, error } = await supabase
+  const insertPayload: any = {
+    employee_id: visit.employeeId,
+    session_id: visit.sessionId,
+    assigned_by: visit.assignedBy,
+    visit_type: visit.visitType || 'DOCTOR_VISIT',
+    title: visit.title,
+    description: visit.description,
+    scheduled_date: visit.scheduledDate,
+    scheduled_start: visit.scheduledStart,
+    scheduled_end: visit.scheduledEnd,
+    assigned_latitude: visit.assignedLatitude,
+    assigned_longitude: visit.assignedLongitude,
+    assigned_address: visit.assignedAddress,
+    allowed_radius_meters: visit.allowedRadiusMeters || 150,
+    priority: visit.priority || 'normal',
+    patient_name: visit.patientName,
+    client_reference: visit.clientReference,
+    status: visit.status || 'ASSIGNED',
+    approval_status: visit.approvalStatus || 'approved',
+    approved_by: visit.approvedBy || null,
+    rejection_reason: visit.rejectionReason || null,
+    doctor_name: visit.doctorName || null,
+    clinic_name: visit.clinicName || null,
+    lab_name: visit.labName || null,
+    call_type: visit.callType || 'DOCTOR',
+    area: visit.area || null,
+    time_slot: visit.timeSlot || null,
+    visit_purpose: visit.visitPurpose || null
+  };
+
+  let { data, error } = await supabase
     .from('HRMS_field_visits')
-    .insert([{
-      employee_id: visit.employeeId,
-      session_id: visit.sessionId,
-      assigned_by: visit.assignedBy,
-      visit_type: visit.visitType || 'DOCTOR_VISIT',
-      title: visit.title,
-      description: visit.description,
-      scheduled_date: visit.scheduledDate,
-      scheduled_start: visit.scheduledStart,
-      scheduled_end: visit.scheduledEnd,
-      assigned_latitude: visit.assignedLatitude,
-      assigned_longitude: visit.assignedLongitude,
-      assigned_address: visit.assignedAddress,
-      allowed_radius_meters: visit.allowedRadiusMeters || 150,
-      priority: visit.priority || 'normal',
-      patient_name: visit.patientName,
-      client_reference: visit.clientReference,
-      status: visit.status || 'ASSIGNED',
-      approval_status: visit.approvalStatus || 'approved',
-      approved_by: visit.approvedBy || null,
-      rejection_reason: visit.rejectionReason || null,
-      doctor_name: visit.doctorName || null,
-      clinic_name: visit.clinicName || null,
-      area: visit.area || null,
-      time_slot: visit.timeSlot || null,
-      visit_purpose: visit.visitPurpose || null
-    }])
+    .insert([insertPayload])
     .select()
     .single();
+
+  if (error && (error.message?.includes('lab_name') || error.message?.includes('call_type') || error.code === '42703')) {
+    console.warn('Columns lab_name or call_type may not exist in database, retrying without them:', error.message);
+    const fallbackPayload = { ...insertPayload };
+    delete fallbackPayload.lab_name;
+    delete fallbackPayload.call_type;
+    const retry = await supabase
+      .from('HRMS_field_visits')
+      .insert([fallbackPayload])
+      .select()
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) throw error;
   return mapVisit(data);

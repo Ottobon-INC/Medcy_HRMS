@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FieldVisitType, Language, Employee, FieldVisit } from '../types';
+import { FieldVisitType, Language, Employee, FieldVisit, CallType } from '../types';
 import * as fieldVisitService from '../lib/services/field-visit-service';
 import { EmployeeCheckInLocation } from '../lib/services/attendance-service';
 import { fieldOpsConfig } from '../lib/fieldOpsConfig';
@@ -41,8 +41,10 @@ export default function AssignVisitModal({
   const [scheduledDate, setScheduledDate] = useState(initialDate || new Date().toISOString().split('T')[0]);
   const [title, setTitle] = useState('');
   const [visitType, setVisitType] = useState<FieldVisitType>('DOCTOR_VISIT');
+  const [callType, setCallType] = useState<CallType>('DOCTOR');
   const [doctorName, setDoctorName] = useState('');
   const [clinicName, setClinicName] = useState('');
+  const [labName, setLabName] = useState('');
   const [patientName, setPatientName] = useState('');
   const [address, setAddress] = useState('');
   const [scheduledStart, setScheduledStart] = useState('');
@@ -194,7 +196,18 @@ export default function AssignVisitModal({
     const approvalStatus = 'approved';
     const approvedBy = isBaseEmployeeSelfScheduling ? undefined : (currentUser?.id || adminId);
 
-    const autoTitle = title.trim() || (doctorName ? `${doctorName}${clinicName ? ` - ${clinicName}` : ''}` : 'Doctor Visit');
+    let autoTitle = title.trim();
+    if (!autoTitle) {
+      if (callType === 'LAB') {
+        autoTitle = labName ? `Lab: ${labName}` : 'Lab Call';
+      } else if (callType === 'RMP') {
+        autoTitle = doctorName ? `RMP: ${doctorName}` : 'RMP Call';
+      } else if (callType === 'OTHER') {
+        autoTitle = doctorName ? `${doctorName}${clinicName ? ` - ${clinicName}` : ''}` : 'Call';
+      } else {
+        autoTitle = doctorName ? `${doctorName}${clinicName ? ` - ${clinicName}` : ''}` : 'Doctor Call';
+      }
+    }
 
     try {
       const created = await fieldVisitService.createVisit({
@@ -202,9 +215,11 @@ export default function AssignVisitModal({
         assignedBy: currentUser?.id || adminId,
         title: autoTitle,
         visitType,
-        patientName: patientName || doctorName,
-        doctorName: doctorName || undefined,
-        clinicName: clinicName || undefined,
+        callType,
+        patientName: patientName || (callType === 'LAB' ? labName : doctorName),
+        doctorName: callType !== 'LAB' ? (doctorName || undefined) : undefined,
+        clinicName: (callType === 'DOCTOR' || callType === 'OTHER') ? (clinicName || undefined) : undefined,
+        labName: callType === 'LAB' ? (labName || undefined) : undefined,
         visitPurpose: visitPurpose || undefined,
         scheduledDate,
         scheduledStart: scheduledStart || undefined,
@@ -239,10 +254,10 @@ export default function AssignVisitModal({
             <div>
               <h3 className="font-bold text-base text-slate-800">
                 {isSelfSchedule 
-                  ? (isBaseEmployeeSelfScheduling ? 'Plan Doctor Call' : 'Schedule Doctor Call') 
-                  : (isTeamLead ? 'Assign Team Doctor Call' : 'Assign Field / Doctor Visit')}
+                  ? (isBaseEmployeeSelfScheduling ? 'Plan a Call' : 'Schedule a Call') 
+                  : (isTeamLead ? 'Assign Team Call' : 'Assign Field Call')}
               </h3>
-              <p className="text-[11px] text-slate-500 font-medium">
+              <p className="text-[11px] text-slate-500 font-medium mt-0.5">
                 Type destination & press <span className="font-mono font-bold bg-slate-200/80 px-1 py-0.5 rounded text-[10px]">Enter ↵</span> to preview route
               </p>
             </div>
@@ -306,6 +321,31 @@ export default function AssignVisitModal({
                 </div>
               )}
 
+              {/* Call Type Dropdown */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Call Type *
+                </label>
+                <div className="relative">
+                  <select
+                    value={callType}
+                    onChange={(e) => {
+                      const newType = e.target.value as CallType;
+                      setCallType(newType);
+                      setDoctorName('');
+                      setClinicName('');
+                      setLabName('');
+                    }}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/20 text-slate-700 cursor-pointer"
+                  >
+                    <option value="DOCTOR">Doctor</option>
+                    <option value="RMP">RMP</option>
+                    <option value="LAB">Lab</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
+              </div>
+
               {/* Date & Time Row */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -339,11 +379,47 @@ export default function AssignVisitModal({
                 </div>
               </div>
 
-              {/* Doctor Name & Clinic Name */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Conditional Call Type Specific Fields */}
+              {callType === 'DOCTOR' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      Doctor Name *
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
+                      <input
+                        required
+                        type="text"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/20 text-slate-700"
+                        placeholder="e.g. Dr. K. Rao"
+                        value={doctorName}
+                        onChange={(e) => setDoctorName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      Clinic / Hospital
+                    </label>
+                    <div className="relative">
+                      <Building className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
+                      <input
+                        type="text"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/20 text-slate-700"
+                        placeholder="e.g. Care Hospital"
+                        value={clinicName}
+                        onChange={(e) => setClinicName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {callType === 'RMP' && (
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Doctor Name *
+                    RMP Name *
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
@@ -351,28 +427,68 @@ export default function AssignVisitModal({
                       required
                       type="text"
                       className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/20 text-slate-700"
-                      placeholder="e.g. Dr. K. Rao"
+                      placeholder="e.g. Dr. / RMP Ramesh Kumar"
                       value={doctorName}
                       onChange={(e) => setDoctorName(e.target.value)}
                     />
                   </div>
                 </div>
+              )}
+
+              {callType === 'LAB' && (
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                    Clinic / Hospital
+                    Lab Name *
                   </label>
                   <div className="relative">
                     <Building className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
                     <input
+                      required
                       type="text"
                       className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/20 text-slate-700"
-                      placeholder="e.g. Care Hospital"
-                      value={clinicName}
-                      onChange={(e) => setClinicName(e.target.value)}
+                      placeholder="e.g. Vijaya Diagnostic Lab"
+                      value={labName}
+                      onChange={(e) => setLabName(e.target.value)}
                     />
                   </div>
                 </div>
-              </div>
+              )}
+
+              {callType === 'OTHER' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      Doctor Name *
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
+                      <input
+                        required
+                        type="text"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/20 text-slate-700"
+                        placeholder="e.g. Dr. K. Rao"
+                        value={doctorName}
+                        onChange={(e) => setDoctorName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      Clinic / Hospital
+                    </label>
+                    <div className="relative">
+                      <Building className="w-4 h-4 text-slate-400 absolute left-3 top-3"/>
+                      <input
+                        type="text"
+                        className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#8a42db]/20 text-slate-700"
+                        placeholder="e.g. Care Hospital"
+                        value={clinicName}
+                        onChange={(e) => setClinicName(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Purpose of Visit */}
               <div>
@@ -488,7 +604,7 @@ export default function AssignVisitModal({
           <button
             type="submit"
             form="assign-visit-form"
-            disabled={loading || !doctorName || !address}
+            disabled={loading || !(callType === 'LAB' ? labName.trim() : doctorName.trim()) || !address}
             className="px-6 py-2.5 bg-[#8a42db] hover:bg-[#7e3acb] disabled:opacity-50 text-white rounded-xl text-xs font-bold uppercase transition-colors shadow-md shadow-purple-500/20 flex items-center gap-2 cursor-pointer"
           >
             <Navigation2 className="w-4 h-4"/>

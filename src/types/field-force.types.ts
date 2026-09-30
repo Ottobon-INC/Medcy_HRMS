@@ -70,10 +70,14 @@ export interface FieldVisit {
   rejectionReason?: string;
   doctorName?: string;
   clinicName?: string;
+  labName?: string;
+  callType?: CallType;
   area?: string;
   timeSlot?: string;
   visitPurpose?: string;
 }
+
+export type CallType = 'RMP' | 'LAB' | 'DOCTOR' | 'OTHER';
 
 export interface FieldVisitEvent {
   id: string;
