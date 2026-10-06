@@ -131,6 +131,45 @@ export const MEDCY_GHOST_EMPLOYEES: Array<{
     hierarchyLevel: 'team_lead',
     reportingTo: 'EMP-MEDCY-001',
     branch: 'visakhapatnam'
+  },
+  {
+    id: 'EMP-GHOST-TEST-MGR',
+    name: 'Test Manager',
+    email: 'test.mgr@medcy.com',
+    role: 'admin',
+    designation: 'Manager',
+    joiningDate: '2026-09-01',
+    status: 'pending',
+    hospital: 'medcy_hospitals',
+    hierarchyLevel: 'manager',
+    reportingTo: 'EMP-MEDCY-001',
+    branch: 'visakhapatnam'
+  },
+  {
+    id: 'EMP-GHOST-TEST-TL',
+    name: 'Test Team Lead',
+    email: 'test.tl@medcy.com',
+    role: 'admin',
+    designation: 'Team Lead',
+    joiningDate: '2026-09-01',
+    status: 'pending',
+    hospital: 'medcy_hospitals',
+    hierarchyLevel: 'team_lead',
+    reportingTo: 'EMP-GHOST-TEST-MGR',
+    branch: 'visakhapatnam'
+  },
+  {
+    id: 'EMP-GHOST-TEST-EMP',
+    name: 'Test Employee',
+    email: 'test.emp@medcy.com',
+    role: 'employee',
+    designation: 'Employee',
+    joiningDate: '2026-09-01',
+    status: 'pending',
+    hospital: 'medcy_hospitals',
+    hierarchyLevel: 'employee',
+    reportingTo: 'EMP-GHOST-TEST-TL',
+    branch: 'visakhapatnam'
   }
 ];
 
