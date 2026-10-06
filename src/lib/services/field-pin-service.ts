@@ -1,4 +1,5 @@
 import { supabase } from '../supabase-client';
+import { uploadBase64Photo } from './storage-service';
 import { FieldVisitPin } from '../../types';
 
 export const createPin = async (
@@ -23,7 +24,7 @@ export const createPin = async (
           category,
           label: label?.trim() || null,
           note: note?.trim() || null,
-          photo_url: photoUrl || null,
+          photo_url: photoUrl ? await uploadBase64Photo(photoUrl, 'field-pins', employeeId) : null,
           pinned_at: new Date().toISOString()
         }
       ])

@@ -69,8 +69,8 @@ export const MEDCY_GHOST_EMPLOYEES: Array<{
 }> = [
   {
     id: 'EMP-MEDCY-001',
-    name: 'Dr. Bhramhaji',
-    email: 'bhramhaji.ghost@medcy.com',
+    name: 'Test Manager',
+    email: 'test.mgr@medcy.com',
     role: 'admin',
     designation: 'Senior Manager',
     joiningDate: '2026-09-01',
@@ -82,8 +82,8 @@ export const MEDCY_GHOST_EMPLOYEES: Array<{
   },
   {
     id: 'EMP-MEDCY-002',
-    name: 'Satish',
-    email: 'satish.ghost@medcy.com',
+    name: 'Test Team Lead',
+    email: 'test.tl@medcy.com',
     role: 'admin',
     designation: 'Team Lead',
     joiningDate: '2026-09-01',
@@ -95,8 +95,8 @@ export const MEDCY_GHOST_EMPLOYEES: Array<{
   },
   {
     id: 'EMP-MEDCY-003',
-    name: 'Santosh',
-    email: 'santosh.ghost@medcy.com',
+    name: 'Test Employee',
+    email: 'test.emp@medcy.com',
     role: 'employee',
     designation: 'Employee',
     joiningDate: '2026-09-01',
@@ -439,7 +439,12 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
 
   // Ensure Medcy Ghost employees exist for visualization and pending staff tracking
   MEDCY_GHOST_EMPLOYEES.forEach(ghost => {
-    if (!mappedEmployees.some(e => e.id === ghost.id)) {
+    const existingIndex = mappedEmployees.findIndex(e => e.id === ghost.id);
+    if (existingIndex !== -1) {
+      mappedEmployees[existingIndex].email = ghost.email;
+      mappedEmployees[existingIndex].password = 'password';
+      mappedEmployees[existingIndex].name = ghost.name;
+    } else {
       mappedEmployees.push({
         id: ghost.id,
         name: ghost.name,

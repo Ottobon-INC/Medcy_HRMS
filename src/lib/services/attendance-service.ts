@@ -1,4 +1,5 @@
 import { supabase } from '../supabase-client';
+import { uploadBase64Photo } from './storage-service';
 import { AttendanceStatus, PunchType } from '../../types';
 
 
@@ -40,7 +41,7 @@ export async function clockInEmployee(
     punch_note: punchNote || null,
     session_number: nextSessionNumber
   };
-  if (photoUrl) payload.check_in_photo_url = photoUrl;
+  if (photoUrl) payload.check_in_photo_url = await uploadBase64Photo(photoUrl, 'attendance', empId);
 
   const { error } = await supabase
     .from('HRMS_attendance')
@@ -81,7 +82,7 @@ export async function clockOutEmployee(
     const payload: any = { 
       check_out_time: timeStr
     };
-    if (photoUrl) payload.check_out_photo_url = photoUrl;
+    if (photoUrl) payload.check_out_photo_url = await uploadBase64Photo(photoUrl, 'attendance', empId);
     if (location) payload.check_out_location = location;
     if (latLng) payload.check_out_lat_lng = latLng;
     
@@ -130,7 +131,7 @@ export async function clockOutEmployee(
       check_out_time: timeStr,
       session_number: nextSession
     };
-    if (photoUrl) payload.check_out_photo_url = photoUrl;
+    if (photoUrl) payload.check_out_photo_url = await uploadBase64Photo(photoUrl, 'attendance', empId);
     if (location) payload.check_out_location = location;
     if (latLng) payload.check_out_lat_lng = latLng;
     
