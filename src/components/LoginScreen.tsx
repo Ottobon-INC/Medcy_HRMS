@@ -166,35 +166,37 @@ export default function LoginScreen({ employees, onLoginSuccess }: LoginScreenPr
     </form>
 
     {/* DEV ONLY: Quick Test Buttons */}
-    <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
-      <p className="text-[10px] text-center font-bold text-slate-400 uppercase">Dev Testing (1-Click Login)</p>
-      <div className="grid grid-cols-3 gap-2">
-        <button
-          onClick={() => onLoginSuccess({
-            id: 'EMP-GHOST-TEST-MGR', name: 'Test Manager', email: 'test.mgr@medcy.com', role: 'admin', designation: 'Manager', joiningDate: '2026-01-01', status: 'active', branch: 'visakhapatnam', hierarchyLevel: 'manager', isCheckedIn: false, leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 } }, leaveRequests: [], attendanceRecords: [], checkInLogs: [], payslips: [], advanceRequests: []
-          })}
-          className="py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[10px] font-bold uppercase transition-colors"
-        >
-          Manager
-        </button>
-        <button
-          onClick={() => onLoginSuccess({
-            id: 'EMP-GHOST-TEST-TL', name: 'Test Team Lead', email: 'test.tl@medcy.com', role: 'admin', designation: 'Team Lead', joiningDate: '2026-01-01', status: 'active', branch: 'visakhapatnam', hierarchyLevel: 'team_lead', reportingTo: 'EMP-GHOST-TEST-MGR', isCheckedIn: false, leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 } }, leaveRequests: [], attendanceRecords: [], checkInLogs: [], payslips: [], advanceRequests: []
-          })}
-          className="py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold uppercase transition-colors"
-        >
-          Team Lead
-        </button>
-        <button
-          onClick={() => onLoginSuccess({
-            id: 'EMP-GHOST-TEST-EMP', name: 'Test Employee', email: 'test.emp@medcy.com', role: 'employee', designation: 'Employee', joiningDate: '2026-01-01', status: 'active', branch: 'visakhapatnam', hierarchyLevel: 'employee', reportingTo: 'EMP-GHOST-TEST-TL', isCheckedIn: false, leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 } }, leaveRequests: [], attendanceRecords: [], checkInLogs: [], payslips: [], advanceRequests: []
-          })}
-          className="py-2 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg text-[10px] font-bold uppercase transition-colors"
-        >
-          Employee
-        </button>
+    {import.meta.env.DEV && (
+      <div className="pt-4 border-t border-slate-100 flex flex-col gap-2">
+        <p className="text-[10px] text-center font-bold text-slate-400 uppercase">Dev Testing (1-Click Login)</p>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => onLoginSuccess({
+              id: 'EMP-GHOST-TEST-MGR', name: 'Test Manager', email: 'test.mgr@medcy.com', role: 'admin', designation: 'Manager', joiningDate: '2026-01-01', status: 'active', branch: 'visakhapatnam', hierarchyLevel: 'manager', isCheckedIn: false, basicSalary: 0, leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 } }, leaveRequests: [], attendanceRecords: [], checkInLogs: [], payslips: [], advanceRequests: []
+            } as any)}
+            className="py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-[10px] font-bold uppercase transition-colors"
+          >
+            Manager
+          </button>
+          <button
+            onClick={() => onLoginSuccess({
+              id: 'EMP-GHOST-TEST-TL', name: 'Test Team Lead', email: 'test.tl@medcy.com', role: 'admin', designation: 'Team Lead', joiningDate: '2026-01-01', status: 'active', branch: 'visakhapatnam', hierarchyLevel: 'team_lead', reportingTo: 'EMP-GHOST-TEST-MGR', isCheckedIn: false, basicSalary: 0, leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 } }, leaveRequests: [], attendanceRecords: [], checkInLogs: [], payslips: [], advanceRequests: []
+            } as any)}
+            className="py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold uppercase transition-colors"
+          >
+            Team Lead
+          </button>
+          <button
+            onClick={() => onLoginSuccess({
+              id: 'EMP-GHOST-TEST-EMP', name: 'Test Employee', email: 'test.emp@medcy.com', role: 'employee', designation: 'Employee', joiningDate: '2026-01-01', status: 'active', branch: 'visakhapatnam', hierarchyLevel: 'employee', reportingTo: 'EMP-GHOST-TEST-TL', isCheckedIn: false, basicSalary: 0, leaveBalance: { sick: { allowed: 6, taken: 0 }, casual: { allowed: 8, taken: 0 } }, leaveRequests: [], attendanceRecords: [], checkInLogs: [], payslips: [], advanceRequests: []
+            } as any)}
+            className="py-2 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-lg text-[10px] font-bold uppercase transition-colors"
+          >
+            Employee
+          </button>
+        </div>
       </div>
-    </div>
+    )}
 
    </div>
   </div>
