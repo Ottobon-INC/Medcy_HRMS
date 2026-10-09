@@ -72,16 +72,16 @@ export default function AdminAttendance({ language, employees, onUpdateAttendanc
  );
 
  // Calculate statistics for today across the scoped team
- const totalEmployees = filteredEmployees.filter(e => e.role !== 'admin').length;
+ const totalEmployees = filteredEmployees.filter(e => e.hierarchyLevel !== 'executive').length;
  
  const presentToday = filteredEmployees.filter(e => {
-  if (e.role === 'admin') return false;
+  if (e.hierarchyLevel === 'executive') return false;
   const todayRec = e.attendanceRecords.find(r => r.date === todayStr);
   return e.isCheckedIn || (todayRec && todayRec.status === 'present');
  }).length;
 
  const leaveToday = filteredEmployees.filter(e => {
-  if (e.role === 'admin') return false;
+  if (e.hierarchyLevel === 'executive') return false;
   const todayRec = e.attendanceRecords.find(r => r.date === todayStr);
   return todayRec && todayRec.status === 'leave';
  }).length;
@@ -276,7 +276,7 @@ export default function AdminAttendance({ language, employees, onUpdateAttendanc
       </thead>
       <tbody className="divide-y divide-slate-100">
        {filteredEmployees
-        .filter(emp => emp.role !== 'admin')
+        .filter(emp => emp.hierarchyLevel !== 'executive')
         .map(emp => {
          const empBranch = emp.branch || 'visakhapatnam';
          return (

@@ -65,7 +65,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
       </div>
 
       {/* Nav Items */}
-      <div className="flex-1 py-2 flex flex-col gap-0.5 overflow-hidden">
+      <div className="flex-1 py-2 flex flex-col gap-0.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
         {isAdmin ? (
           <>
             {isExecutive && (
@@ -131,23 +131,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                   </div>
                   <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Visit Log</span>
                 </button>
-                <button onClick={() => onSelectTab('fieldDuty')} className={getBtnClass('fieldDuty')}>
-                  <div className={getIconClass('fieldDuty')}>
-                    <MapPin size={22} />
-                  </div>
-                  <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Navigation</span>
-                </button>
               </>
             )}
 
-            {(!isTeamLead && !isSeniorManager) && (
-              <button onClick={() => onSelectTab('officeLocations')} className={getBtnClass('officeLocations')}>
-                <div className={getIconClass('officeLocations')}>
-                  <MapPin size={22} />
-                </div>
-                <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Locations</span>
-              </button>
-            )}
 
             <button onClick={() => onSelectTab('messages')} className={getBtnClass('messages')}>
               <div className={getIconClass('messages')}>
@@ -188,13 +174,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 <Home size={22} />
               </div>
               <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Home</span>
-            </button>
-
-            <button onClick={() => onSelectTab('fieldDuty')} className={getBtnClass('fieldDuty')}>
-              <div className={getIconClass('fieldDuty')}>
-                <MapPin size={22} />
-              </div>
-              <span className="ml-4 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[13px]">Navigation</span>
             </button>
 
             <button onClick={() => onSelectTab('callCapture')} className={getBtnClass('callCapture')}>

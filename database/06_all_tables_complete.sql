@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS "HRMS_employees" (
     "experience" NUMERIC(4, 1) DEFAULT 0.0,
     "dob" DATE,
     "bank_details" JSONB DEFAULT '{}'::jsonb,
+    "branch" VARCHAR(50),
+    "hospital" VARCHAR(50),
+    "hierarchy_level" VARCHAR(50),
+    "managed_branches" JSONB DEFAULT '[]'::jsonb,
+    "reporting_to" VARCHAR(255) REFERENCES "HRMS_employees"("id") ON DELETE SET NULL,
     "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
