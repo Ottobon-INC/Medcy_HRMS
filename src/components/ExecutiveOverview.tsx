@@ -38,7 +38,7 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
 
  // Branch statistics calculations
  const getBranchStats = (branchName: Branch) => {
-  const branchEmps = employees.filter(e => (e.branch || 'visakhapatnam') === branchName && e.role !== 'admin');
+  const branchEmps = employees.filter(e => (e.branch || 'visakhapatnam') === branchName && e.hierarchyLevel !== 'executive');
   const total = branchEmps.length;
   const checkedIn = branchEmps.filter(e => {
    const todayAtt = e.attendanceRecords?.find(a => a.date === todayStr);
@@ -62,14 +62,14 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
  const vizagStats = getBranchStats('visakhapatnam');
  const vizianagaramStats = getBranchStats('vizianagaram');
 
- const totalStaff = employees.filter(e => e.role !== 'admin').length;
+ const totalStaff = employees.filter(e => e.hierarchyLevel !== 'executive').length;
  const totalCheckedIn = employees.filter(e => {
-  if (e.role === 'admin') return false;
+  if (e.hierarchyLevel === 'executive') return false;
   const todayAtt = e.attendanceRecords?.find(a => a.date === todayStr);
   return e.isCheckedIn || (todayAtt && todayAtt.status === 'present');
  }).length;
  const totalOnLeave = employees.filter(e => {
-  if (e.role === 'admin') return false;
+  if (e.hierarchyLevel === 'executive') return false;
   const todayAtt = e.attendanceRecords?.find(a => a.date === todayStr);
   return todayAtt && todayAtt.status === 'leave';
  }).length;
@@ -80,7 +80,7 @@ export const ExecutiveOverview: React.FC<ExecutiveOverviewProps> = ({
 
  // Recent attendance activity
  const recentCheckIns = employees
-  .filter(e => e.role !== 'admin')
+  .filter(e => e.hierarchyLevel !== 'executive')
   .map(e => {
    const todayLog = e.checkInLogs?.find(l => l.date === todayStr);
    return {

@@ -1,4 +1,5 @@
 import { supabase } from '../supabase-client';
+import { uploadBase64Photo } from './storage-service';
 import { FieldVisit, FieldVisitStatus, FieldEventType, FieldVisitType } from '../../types';
 import { logFieldEvent } from './field-event-service';
 import { addProof } from './field-proof-service';
@@ -185,6 +186,10 @@ export async function updateVisitStatus(
     .single();
 
   if (fetchErr) throw fetchErr;
+
+  if (photoData) {
+    photoData = await uploadBase64Photo(photoData, 'field-visits', employeeId) || photoData;
+  }
 
   let updatePayload: any = { status };
   let eventType: FieldEventType;

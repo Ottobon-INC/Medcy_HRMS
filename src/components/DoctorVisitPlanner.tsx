@@ -26,6 +26,7 @@ import {
 import { Language, Employee, FieldVisit } from '../types';
 import { translations } from '../translations';
 import * as fieldVisitService from '../lib/services/field-visit-service';
+import { getTodayCheckInLocations, EmployeeCheckInLocation } from '../lib/services/attendance-service';
 import AssignVisitModal from './AssignVisitModal';
 
 interface DoctorVisitPlannerProps {
@@ -81,6 +82,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
   // Modal State
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'self' | 'assign'>('self');
+  const [checkIns, setCheckIns] = useState<EmployeeCheckInLocation[]>([]);
 
   // Team Review Queue Filter
   const [approvalFilter, setApprovalFilter] = useState<'post_review' | 'all' | 'approved' | 'rejected'>('post_review');
@@ -127,6 +129,15 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
         const postReviewIds = new Set(postReviewData.map(v => v.id));
         const merged = [...postReviewData, ...teamData.filter(v => !postReviewIds.has(v.id))];
         setTeamVisits(merged);
+      }
+      
+      // 3. Load check-in locations for the map routing origin
+      try {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const locations = await getTodayCheckInLocations(todayStr);
+        setCheckIns(locations);
+      } catch (checkInErr) {
+        console.error("Failed to load check-ins:", checkInErr);
       }
     } catch (err: any) {
       console.error("Failed to load doctor visits:", err);
@@ -691,6 +702,7 @@ export default function DoctorVisitPlanner({ language, currentUser, employees }:
           onClose={() => setIsAssignModalOpen(false)}
           employees={employees}
           adminId={currentUser.id}
+          checkIns={checkIns}
           currentUser={currentUser}
           initialDate={selectedDate}
           isSelfSchedule={modalMode === 'self'}

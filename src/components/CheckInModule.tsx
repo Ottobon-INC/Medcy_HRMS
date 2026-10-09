@@ -63,9 +63,9 @@ export default function CheckInModule({
    }
    let stream: MediaStream;
    try {
-    // BUG FIX: Use `ideal` constraint so it works on all Android cameras without NotFoundError
+    // BUG FIX: Removed `ideal` wrapper which causes 5-10s delay on Android
     stream = await navigator.mediaDevices.getUserMedia({ 
-     video: { facingMode: { ideal: 'user' } }, 
+     video: { facingMode: 'user' }, 
      audio: false 
     });
    } catch (firstErr: any) {
@@ -122,8 +122,15 @@ export default function CheckInModule({
   if (videoRef.current && canvasRef.current) {
    const video = videoRef.current;
    const canvas = canvasRef.current;
-   canvas.width = video.videoWidth;
-   canvas.height = video.videoHeight;
+   const maxW = 1280;
+   let cw = video.videoWidth || 1280;
+   let ch = video.videoHeight || 720;
+   if (cw > maxW) {
+    ch = Math.round(ch * (maxW / cw));
+    cw = maxW;
+   }
+   canvas.width = cw;
+   canvas.height = ch;
    const ctx = canvas.getContext('2d');
    if (ctx) {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -163,8 +170,15 @@ export default function CheckInModule({
   if (videoRef.current && canvasRef.current) {
    const video = videoRef.current;
    const canvas = canvasRef.current;
-   canvas.width = video.videoWidth;
-   canvas.height = video.videoHeight;
+   const maxW = 1280;
+   let cw = video.videoWidth || 1280;
+   let ch = video.videoHeight || 720;
+   if (cw > maxW) {
+    ch = Math.round(ch * (maxW / cw));
+    cw = maxW;
+   }
+   canvas.width = cw;
+   canvas.height = ch;
    const ctx = canvas.getContext('2d');
    if (ctx) {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);

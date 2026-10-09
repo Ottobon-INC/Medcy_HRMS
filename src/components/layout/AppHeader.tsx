@@ -48,10 +48,16 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             className="flex items-center cursor-pointer select-none"
             onClick={onLogoClick}
           >
-            {currentUser.hospital === 'medcy_hospitals' ? (
+            {currentUser.hospital === 'both' ? (
+               <div className="flex items-center gap-4">
+                 <img src="/logo.png" alt="Vizag IVF" className="h-10 w-auto max-w-[120px] object-contain" />
+                 <div className="w-[1.5px] h-8 bg-slate-200 rounded-full"></div>
+                 <img src="/medcy-Logo.jpeg" alt="Medcy Hospitals" className="h-8 w-auto max-w-[120px] object-contain mix-blend-multiply" />
+               </div>
+            ) : currentUser.hospital === 'medcy_hospitals' ? (
                <img src="/medcy-Logo.jpeg" alt="Medcy Hospitals" className="h-10 w-auto max-w-[150px] object-contain mix-blend-multiply" />
             ) : (
-               <img src="/logo.png" alt="Vizag IVF" className="h-15 w-auto max-w-[150px] object-contain" />
+               <img src="/logo.png" alt="Vizag IVF" className="h-12 w-auto max-w-[150px] object-contain" />
             )}
           </div>
         </div>

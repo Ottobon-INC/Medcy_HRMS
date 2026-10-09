@@ -89,7 +89,7 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
    }
    let stream: MediaStream;
    try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal:"user"} }, audio: false });
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
    } catch (firstErr: any) {
     if (firstErr.name ==="NotAllowedError") throw firstErr;
     stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -153,7 +153,10 @@ export default function DashboardSnapshot({ language, currentUser, isCheckedIn, 
   if (!videoRef.current || !canvasRef.current) return;
   const video = videoRef.current;
   const canvas = canvasRef.current;
-  canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+  const maxW = 1280;
+  let w = video.videoWidth || 1280, h = video.videoHeight || 720;
+  if (w > maxW) { h = Math.round(h * (maxW / w)); w = maxW; }
+  canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);

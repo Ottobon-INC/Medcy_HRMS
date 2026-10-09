@@ -68,9 +68,22 @@ export const MEDCY_GHOST_EMPLOYEES: Array<{
   branch: Branch;
 }> = [
   {
+    id: 'EMP-TEST-EXEC',
+    name: 'Test Executive',
+    email: 'test.exec@medcy.com',
+    role: 'admin',
+    designation: 'Director',
+    joiningDate: '2026-09-01',
+    status: 'pending',
+    hospital: 'medcy_hospitals',
+    hierarchyLevel: 'executive',
+    reportingTo: undefined,
+    branch: 'visakhapatnam'
+  },
+  {
     id: 'EMP-MEDCY-001',
-    name: 'Dr. Bhramhaji',
-    email: 'bhramhaji.ghost@medcy.com',
+    name: 'Test Manager',
+    email: 'test.mgr@medcy.com',
     role: 'admin',
     designation: 'Senior Manager',
     joiningDate: '2026-09-01',
@@ -82,8 +95,8 @@ export const MEDCY_GHOST_EMPLOYEES: Array<{
   },
   {
     id: 'EMP-MEDCY-002',
-    name: 'Satish',
-    email: 'satish.ghost@medcy.com',
+    name: 'Test Team Lead',
+    email: 'test.tl@medcy.com',
     role: 'admin',
     designation: 'Team Lead',
     joiningDate: '2026-09-01',
@@ -95,8 +108,8 @@ export const MEDCY_GHOST_EMPLOYEES: Array<{
   },
   {
     id: 'EMP-MEDCY-003',
-    name: 'Santosh',
-    email: 'santosh.ghost@medcy.com',
+    name: 'Test Employee',
+    email: 'test.emp@medcy.com',
     role: 'employee',
     designation: 'Employee',
     joiningDate: '2026-09-01',
@@ -143,12 +156,23 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
   if (empError) throw empError;
   if (!emps) return [];
 
-  const { data: att, error: attError } = await supabase.from('HRMS_attendance').select('*');
-  const { data: leaves, error: leavesError } = await supabase.from('HRMS_leave_requests').select('*');
-  const { data: balances, error: balError } = await supabase.from('HRMS_leave_balances').select('*');
-  const { data: payroll, error: payError } = await supabase.from('HRMS_payroll').select('*');
-  const { data: advances, error: advError } = await supabase.from('HRMS_advance_requests').select('*');
-  const { data: pins, error: pinsError } = await supabase.from('HRMS_location_pins').select('*');
+  const [
+    { data: att, error: attError },
+    { data: leaves, error: leavesError },
+    { data: balances, error: balError },
+    { data: payroll, error: payError },
+    { data: advances, error: advError },
+    { data: pins, error: pinsError },
+    { data: quotas, error: quotaError }
+  ] = await Promise.all([
+    supabase.from('HRMS_attendance').select('*'),
+    supabase.from('HRMS_leave_requests').select('*'),
+    supabase.from('HRMS_leave_balances').select('*'),
+    supabase.from('HRMS_payroll').select('*'),
+    supabase.from('HRMS_advance_requests').select('*'),
+    supabase.from('HRMS_location_pins').select('*'),
+    supabase.from('HRMS_monthly_leave_quota').select('*')
+  ]);
 
   if (attError) console.warn('Attendance sync notice:', attError.message);
   if (leavesError) console.warn('Leave requests sync notice:', leavesError.message);
@@ -156,8 +180,6 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
   if (payError && payError.code !== 'PGRST205') console.warn('Payroll sync notice:', payError.message);
   if (advError && advError.code !== 'PGRST205') console.warn('Advances sync notice:', advError.message);
   if (pinsError && pinsError.code !== 'PGRST205') console.warn('Location pins sync notice:', pinsError.message);
-
-  const { data: quotas, error: quotaError } = await supabase.from('HRMS_monthly_leave_quota').select('*');
   if (quotaError && quotaError.code !== 'PGRST205') console.warn('Monthly quotas sync notice:', quotaError.message);
   
   const currentMonth = new Date().toISOString().substring(0, 7);
@@ -439,7 +461,12 @@ export async function fetchAllEmployeesData(): Promise<Employee[]> {
 
   // Ensure Medcy Ghost employees exist for visualization and pending staff tracking
   MEDCY_GHOST_EMPLOYEES.forEach(ghost => {
-    if (!mappedEmployees.some(e => e.id === ghost.id)) {
+    const existingIndex = mappedEmployees.findIndex(e => e.id === ghost.id);
+    if (existingIndex !== -1) {
+      mappedEmployees[existingIndex].email = ghost.email;
+      mappedEmployees[existingIndex].password = 'password';
+      mappedEmployees[existingIndex].name = ghost.name;
+    } else {
       mappedEmployees.push({
         id: ghost.id,
         name: ghost.name,

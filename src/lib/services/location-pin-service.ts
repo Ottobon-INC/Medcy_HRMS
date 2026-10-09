@@ -1,4 +1,5 @@
 import { supabase } from '../supabase-client';
+import { uploadBase64Photo } from './storage-service';
 import { LocationPin, PinType } from '../../types';
 
 export async function addLocationPin(
@@ -24,7 +25,7 @@ export async function addLocationPin(
   if (latitude !== undefined) payload.latitude = latitude;
   if (longitude !== undefined) payload.longitude = longitude;
   if (locationName) payload.location_name = locationName;
-  if (photoUrl) payload.photo_url = photoUrl;
+  if (photoUrl) payload.photo_url = await uploadBase64Photo(photoUrl, 'location-pins', empId);
 
   const { error } = await supabase
     .from('HRMS_location_pins')

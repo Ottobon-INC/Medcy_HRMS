@@ -136,11 +136,7 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
   setCameraError(null);
   try {
    const stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-     facingMode: mode,
-     width: { ideal: 1280 },
-     height: { ideal: 720 }
-    }
+    video: { facingMode: mode }
    });
    streamRef.current = stream;
    if (videoRef.current) {
@@ -232,8 +228,18 @@ export const CallPhotoCaptureView: React.FC<CallPhotoCaptureViewProps> = ({
 
   const video = videoRef.current;
   const canvas = document.createElement('canvas');
-  canvas.width = video.videoWidth || 1280;
-  canvas.height = video.videoHeight || 720;
+  
+  const maxW = 1280;
+  let cw = video.videoWidth || 1280;
+  let ch = video.videoHeight || 720;
+  
+  if (cw > maxW) {
+   ch = Math.round(ch * (maxW / cw));
+   cw = maxW;
+  }
+  
+  canvas.width = cw;
+  canvas.height = ch;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 

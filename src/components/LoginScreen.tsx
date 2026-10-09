@@ -75,7 +75,20 @@ export default function LoginScreen({ employees, onLoginSuccess }: LoginScreenPr
     
     {/* Portal Header */}
     <div className="text-center space-y-4 flex flex-col items-center">
-     <SmsLogo className="justify-center"textSize="text-2xl sm:text-3xl font-black"/>
+     {/* Dynamic Logo based on Email input */}
+     <div className="flex items-center justify-center min-h-[64px] transition-all duration-300">
+       {email.toLowerCase().includes('@medcy') ? (
+          <img src="/medcy-Logo.jpeg" alt="Medcy Hospitals" className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto max-w-[200px] object-contain mix-blend-multiply drop-shadow-sm" />
+       ) : email.toLowerCase().includes('@vizag') ? (
+          <img src="/logo.png" alt="Vizag IVF" className="h-10 sm:h-12 md:h-14 lg:h-16 w-auto max-w-[200px] object-contain drop-shadow-sm" />
+       ) : (
+          <div className="flex items-center gap-4">
+            <img src="/logo.png" alt="Vizag IVF" className="h-10 sm:h-12 md:h-14 w-auto max-w-[140px] object-contain drop-shadow-sm" />
+            <div className="w-[1.5px] h-10 bg-slate-200 rounded-full"></div>
+            <img src="/medcy-Logo.jpeg" alt="Medcy Hospitals" className="h-8 sm:h-10 md:h-12 w-auto max-w-[140px] object-contain mix-blend-multiply drop-shadow-sm" />
+          </div>
+       )}
+     </div>
      <div className="pt-2 text-center">
       <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
        MEDCY HEALTH TECH HRMS PORTAL
